@@ -1,9 +1,53 @@
+import datetime
+import re
 from slack_bolt import App
 from slack_bolt.adapter.socket_mode import SocketModeHandler
+
+from sheet import write_worksheet
 
 BOT_TOKEN = "BOT_TOKEN"
 APP_TOKEN = "APP_TOKEN"
 app = App(token=BOT_TOKEN)
+
+
+@app.message("!제출")
+def say_hello(message, say, client, body, ack, shortcut):
+    user = message["user"]
+    # say(f"Hi there, <@{user}>!")
+
+    say(
+        blocks=[
+            {
+                "type": "section",
+                "text": {"type": "plain_text", "text": "내가 도와줄게 제출 버튼을 눌러줘:wave:"},
+                "accessory": {
+                    "type": "button",
+                    "text": {"type": "plain_text", "text": "제출"},
+                    "action_id": "button_click",
+                },
+            }
+        ]
+    )
+
+
+@app.message("!패스")
+def say_hello(message, say, client, body, ack, shortcut):
+    user = message["user"]
+    # say(f"Hi there, <@{user}>!")
+
+    say(
+        blocks=[
+            {
+                "type": "section",
+                "text": {"type": "plain_text", "text": "정말로 패스 한다면 버튼을 눌러줘:wave:"},
+                "accessory": {
+                    "type": "button",
+                    "text": {"type": "plain_text", "text": "패스"},
+                    "action_id": "button_click",
+                },
+            }
+        ]
+    )
 
 
 @app.event("app_mention")  # 앱을 언급했을 때
@@ -12,7 +56,7 @@ def who_am_i(event, client, message, say):
         blocks=[
             {
                 "type": "section",
-                "text": {"type": "plain_text", "text": ":wave: 글 제출 해볼까?"},
+                "text": {"type": "plain_text", "text": "내가 도와줄게 제출 버튼을 눌러줘:wave:"},
                 "accessory": {
                     "type": "button",
                     "text": {"type": "plain_text", "text": "제출"},
@@ -21,7 +65,7 @@ def who_am_i(event, client, message, say):
             },
             {
                 "type": "section",
-                "text": {"type": "plain_text", "text": ":wave: 이번에는 패스?"},
+                "text": {"type": "plain_text", "text": "정말로 패스 한다면 버튼을 눌러줘:wave:"},
                 "accessory": {
                     "type": "button",
                     "text": {"type": "plain_text", "text": "패스"},
@@ -82,7 +126,6 @@ def handle_submission(ack, body, client, view, logger, say):
     # channal = view["state"]["values"]["section678"]["text1234"]["selected_channel"]
     channal = view["private_metadata"]
     user = body["user"]["id"]
-    print(body)
 
     # Validate the inputs
     errors = {}
@@ -101,10 +144,13 @@ def handle_submission(ack, body, client, view, logger, say):
     try:
         # TODO: 스프레드 시트에 저장하기
         # TODO: 문구 수정하기 (유저 본인 호출 포함)
-        msg = f"Your submission of {hopes_and_dreams} was successful"
+        now_dt = datetime.datetime.now()
+        dt = datetime.datetime.strftime(now_dt, "%Y-%m-%d %H:%M:%S")
+        write_worksheet(hopes_and_dreams, "임시카테고리", dt)
+        msg = f"글 제출 완료!\n{hopes_and_dreams}"
     except Exception as e:
         # Handle error
-        msg = "There was an error with your submission"
+        raise ValueError(str(e))
 
     # Message the user
     try:
