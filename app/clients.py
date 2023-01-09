@@ -10,3 +10,11 @@ class SpreadSheetsClient:
 
     async def _worksheet(self) -> None:
         ...
+
+
+class FileSystemClient:
+    def __init__(self) -> None:
+        ...
+
+    async def create_file(self) -> None:
+        ...
