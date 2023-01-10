@@ -1,19 +1,21 @@
-from fastapi import FastAPI
-from pydantic import BaseModel
-from app.views import router as v1_router
+import os
+from dotenv import load_dotenv
+from fastapi import FastAPI, Request
+from slack_bolt.adapter.socket_mode.aiohttp import AsyncSocketModeHandler
+from app.views import slack
 
-app = FastAPI()
-
-
-class Event(BaseModel):
-    token: str
-    challenge: str
-    type: str
+load_dotenv()
 
 
-@app.post("/")
-async def verify(event: Event):
-    return {"challenge": event.challenge}
+api = FastAPI()
 
 
-app.include_router(v1_router, prefix="/v1")
+@api.on_event("startup")
+async def startup():
+    slack_handler = AsyncSocketModeHandler(slack, os.environ.get("APP_TOKEN"))
+    await slack_handler.start_async()
+
+
+@api.post("/")
+async def health(request: Request) -> bool:
+    return True

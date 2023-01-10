@@ -4,20 +4,7 @@ import datetime
 from app import clients
 
 
-class SubmitDao(abc.ABC):
-    @abc.abstractmethod
-    async def submit(
-        self,
-        username: str,
-        content_url: str,
-        dt: datetime.datetime,
-        category: str,
-        tag: str,
-    ) -> None:
-        ...
-
-
-class SpreadSheetsSubmitDao(SubmitDao):
+class SpreadSheetsDao:
     def __init__(self, client: clients.SpreadSheetsClient) -> None:
         self._client = client
 
@@ -31,3 +18,6 @@ class SpreadSheetsSubmitDao(SubmitDao):
     ) -> None:
         print(username, content_url, dt, category, tag)
         print("제출")
+
+
+sheets_Dao = SpreadSheetsDao(clients.SpreadSheetsClient())
