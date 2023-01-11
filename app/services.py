@@ -1,4 +1,6 @@
+import datetime
 from app.dao import SpreadSheetsDao, sheets_Dao
+from app import dto
 
 
 class SlackService:
@@ -141,6 +143,73 @@ class SlackService:
     async def pass_modal_open(self):
         print("pass")
         ...
+
+    def get_submission(self, body, view) -> dto.Submission:
+        submission = dto.Submission(
+            dt=datetime.datetime.strftime(datetime.datetime.now(), "%Y-%m-%d %H:%M:%S"),
+            user_id=body["user"]["id"],
+            username=body["user"]["username"],
+            content_url=self._get_content_url(view),
+            category=self._get_category(view),
+            description=self._get_description(view),
+            tag=self._get_tag(view),
+        )
+        return submission
+
+    async def send_chat_message(
+        self, client, view, logger, submission: dto.Submission
+    ) -> None:
+        tag_msg = self._get_tag_msg(submission.tag)
+        description_msg = self._get_description_msg(submission.description)
+        channal = view["private_metadata"]
+        try:
+            msg = f"<@{submission.user_id}>님 제출 완료🎉{description_msg}\
+                \n\ncategory : {submission.category}{tag_msg}\
+                \nlink : {submission.content_url}"
+            await client.chat_postMessage(channel=channal, text=msg)
+        except Exception as e:
+            logger.exception(f"Failed to post a message {str(e)}")
+
+    def _get_description(self, view) -> str:
+        description = view["state"]["values"]["description"]["plain_text_input-action"][
+            "value"
+        ]
+        if not description:
+            description = ""
+        return description
+
+    def _get_tag(self, view) -> str:
+        tag = ""
+        raw_tag = view["state"]["values"]["tag"]["dreamy_input"]["value"]
+        if raw_tag:
+            tag = ",".join(tag for tag in raw_tag.split(",") if tag)
+        return tag
+
+    def _get_category(self, view) -> str:
+        category = view["state"]["values"]["category"]["static_select-action"][
+            "selected_option"
+        ]["value"]
+
+        return category
+
+    def _get_content_url(self, view) -> str:
+        content_url = view["state"]["values"]["content"]["url_text_input-action"][
+            "value"
+        ]
+        return content_url
+
+    def _get_description_msg(self, description) -> str:
+        description_msg = ""
+        if description:
+            description_msg = f"\n\n💬 '{description}'"
+        return description_msg
+
+    def _get_tag_msg(self, tag) -> str:
+        tag_msg = ""
+        if tag:
+            tags = tag.split(",")
+            tag_msg = "\ntag : #" + " #".join(tags)
+        return tag_msg
 
 
 slack_service = SlackService(sheets_Dao)

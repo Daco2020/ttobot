@@ -1,5 +1,5 @@
 run-server:
-	uvicorn app:api --reload
+	uvicorn app:api --host 0.0.0.0 --port 8000 --reload
 
 freeze:
 	pip freeze > requirements.txt
