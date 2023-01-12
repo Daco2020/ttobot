@@ -1,18 +1,16 @@
-import os
-from dotenv import load_dotenv
+from app.config import settings
 from fastapi import FastAPI, Request
 from slack_bolt.adapter.socket_mode.aiohttp import AsyncSocketModeHandler
 from app.views import slack
 
-load_dotenv()
-
 
 api = FastAPI()
+# TODO: 로킹 미들웨어 추가필요
 
 
 @api.on_event("startup")
 async def startup():
-    slack_handler = AsyncSocketModeHandler(slack, os.environ.get("APP_TOKEN"))
+    slack_handler = AsyncSocketModeHandler(slack, settings.APP_TOKEN)
     await slack_handler.start_async()
 
 

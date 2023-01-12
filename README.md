@@ -1,4 +1,4 @@
-# 글똥이 슬랙 봇
+# Slack Bot 글똥이
 
 ### Python 3.10.4
 
@@ -27,4 +27,12 @@ make install
 ### 패키지 문서화
 ```
 make freeze
+```
+
+
+<br>
+
+### 정적타입 검사
+```
+make type-check
 ```

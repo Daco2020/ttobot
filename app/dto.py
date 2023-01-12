@@ -1,10 +1,9 @@
 from dataclasses import dataclass
-import datetime
 
 
 @dataclass(frozen=True)
 class Submission:
-    dt: datetime.datetime
+    dt: str
     user_id: str
     username: str
     content_url: str

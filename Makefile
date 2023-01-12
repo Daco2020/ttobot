@@ -6,3 +6,6 @@ freeze:
 
 install:
 	pip install -r requirements.txt
+
+type-check:
+	mypy -p app

@@ -1,17 +1,15 @@
 import datetime
-from app.dao import SpreadSheetsDao, sheets_Dao
-from app import dto
+import re
+from app.client import SpreadSheetClient
+from app.dto import Submission
 
 
 class SubmissionService:
-    def __init__(self, sheets_dao: SpreadSheetsDao) -> None:
-        self._sheets_dao = sheets_dao
+    def __init__(self, sheets_client: SpreadSheetClient) -> None:
+        self._sheets_client = sheets_client
+        self._url_regex = r"((http|https):\/\/)?[a-zA-Z0-9.-]+(\.[a-zA-Z]{2,})"
 
-    async def submit(self):
-        # TODO: 슬랙 로직 추가
-        await self._sheets_dao.submit(1, 2, 3, 4, 5)
-
-    async def open_modal(self, body, client, submit_view):
+    async def open_modal(self, body, client, submit_view) -> None:
         await client.views_open(
             # Pass a valid trigger_id within 3 seconds of receiving it
             trigger_id=body["trigger_id"],
@@ -29,7 +27,8 @@ class SubmissionService:
                         "block_id": "required_section",
                         "text": {
                             "type": "mrkdwn",
-                            "text": "글 쓰느라 고생 많았어~! 짝짝짝 👏🏼\n글 [링크]와 [카테고리]를 입력하고 제출을 눌러줘~ 🥳",
+                            "text": "글 쓰느라 고생 많았어~! 👏🏼👏🏼👏🏼\
+                                \n[글 링크]와 [카테고리]를 입력하고 제출을 눌러줘~ 🥳",
                         },
                     },
                     {
@@ -140,8 +139,10 @@ class SubmissionService:
             },
         )
 
-    def get_submission(self, body, view) -> dto.Submission:
-        submission = dto.Submission(
+    async def get(self, ack, body, view) -> Submission:
+        content_url = self._get_content_url(view)
+        await self._validate_url(ack, content_url)
+        submission = Submission(
             dt=datetime.datetime.strftime(datetime.datetime.now(), "%Y-%m-%d %H:%M:%S"),
             user_id=body["user"]["id"],
             username=body["user"]["username"],
@@ -152,8 +153,11 @@ class SubmissionService:
         )
         return submission
 
+    def submit(self, submission: Submission) -> None:
+        self._sheets_client.submit(submission)
+
     async def send_chat_message(
-        self, client, view, logger, submission: dto.Submission
+        self, client, view, logger, submission: Submission
     ) -> None:
         tag_msg = self._get_tag_msg(submission.tag)
         description_msg = self._get_description_msg(submission.description)
@@ -207,6 +211,12 @@ class SubmissionService:
             tag_msg = "\ntag : #" + " #".join(tags)
         return tag_msg
 
+    async def _validate_url(self, ack, content_url) -> None:
+        if not re.match(self._url_regex, content_url):
+            errors = {}
+            errors["content"] = "링크는 url 주소여야 합니다."
+            await ack(response_action="errors", errors=errors)
+            raise ValueError
 
 
 class PassService:
@@ -218,5 +228,5 @@ class PassService:
         ...
 
 
-submission_service = SubmissionService(sheets_Dao)
+submission_service = SubmissionService(SpreadSheetClient())
 pass_service = PassService()
