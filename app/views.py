@@ -30,14 +30,14 @@ async def submit_view(ack, body, client, view, logger, say) -> None:
     await ack()
     submission = submission_service.get_submission(body, view)
 
-    if not await _is_error_in_url(ack, submission.content_url):
+    if not await _is_valid_url(ack, submission.content_url):
         return None
 
     write_worksheet(submission)
     await submission_service.send_chat_message(client, view, logger, submission)
 
 
-async def _is_error_in_url(ack, content_url) -> bool:
+async def _is_valid_url(ack, content_url) -> bool:
     if re.match(url_regex, content_url):
         return True
     else:
