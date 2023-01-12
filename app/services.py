@@ -28,7 +28,7 @@ class SubmissionService:
                         "text": {
                             "type": "mrkdwn",
                             "text": "글 쓰느라 고생 많았어~! 👏🏼👏🏼👏🏼\
-                                \n[글 링크]와 [카테고리]를 입력하고 제출을 눌러줘~ 🥳",
+                                \n[글 링크]와 [카테고리]를 제출하면 끝 🥳",
                         },
                     },
                     {
@@ -97,7 +97,6 @@ class SubmissionService:
                         },
                     },
                     {"type": "divider"},
-                    {"type": "divider"},
                     {
                         "type": "input",
                         "block_id": "description",
@@ -107,13 +106,13 @@ class SubmissionService:
                             "action_id": "plain_text_input-action",
                             "placeholder": {
                                 "type": "plain_text",
-                                "text": "남기고 싶은 말을 자유롭게 적어주세요",
+                                "text": "입력",
                             },
                             "multiline": True,
                         },
                         "label": {
                             "type": "plain_text",
-                            "text": "남기고 싶은 말",
+                            "text": "하고 싶은 말",
                             "emoji": True,
                         },
                     },
@@ -130,7 +129,7 @@ class SubmissionService:
                             "action_id": "dreamy_input",
                             "placeholder": {
                                 "type": "plain_text",
-                                "text": "'회고,파이썬,생각, ... ' 처럼 콤마로 구분해서 적어주세요",
+                                "text": "'태그1,태그2,태그3, ... '",
                             },
                             "multiline": False,
                         },
