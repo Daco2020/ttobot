@@ -3,7 +3,7 @@ from app.dao import SpreadSheetsDao, sheets_Dao
 from app import dto
 
 
-class SlackService:
+class SubmissionService:
     def __init__(self, sheets_dao: SpreadSheetsDao) -> None:
         self._sheets_dao = sheets_dao
 
@@ -11,7 +11,7 @@ class SlackService:
         # TODO: 슬랙 로직 추가
         await self._sheets_dao.submit(1, 2, 3, 4, 5)
 
-    async def submit_modal_open(self, body, client, submit_view):
+    async def open_modal(self, body, client, submit_view):
         await client.views_open(
             # Pass a valid trigger_id within 3 seconds of receiving it
             trigger_id=body["trigger_id"],
@@ -29,7 +29,7 @@ class SlackService:
                         "block_id": "required_section",
                         "text": {
                             "type": "mrkdwn",
-                            "text": "글 쓰느라 고생 많았어~! 짝짝짝 👏🏼\n글 링크와 카테고리를 입력하고 제출 버튼을 누르면 완료! 🥳",
+                            "text": "글 쓰느라 고생 많았어~! 짝짝짝 👏🏼\n글 [링크]와 [카테고리]를 입력하고 제출을 눌러줘~ 🥳",
                         },
                     },
                     {
@@ -140,10 +140,6 @@ class SlackService:
             },
         )
 
-    async def pass_modal_open(self):
-        print("pass")
-        ...
-
     def get_submission(self, body, view) -> dto.Submission:
         submission = dto.Submission(
             dt=datetime.datetime.strftime(datetime.datetime.now(), "%Y-%m-%d %H:%M:%S"),
@@ -163,8 +159,8 @@ class SlackService:
         description_msg = self._get_description_msg(submission.description)
         channal = view["private_metadata"]
         try:
-            msg = f"<@{submission.user_id}>님 제출 완료🎉{description_msg}\
-                \n\ncategory : {submission.category}{tag_msg}\
+            msg = f"\n<@{submission.user_id}>님 제출 완료🎉{description_msg}\
+                \ncategory : {submission.category}{tag_msg}\
                 \nlink : {submission.content_url}"
             await client.chat_postMessage(channel=channal, text=msg)
         except Exception as e:
@@ -201,7 +197,7 @@ class SlackService:
     def _get_description_msg(self, description) -> str:
         description_msg = ""
         if description:
-            description_msg = f"\n\n💬 '{description}'"
+            description_msg = f"\n\n💬 '{description}'\n"
         return description_msg
 
     def _get_tag_msg(self, tag) -> str:
@@ -212,4 +208,15 @@ class SlackService:
         return tag_msg
 
 
-slack_service = SlackService(sheets_Dao)
+
+class PassService:
+    def __init__(self) -> None:
+        ...
+
+    async def open_modal(self) -> None:
+        print("pass")
+        ...
+
+
+submission_service = SubmissionService(sheets_Dao)
+pass_service = PassService()
