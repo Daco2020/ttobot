@@ -6,7 +6,7 @@ class Settings(BaseSettings):
     APP_TOKEN: str = Field(env="APP_TOKEN")
 
     SCOPE: list = Field(env="SCOPE")
-    JSON_FILE_NAME: str = Field(env="JSON_FILE_NAME")
+    JSON_KEYFILE_DICT: dict = Field(env="JSON_KEYFILE_DICT")
     SPREAD_SHEETS_URL: str = Field(env="SPREAD_SHEETS_URL")
 
     class Config:

@@ -5,8 +5,8 @@ import gspread  # type: ignore
 from oauth2client.service_account import ServiceAccountCredentials  # type: ignore
 
 
-credentials = ServiceAccountCredentials.from_json_keyfile_name(
-    settings.JSON_FILE_NAME, settings.SCOPE
+credentials = ServiceAccountCredentials.from_json_keyfile_dict(
+    settings.JSON_KEYFILE_DICT, settings.SCOPE
 )
 gc = gspread.authorize(credentials)
 
