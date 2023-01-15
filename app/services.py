@@ -2,7 +2,7 @@ import datetime
 import re
 from typing import Any
 from app.client import SpreadSheetClient
-from app.dto import Submission
+from app import dto
 
 
 class SubmissionService:
@@ -10,16 +10,15 @@ class SubmissionService:
         self._sheets_client = sheets_client
         self._url_regex = r"((http|https):\/\/)?[a-zA-Z0-9.-]+(\.[a-zA-Z]{2,})"
 
-    async def open_modal(self, body, client, submit_view) -> None:
+    async def open_modal(self, body, client, view_name: str) -> None:
         await client.views_open(
-            trigger_id=body["trigger_id"],
-            view=self._get_modal_view(body, submit_view),
+            trigger_id=body["trigger_id"], view=self._get_modal_view(body, view_name)
         )
 
-    async def get(self, ack, body, view) -> Submission:
+    async def get(self, ack, body, view) -> dto.Submission:
         content_url = self._get_content_url(view)
         await self._validate_url(ack, content_url)
-        submission = Submission(
+        submission = dto.Submission(
             dt=datetime.datetime.strftime(datetime.datetime.now(), "%Y-%m-%d %H:%M:%S"),
             user_id=body["user"]["id"],
             username=body["user"]["username"],
@@ -30,11 +29,11 @@ class SubmissionService:
         )
         return submission
 
-    def submit(self, submission: Submission) -> None:
+    def submit(self, submission: dto.Submission) -> None:
         self._sheets_client.submit(submission)
 
     async def send_chat_message(
-        self, client, view, logger, submission: Submission
+        self, client, view, logger, submission: dto.Submission
     ) -> None:
         tag_msg = self._get_tag_msg(submission.tag)
         description_msg = self._get_description_msg(submission.description)
@@ -220,13 +219,99 @@ class SubmissionService:
 
 
 class PassService:
-    def __init__(self) -> None:
-        ...
+    def __init__(self, sheets_client: SpreadSheetClient) -> None:
+        self._sheets_client = sheets_client
 
-    async def open_modal(self) -> None:
-        print("pass")
-        ...
+    async def open_modal(self, body, client, view_name: str) -> None:
+        await client.views_open(
+            trigger_id=body["trigger_id"], view=self._get_modal_view(body, view_name)
+        )
+
+    async def get(self, ack, body, view) -> dto.Pass:
+        username = body["user"]["username"]
+        await self._validate_passable(ack, username)
+        pass_ = dto.Pass(
+            dt=datetime.datetime.strftime(datetime.datetime.now(), "%Y-%m-%d %H:%M:%S"),
+            user_id=body["user"]["id"],
+            username=username,
+            description=self._get_description(view),
+        )
+        return pass_
+
+    def submit(self, pass_: dto.Pass) -> None:
+        self._sheets_client.submit(pass_)
+
+    async def send_chat_message(self, client, view, logger, pass_: dto.Pass) -> None:
+        description_msg = self._get_description_msg(pass_.description)
+        channal = view["private_metadata"]
+        try:
+            msg = f"\n<@{pass_.user_id}>님 패스 완료🙏🏼{description_msg}"
+            await client.chat_postMessage(channel=channal, text=msg)
+        except Exception as e:
+            logger.exception(f"Failed to post a message {str(e)}")
+
+    def _get_modal_view(self, body, view_name: str) -> dict[str, Any]:
+        count = self._sheets_client.get_passed_count(body["user_name"])
+        view = {
+            "type": "modal",
+            "private_metadata": body["channel_id"],
+            "callback_id": view_name,
+            "title": {"type": "plain_text", "text": "글똥이"},
+            "submit": {"type": "plain_text", "text": "패스"},
+            "blocks": [
+                {
+                    "type": "section",
+                    "block_id": "required_section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": f"패스 하려면 아래 '패스' 버튼을 눌러주세요.\n(패스 가능 횟수 {2-count}회)",
+                    },
+                },
+                {
+                    "type": "input",
+                    "block_id": "description",
+                    "optional": True,
+                    "element": {
+                        "type": "plain_text_input",
+                        "action_id": "plain_text_input-action",
+                        "placeholder": {
+                            "type": "plain_text",
+                            "text": "입력",
+                        },
+                        "multiline": True,
+                    },
+                    "label": {
+                        "type": "plain_text",
+                        "text": "하고 싶은 말",
+                        "emoji": True,
+                    },
+                },
+            ],
+        }
+        return view
+
+    def _get_description(self, view) -> str:
+        description: str = view["state"]["values"]["description"][
+            "plain_text_input-action"
+        ]["value"]
+        if not description:
+            description = ""
+        return description
+
+    def _get_description_msg(self, description: str) -> str:
+        description_msg = ""
+        if description:
+            description_msg = f"\n\n💬 '{description}'\n"
+        return description_msg
+
+    async def _validate_passable(self, ack, username: str) -> None:
+        count = self._sheets_client.get_passed_count(username)
+        if count >= 2:
+            errors = {}
+            errors["description"] = "pass는 2회 까지만 가능합니다."
+            await ack(response_action="errors", errors=errors)
+            raise ValueError
 
 
 submission_service = SubmissionService(SpreadSheetClient())
-pass_service = PassService()
+pass_service = PassService(SpreadSheetClient())

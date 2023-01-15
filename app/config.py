@@ -20,3 +20,4 @@ settings = Settings()
 # Constant
 SUBMIT_SHEET_NAME = "raw_data"
 SUBMIT_VIEW = "submit_view"
+PASS_VIEW = "pass_view"

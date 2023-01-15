@@ -1,4 +1,5 @@
-from app.dto import Submission
+from dataclasses import asdict
+from app import dto
 from app.config import settings, SUBMIT_SHEET_NAME
 
 import gspread  # type: ignore
@@ -16,18 +17,26 @@ class SpreadSheetClient:
         self._doc = gc.open_by_url(settings.SPREAD_SHEETS_URL)
         self._worksheet = self._doc.worksheet(SUBMIT_SHEET_NAME)
 
-    def submit(self, submission: Submission) -> None:
-        values_list = self._worksheet.get_all_values()
+    def submit(self, dto: dto.Submission | dto.Pass) -> None:
+        data = asdict(dto)
+        values = self._worksheet.get_all_values()
         self._worksheet.update(
-            f"A{len(values_list) + 1}",
+            f"A{len(values) + 1}",
             [
                 [
-                    submission.username,
-                    submission.content_url,
-                    submission.dt,
-                    submission.category,
-                    submission.description,
-                    submission.tag,
+                    data.get("username"),
+                    data.get("content_url"),
+                    data.get("dt"),
+                    data.get("category"),
+                    data.get("description"),
+                    data.get("type"),
+                    data.get("tag"),
                 ]
             ],
         )
+
+    def get_passed_count(self, username: str) -> int:
+        """스프레스시트로부터 패스 사용 수를 가져옵니다."""
+        values = self._worksheet.get_values("A2:G")
+        user_data = [value for value in values if value[0] == username]
+        return len([data for data in user_data if data[5] == "pass"])
