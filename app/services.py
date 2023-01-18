@@ -3,6 +3,7 @@ import re
 from typing import Any
 from app.client import SpreadSheetClient
 from app import dto
+from app.utils import now_dt
 
 
 class SubmissionService:
@@ -19,7 +20,7 @@ class SubmissionService:
         content_url = self._get_content_url(view)
         await self._validate_url(ack, content_url)
         submission = dto.Submission(
-            dt=datetime.datetime.strftime(datetime.datetime.now(), "%Y-%m-%d %H:%M:%S"),
+            dt=datetime.datetime.strftime(now_dt(), "%Y-%m-%d %H:%M:%S"),
             user_id=body["user"]["id"],
             username=body["user"]["username"],
             content_url=self._get_content_url(view),
@@ -94,14 +95,6 @@ class SubmissionService:
                             {
                                 "text": {
                                     "type": "plain_text",
-                                    "text": "일상 & 관계",
-                                    "emoji": True,
-                                },
-                                "value": "일상 & 관계",
-                            },
-                            {
-                                "text": {
-                                    "type": "plain_text",
                                     "text": "취준 & 이직",
                                     "emoji": True,
                                 },
@@ -110,10 +103,18 @@ class SubmissionService:
                             {
                                 "text": {
                                     "type": "plain_text",
-                                    "text": "후기 & 회고",
+                                    "text": "조직 & 문화",
                                     "emoji": True,
                                 },
-                                "value": "후기 & 회고",
+                                "value": "조직 & 문화",
+                            },
+                            {
+                                "text": {
+                                    "type": "plain_text",
+                                    "text": "일상 & 관계",
+                                    "emoji": True,
+                                },
+                                "value": "일상 & 생각",
                             },
                             {
                                 "text": {
@@ -231,7 +232,7 @@ class PassService:
         username = body["user"]["username"]
         await self._validate_passable(ack, username)
         pass_ = dto.Pass(
-            dt=datetime.datetime.strftime(datetime.datetime.now(), "%Y-%m-%d %H:%M:%S"),
+            dt=datetime.datetime.strftime(now_dt(), "%Y-%m-%d %H:%M:%S"),
             user_id=body["user"]["id"],
             username=username,
             description=self._get_description(view),
