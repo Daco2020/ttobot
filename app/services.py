@@ -111,7 +111,7 @@ class SubmissionService:
                             {
                                 "text": {
                                     "type": "plain_text",
-                                    "text": "일상 & 관계",
+                                    "text": "일상 & 생각",
                                     "emoji": True,
                                 },
                                 "value": "일상 & 생각",
