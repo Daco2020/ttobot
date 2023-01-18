@@ -11,7 +11,7 @@ class Submission:
     category: str
     description: str
     tag: str
-    type: Literal["submission"] = "submission"
+    type: Literal["submit"] = "submit"
 
 
 @dataclass(frozen=True)
