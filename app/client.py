@@ -24,6 +24,7 @@ class SpreadSheetClient:
             f"A{len(values) + 1}",
             [
                 [
+                    data.get("user_id"),
                     data.get("username"),
                     data.get("content_url"),
                     data.get("dt"),
@@ -37,6 +38,6 @@ class SpreadSheetClient:
 
     def get_passed_count(self, username: str) -> int:
         """스프레스시트로부터 패스 사용 수를 가져옵니다."""
-        values = self._worksheet.get_values("A2:G")
-        user_data = [value for value in values if value[0] == username]
-        return len([data for data in user_data if data[5] == "pass"])
+        values = self._worksheet.get_values("A2:H")
+        user_data = [value for value in values if value[1] == username]
+        return len([data for data in user_data if data[6] == "pass"])

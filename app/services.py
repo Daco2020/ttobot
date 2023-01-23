@@ -87,18 +87,18 @@ class SubmissionService:
                             {
                                 "text": {
                                     "type": "plain_text",
-                                    "text": "언어 & 기술",
+                                    "text": "프로젝트",
                                     "emoji": True,
                                 },
-                                "value": "언어 & 기술",
+                                "value": "프로젝트",
                             },
                             {
                                 "text": {
                                     "type": "plain_text",
-                                    "text": "취준 & 이직",
+                                    "text": "기술 & 언어",
                                     "emoji": True,
                                 },
-                                "value": "취준 & 이직",
+                                "value": "기술 & 언어",
                             },
                             {
                                 "text": {
@@ -107,6 +107,14 @@ class SubmissionService:
                                     "emoji": True,
                                 },
                                 "value": "조직 & 문화",
+                            },
+                            {
+                                "text": {
+                                    "type": "plain_text",
+                                    "text": "취준 & 이직",
+                                    "emoji": True,
+                                },
+                                "value": "취준 & 이직",
                             },
                             {
                                 "text": {
@@ -265,7 +273,7 @@ class PassService:
                     "block_id": "required_section",
                     "text": {
                         "type": "mrkdwn",
-                        "text": f"패스 하려면 아래 '패스' 버튼을 눌러주세요.\n(패스 가능 횟수 {2-count}회)",
+                        "text": f"패스 하려면 아래 '패스' 버튼을 눌러줘!\n(패스 가능 횟수 {2-count}회)",
                     },
                 },
                 {
