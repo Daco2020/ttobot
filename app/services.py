@@ -273,7 +273,9 @@ class PassService:
                     "block_id": "required_section",
                     "text": {
                         "type": "mrkdwn",
-                        "text": f"패스 하려면 아래 '패스' 버튼을 눌러줘!\n(패스 가능 횟수 {2-count}회)",
+                        "text": f"패스 하려면 아래 '패스' 버튼을 눌러줘!\
+                            \n현재 패스는 {2-count}번 남았어.\
+                            \n패스는 연속으로 사용할 수 없으니 신중히 선택해줘~",
                     },
                 },
                 {
@@ -315,9 +317,13 @@ class PassService:
 
     async def _validate_passable(self, ack, username: str) -> None:
         count = self._sheets_client.get_passed_count(username)
+        errors = {}
         if count >= 2:
-            errors = {}
             errors["description"] = "pass는 2회 까지만 가능합니다."
+            await ack(response_action="errors", errors=errors)
+            raise ValueError
+        if not self._sheets_client.is_passable(username):
+            errors["description"] = "pass는 연속 2회 사용할 수 없습니다."
             await ack(response_action="errors", errors=errors)
             raise ValueError
 

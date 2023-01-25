@@ -7,6 +7,11 @@ from app.services import submission_service, pass_service
 slack = AsyncApp(token=settings.BOT_TOKEN)
 
 
+@slack.event("message")
+async def handle_message_event(ack, body) -> None:
+    await ack()
+
+
 @slack.command("/제출")
 async def submit_command(ack, body, logger, say, client) -> None:
     await ack()
@@ -41,3 +46,11 @@ async def pass_view(ack, body, client, view, logger, say) -> None:
 
     pass_service.submit(pass_)
     await pass_service.send_chat_message(client, view, logger, pass_)
+
+
+@slack.command("/제출현황")
+async def check_command(ack, body, logger, say, client) -> None:
+    # TODO: 슬랙 개인 디엠으로 본인의 제출현황을 보여준다.
+    await ack()
+    msg = "열심히 작업중 🔨💦"
+    await client.chat_postMessage(channel=body["user_id"], text=msg)
