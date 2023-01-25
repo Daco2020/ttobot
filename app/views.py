@@ -48,7 +48,7 @@ async def pass_view(ack, body, client, view, logger, say) -> None:
     await pass_service.send_chat_message(client, view, logger, pass_)
 
 
-@slack.command("/제출현황")
+@slack.command("/제출내역")
 async def check_command(ack, body, logger, say, client) -> None:
     # TODO: 슬랙 개인 디엠으로 본인의 제출현황을 보여준다.
     await ack()
