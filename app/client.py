@@ -1,7 +1,7 @@
 from dataclasses import asdict
-from datetime import datetime, timedelta
+from typing import Tuple
 from app import dto
-from app.config import settings, SUBMIT_SHEET_NAME
+from app.config import PASS_DATA, RAW_DATA, settings
 
 import gspread  # type: ignore
 from oauth2client.service_account import ServiceAccountCredentials  # type: ignore
@@ -16,13 +16,14 @@ gc = gspread.authorize(credentials)
 class SpreadSheetClient:
     def __init__(self) -> None:
         self._doc = gc.open_by_url(settings.SPREAD_SHEETS_URL)
-        self._worksheet = self._doc.worksheet(SUBMIT_SHEET_NAME)
+        self._raw_data = self._doc.worksheet(RAW_DATA)
+        self._pass_data = self._doc.worksheet(PASS_DATA)
 
     def submit(self, dto: dto.Submit) -> None:
         data = asdict(dto)
-        values = self._worksheet.get_all_values()
-        self._worksheet.update(
-            f"A{len(values) + 1}",
+        cursor = len(self._raw_data.get_values("A:A")) + 1
+        self._raw_data.update(
+            f"A{cursor}",
             [
                 [
                     data.get("user_id"),
@@ -37,37 +38,29 @@ class SpreadSheetClient:
             ],
         )
 
-    def get_passed_count(self, username: str) -> int:
+    def get_remaining_pass_count(self, user_id: str) -> Tuple[int, str]:
         """스프레스시트로부터 패스 사용 수를 가져옵니다."""
-        # TODO: 스프레드 시트에서 사용가능 패스 수를 직접 가져오도록 수정필요
-        user_data = self.fetch_all_submit(username)
-        return len([data for data in user_data if data.get("type") == "pass"])
+        pass_data = self._pass_data.get_values("A3:D")
+        pass_count = 0
+        before_type = ""
+        for data in pass_data:
+            if data[2] == user_id:
+                pass_count = int(data[3])
+                before_type = data[1]
+                break
+        return pass_count, before_type
 
-    def is_passable(self, username: str) -> bool:
-        """패스가 가능한지 불린 타입으로 반환합니다."""
-        user_data = self.fetch_all_submit(username)
-        if not user_data:
-            return True
-        # TODO: 스프레드시트 호출 변경
-
-        # recent_data = user_data[0]
-        # if recent_data.get("type") != "pass":
-        #     return True
-        # if self._date(recent_data) < datetime.now().date() - timedelta(days=27):
-        #     return True
-        return False
-
-    def fetch_all_submit(self, username: str) -> list[dict[str, str]]:
+    def fetch_all_submit(self, username: str) -> list[dto.Submit]:
         """유저의 제출이력을 모두 가져옵니다."""
-        values = self._worksheet.get_values("A2:H")
-        return self._to_dict(values, username)
+        values = self._raw_data.get_values("A2:H")
+        return self._sorted_submit(values, username)
 
-    def _to_dict(self, values: list[str], username: str) -> list[dict[str, str]]:
+    def _sorted_submit(self, values: list[str], username: str) -> list[dto.Submit]:
         """유저의 제출이력을 최신순으로 정렬하여 반환합니다."""
         raw_data = [value for value in values if value[1] == username]
         desc_data = sorted(raw_data, key=lambda x: x[3], reverse=True)
         return [
-            dict(
+            dto.Submit(
                 user_id=data[0],
                 username=data[1],
                 content_url=data[2],
@@ -79,7 +72,3 @@ class SpreadSheetClient:
             )
             for data in desc_data
         ]
-
-    # def _date(self, data: dict[str, str]) -> datetime:
-    #     dt = datetime.strptime(data.get("dt"), "%Y-%m-%d %H:%M:%S")
-    #     return dt.date()

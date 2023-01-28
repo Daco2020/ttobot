@@ -18,6 +18,7 @@ settings = Settings()
 
 
 # Constant
-SUBMIT_SHEET_NAME = "raw_data"
+RAW_DATA = "raw_data"
+PASS_DATA = "PASS_DATA"
 SUBMIT_VIEW = "submit_view"
 PASS_VIEW = "pass_view"

@@ -1,4 +1,4 @@
-# Slack Bot 글똥이
+# Slack Bot 또봇
 
 ### Python 3.10.4
 
