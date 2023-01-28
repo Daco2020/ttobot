@@ -1,23 +1,13 @@
 from dataclasses import dataclass
-from typing import Literal
 
 
 @dataclass(frozen=True)
-class Submission:
-    dt: str
-    user_id: str
-    username: str
-    content_url: str
-    category: str
-    description: str
-    tag: str
-    type: Literal["submit"] = "submit"
-
-
-@dataclass(frozen=True)
-class Pass:
+class Submit:
     dt: str
     user_id: str
     username: str
     description: str
-    type: Literal["pass"] = "pass"
+    type: str
+    content_url: str | None = None
+    category: str | None = None
+    tag: str | None = None

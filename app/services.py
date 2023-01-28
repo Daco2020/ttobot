@@ -10,16 +10,17 @@ class SubmissionService:
     def __init__(self, sheets_client: SpreadSheetClient) -> None:
         self._sheets_client = sheets_client
         self._url_regex = r"((http|https):\/\/)?[a-zA-Z0-9.-]+(\.[a-zA-Z]{2,})"
+        self._type = "submit"
 
     async def open_modal(self, body, client, view_name: str) -> None:
         await client.views_open(
             trigger_id=body["trigger_id"], view=self._get_modal_view(body, view_name)
         )
 
-    async def get(self, ack, body, view) -> dto.Submission:
+    async def get(self, ack, body, view) -> dto.Submit:
         content_url = self._get_content_url(view)
         await self._validate_url(ack, content_url)
-        submission = dto.Submission(
+        submission = dto.Submit(
             dt=datetime.datetime.strftime(now_dt(), "%Y-%m-%d %H:%M:%S"),
             user_id=body["user"]["id"],
             username=body["user"]["username"],
@@ -27,14 +28,15 @@ class SubmissionService:
             category=self._get_category(view),
             description=self._get_description(view),
             tag=self._get_tag(view),
+            type=self._type,
         )
         return submission
 
-    def submit(self, submission: dto.Submission) -> None:
+    def submit(self, submission: dto.Submit) -> None:
         self._sheets_client.submit(submission)
 
     async def send_chat_message(
-        self, client, view, logger, submission: dto.Submission
+        self, client, view, logger, submission: dto.Submit
     ) -> None:
         tag_msg = self._get_tag_msg(submission.tag)
         description_msg = self._get_description_msg(submission.description)
@@ -212,7 +214,7 @@ class SubmissionService:
             description_msg = f"\n\n💬 '{description}'\n"
         return description_msg
 
-    def _get_tag_msg(self, tag: str) -> str:
+    def _get_tag_msg(self, tag: str | None) -> str:
         tag_msg = ""
         if tag:
             tags = tag.split(",")
@@ -230,27 +232,29 @@ class SubmissionService:
 class PassService:
     def __init__(self, sheets_client: SpreadSheetClient) -> None:
         self._sheets_client = sheets_client
+        self._type = "pass"
 
     async def open_modal(self, body, client, view_name: str) -> None:
         await client.views_open(
             trigger_id=body["trigger_id"], view=self._get_modal_view(body, view_name)
         )
 
-    async def get(self, ack, body, view) -> dto.Pass:
+    async def get(self, ack, body, view) -> dto.Submit:
         username = body["user"]["username"]
         await self._validate_passable(ack, username)
-        pass_ = dto.Pass(
+        pass_ = dto.Submit(
             dt=datetime.datetime.strftime(now_dt(), "%Y-%m-%d %H:%M:%S"),
             user_id=body["user"]["id"],
             username=username,
             description=self._get_description(view),
+            type=self._type,
         )
         return pass_
 
-    def submit(self, pass_: dto.Pass) -> None:
+    def submit(self, pass_: dto.Submit) -> None:
         self._sheets_client.submit(pass_)
 
-    async def send_chat_message(self, client, view, logger, pass_: dto.Pass) -> None:
+    async def send_chat_message(self, client, view, logger, pass_: dto.Submit) -> None:
         description_msg = self._get_description_msg(pass_.description)
         channal = view["private_metadata"]
         try:

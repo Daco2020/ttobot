@@ -18,7 +18,7 @@ class SpreadSheetClient:
         self._doc = gc.open_by_url(settings.SPREAD_SHEETS_URL)
         self._worksheet = self._doc.worksheet(SUBMIT_SHEET_NAME)
 
-    def submit(self, dto: dto.Submission | dto.Pass) -> None:
+    def submit(self, dto: dto.Submit) -> None:
         data = asdict(dto)
         values = self._worksheet.get_all_values()
         self._worksheet.update(
@@ -48,13 +48,13 @@ class SpreadSheetClient:
         user_data = self.fetch_all_submit(username)
         if not user_data:
             return True
+        # TODO: 스프레드시트 호출 변경
 
-        recent_data = user_data[0]
-        if recent_data.get("type") != "pass":
-            return True
-        # TODO: 두 번 연속 pass 는 불가하나 도중에 미제출로 차감되었을 경우에도 pass가 안되는지 기획 확인필요.
-        if self._date(recent_data) < datetime.now().date() - timedelta(days=27):
-            return True
+        # recent_data = user_data[0]
+        # if recent_data.get("type") != "pass":
+        #     return True
+        # if self._date(recent_data) < datetime.now().date() - timedelta(days=27):
+        #     return True
         return False
 
     def fetch_all_submit(self, username: str) -> list[dict[str, str]]:
@@ -80,6 +80,6 @@ class SpreadSheetClient:
             for data in desc_data
         ]
 
-    def _date(self, data: dict[str, str]) -> datetime:
-        dt = datetime.strptime(data.get("dt"), "%Y-%m-%d %H:%M:%S")
-        return dt.date()
+    # def _date(self, data: dict[str, str]) -> datetime:
+    #     dt = datetime.strptime(data.get("dt"), "%Y-%m-%d %H:%M:%S")
+    #     return dt.date()

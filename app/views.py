@@ -49,8 +49,16 @@ async def pass_view(ack, body, client, view, logger, say) -> None:
 
 
 @slack.command("/제출내역")
-async def check_command(ack, body, logger, say, client) -> None:
-    # TODO: 슬랙 개인 디엠으로 본인의 제출현황을 보여준다.
+async def history_command(ack, body, logger, say, client) -> None:
+    # TODO: 슬랙 개인 디엠으로 본인의 제출내역을 보여준다.
     await ack()
     msg = "열심히 작업중 🔨💦"
+    await client.chat_postMessage(channel=body["user_id"], text=msg)
+
+
+@slack.command("/고장신고")
+async def report_command(ack, body, logger, say, client) -> None:
+    # TODO: 고장신고
+    await ack()
+    msg = "열심히 작업중 🔨💦"  # 고장신고 접수가 완료되었습니다. 24시간내에 답변드리겠습니다.
     await client.chat_postMessage(channel=body["user_id"], text=msg)
