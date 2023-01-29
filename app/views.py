@@ -52,7 +52,7 @@ async def pass_view(ack, body, client, view, logger, say) -> None:
 async def history_command(ack, body, logger, say, client) -> None:
     # TODO: 슬랙 개인 디엠으로 본인의 제출내역을 보여준다.
     await ack()
-    msg = "열심히 작업중 🔨💦"
+    msg = "열심히 개발중 🔨💦"
     await client.chat_postMessage(channel=body["user_id"], text=msg)
 
 
@@ -60,5 +60,5 @@ async def history_command(ack, body, logger, say, client) -> None:
 async def report_command(ack, body, logger, say, client) -> None:
     # TODO: 고장신고
     await ack()
-    msg = "열심히 작업중 🔨💦"  # 고장신고 접수가 완료되었습니다. 24시간내에 답변드리겠습니다.
+    msg = "열심히 개발중 🔨💦"  # 고장신고 접수가 완료되었습니다. 24시간내에 답변드리겠습니다.
     await client.chat_postMessage(channel=body["user_id"], text=msg)
