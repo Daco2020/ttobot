@@ -1,5 +1,6 @@
 import datetime
 import re
+import time
 from typing import Any
 from app.client import SpreadSheetClient
 from app import dto
@@ -42,9 +43,9 @@ class SubmissionService:
         description_msg = self._get_description_msg(submission.description)
         channal = view["private_metadata"]
         try:
-            msg = f"\n🎉 <@{submission.user_id}>님 제출 완료{description_msg}\
-                \n>category : {submission.category}{tag_msg}\
-                \n>link : {submission.content_url}"
+            msg = f"\n>>>🎉 *<@{submission.user_id}>님 제출 완료.*{description_msg}\
+                \ncategory : {submission.category}{tag_msg}\
+                \nlink : {submission.content_url}"
             await client.chat_postMessage(channel=channal, text=msg)
         except Exception as e:
             logger.exception(f"Failed to post a message {str(e)}")
@@ -54,7 +55,7 @@ class SubmissionService:
             "type": "modal",
             "private_metadata": body["channel_id"],
             "callback_id": submit_view,
-            "title": {"type": "plain_text", "text": "글똥이"},
+            "title": {"type": "plain_text", "text": "또봇"},
             "submit": {"type": "plain_text", "text": "제출"},
             "blocks": [
                 {
@@ -148,7 +149,7 @@ class SubmissionService:
                         "action_id": "plain_text_input-action",
                         "placeholder": {
                             "type": "plain_text",
-                            "text": "입력",
+                            "text": "하고 싶은 말이 있다면 남겨주세요.",
                         },
                         "multiline": True,
                     },
@@ -211,14 +212,14 @@ class SubmissionService:
     def _get_description_msg(self, description: str) -> str:
         description_msg = ""
         if description:
-            description_msg = f"\n\n>💬 '{description}'\n>"
+            description_msg = f"\n\n💬 '{description}'\n"
         return description_msg
 
     def _get_tag_msg(self, tag: str | None) -> str:
         tag_msg = ""
         if tag:
             tags = tag.split(",")
-            tag_msg = "\n>tag : #" + " #".join(set(tag.strip() for tag in tags))
+            tag_msg = "\ntag : " + " ".join(set(f"`{tag.strip()}`" for tag in tags))
         return tag_msg
 
     async def _validate_url(self, ack, content_url: str) -> None:
@@ -235,8 +236,15 @@ class PassService:
         self._type = "pass"
 
     async def open_modal(self, body, client, view_name: str) -> None:
-        await client.views_open(
-            trigger_id=body["trigger_id"], view=self._get_modal_view(body, view_name)
+        res = await client.views_open(
+            trigger_id=body["trigger_id"],
+            view=self._get_loading_modal_view(body, view_name),
+        )
+        view_id = res["view"]["id"]
+        pass_count, _ = self._sheets_client.get_remaining_pass_count(body["user_id"])
+        time.sleep(0.5)
+        await client.views_update(
+            view_id=view_id, view=self._get_modal_view(body, view_name, pass_count)
         )
 
     async def get(self, ack, body, view) -> dto.Submit:
@@ -257,18 +265,36 @@ class PassService:
         description_msg = self._get_description_msg(pass_.description)
         channal = view["private_metadata"]
         try:
-            msg = f"\n🙏🏼 <@{pass_.user_id}>님 패스 완료{description_msg}"
+            msg = f"\n>>>🙏🏼 *<@{pass_.user_id}>님 패스 완료.*{description_msg}"
             await client.chat_postMessage(channel=channal, text=msg)
         except Exception as e:
             logger.exception(f"Failed to post a message {str(e)}")
 
-    def _get_modal_view(self, body, view_name: str) -> dict[str, Any]:
-        pass_count, _ = self._sheets_client.get_remaining_pass_count(body["user_id"])
+    def _get_loading_modal_view(self, body, view_name: str) -> dict[str, Any]:
         view = {
             "type": "modal",
             "private_metadata": body["channel_id"],
             "callback_id": view_name,
-            "title": {"type": "plain_text", "text": "글똥이"},
+            "title": {"type": "plain_text", "text": "또봇"},
+            "close": {"type": "plain_text", "text": "닫기"},
+            "blocks": [
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "plain_text",
+                        "text": ":man-biking: 이전 제출이력 확인 중...!",
+                    },
+                }
+            ],
+        }
+        return view
+
+    def _get_modal_view(self, body, view_name: str, pass_count: int) -> dict[str, Any]:
+        view = {
+            "type": "modal",
+            "private_metadata": body["channel_id"],
+            "callback_id": view_name,
+            "title": {"type": "plain_text", "text": "또봇"},
             "submit": {"type": "plain_text", "text": "패스"},
             "blocks": [
                 {
@@ -290,7 +316,7 @@ class PassService:
                         "action_id": "plain_text_input-action",
                         "placeholder": {
                             "type": "plain_text",
-                            "text": "입력",
+                            "text": "하고 싶은 말이 있다면 남겨주세요.",
                         },
                         "multiline": True,
                     },
@@ -315,7 +341,7 @@ class PassService:
     def _get_description_msg(self, description: str) -> str:
         description_msg = ""
         if description:
-            description_msg = f"\n\n>💬 '{description}'\n"
+            description_msg = f"\n\n💬 '{description}'\n"
         return description_msg
 
     async def _validate_passable(self, ack, user_id: str) -> None:
