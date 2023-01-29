@@ -1,12 +1,49 @@
-# Slack Bot 또봇
+# Slack Bot `또봇`
 
-### Python 3.10.4
+### 슬랙 명령어
 
+<br>
+
+```
+/제출
+```
+글을 제출합니다.
+
+<br>
+
+```
+/패스
+```
+글을 패스합니다.
+
+<br>
+
+```
+/제출내역
+```
+이전 제출내역을 개인 DM으로 전달받습니다.(개발중)
+
+<br><br>
+
+### 제출 시연영상
+
+https://user-images.githubusercontent.com/76890895/215305463-a8147367-2e73-4525-bf1c-715f7b6d12f5.mp4
+
+<br>
+
+### 패스 시연영상
+
+https://user-images.githubusercontent.com/76890895/215305465-4f3ac655-e11f-4a25-a000-6ab91ce15951.mp4
 
 
 <br><br>
 
-## 명령어
+# 개발환경
+
+- Python 3.10.4
+- FastAPI
+- Slack bolt
+- gspread
 
 <br>
 
