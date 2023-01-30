@@ -1,7 +1,8 @@
+import time
 from app.config import PASS_VIEW, settings, SUBMIT_VIEW
 from slack_bolt.async_app import AsyncApp
 
-from app.services import submission_service, pass_service
+from app.services import get_submission_service, get_pass_service
 
 
 slack = AsyncApp(token=settings.BOT_TOKEN)
@@ -15,12 +16,15 @@ async def handle_message_event(ack, body) -> None:
 @slack.command("/제출")
 async def submit_command(ack, body, logger, say, client) -> None:
     await ack()
+    submission_service = get_submission_service()
     await submission_service.open_modal(body, client, SUBMIT_VIEW)
 
 
 @slack.view(SUBMIT_VIEW)
 async def submit_view(ack, body, client, view, logger, say) -> None:
     await ack()
+    submission_service = get_submission_service()
+
     try:
         submission = await submission_service.get(ack, body, view)
     except ValueError:
@@ -33,12 +37,15 @@ async def submit_view(ack, body, client, view, logger, say) -> None:
 @slack.command("/패스")
 async def pass_command(ack, body, logger, say, client) -> None:
     await ack()
+    pass_service = get_pass_service()
     await pass_service.open_modal(body, client, PASS_VIEW)
 
 
 @slack.view(PASS_VIEW)
 async def pass_view(ack, body, client, view, logger, say) -> None:
     await ack()
+    pass_service = get_pass_service()
+
     try:
         pass_ = await pass_service.get(ack, body, view)
     except ValueError:

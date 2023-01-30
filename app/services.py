@@ -357,5 +357,9 @@ class PassService:
             raise ValueError
 
 
-submission_service = SubmissionService(SpreadSheetClient())
-pass_service = PassService(SpreadSheetClient())
+def get_submission_service() -> SubmissionService:
+    return SubmissionService(SpreadSheetClient())
+
+
+def get_pass_service() -> PassService:
+    return PassService(SpreadSheetClient())
