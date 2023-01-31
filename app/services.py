@@ -242,7 +242,7 @@ class PassService:
         )
         view_id = res["view"]["id"]
         pass_count, _ = self._sheets_client.get_remaining_pass_count(body["user_id"])
-        time.sleep(0.5)
+        time.sleep(0.2)
         await client.views_update(
             view_id=view_id, view=self._get_modal_view(body, view_name, pass_count)
         )
@@ -357,9 +357,5 @@ class PassService:
             raise ValueError
 
 
-def get_submission_service() -> SubmissionService:
-    return SubmissionService(SpreadSheetClient())
-
-
-def get_pass_service() -> PassService:
-    return PassService(SpreadSheetClient())
+submission_service = SubmissionService(SpreadSheetClient())
+pass_service = PassService(SpreadSheetClient())
