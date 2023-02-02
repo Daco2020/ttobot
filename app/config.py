@@ -17,8 +17,11 @@ class Settings(BaseSettings):
 settings = Settings()
 
 
-# Constant
+# sheet constants
 RAW_DATA = "raw_data"
 PASS_DATA = "PASS_DATA"
+USERS_DATA = "users"
+
+# views constants
 SUBMIT_VIEW = "submit_view"
 PASS_VIEW = "pass_view"

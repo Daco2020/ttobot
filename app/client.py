@@ -1,7 +1,7 @@
 from dataclasses import asdict
 from typing import Tuple
 from app import dto
-from app.config import PASS_DATA, RAW_DATA, settings
+from app.config import PASS_DATA, RAW_DATA, USERS_DATA, settings
 
 import gspread  # type: ignore
 from oauth2client.service_account import ServiceAccountCredentials  # type: ignore
@@ -18,6 +18,7 @@ class SpreadSheetClient:
         self._doc = gc.open_by_url(settings.SPREAD_SHEETS_URL)
         self._raw_data = self._doc.worksheet(RAW_DATA)
         self._pass_data = self._doc.worksheet(PASS_DATA)
+        self._users_data = self._doc.worksheet(USERS_DATA)
 
     def submit(self, dto: dto.Submit) -> None:
         data = asdict(dto)
