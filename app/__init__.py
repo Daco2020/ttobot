@@ -21,6 +21,9 @@ async def startup():
     await slack_handler.start_async()
 
 
+# TODO: 서버 종료시 store 를 백업시트로 업데이트 한다.
+
+
 def create_store() -> None:
     client = SpreadSheetClient()
     _create_store_path()

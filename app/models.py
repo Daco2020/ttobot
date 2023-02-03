@@ -1,7 +1,7 @@
 from pydantic import BaseModel
 
 
-class Submission(BaseModel):
+class Content(BaseModel):
     dt: str
     user_id: str
     username: str
@@ -9,7 +9,7 @@ class Submission(BaseModel):
     type: str
     content_url: str | None = None
     category: str | None = None
-    tag: str | None = None
+    tags: str | None = None
 
 
 class User(BaseModel):
@@ -17,4 +17,4 @@ class User(BaseModel):
     name: str
     channel_name: str
     channel_id: str
-    submission: list[Submission]
+    contents: list[Content] | None = None
