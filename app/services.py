@@ -12,23 +12,6 @@ class UserContentService:
         self._user_repo = user_repo
         self._url_regex = r"((http|https):\/\/)?[a-zA-Z0-9.-]+(\.[a-zA-Z]{2,})"
 
-    async def open_submit_modal(self, body, client, view_name: str) -> None:
-        await client.views_open(
-            trigger_id=body["trigger_id"],
-            view=self._get_submit_modal_view(body, view_name),
-        )
-
-    async def open_pass_modal(self, body, client, view_name: str) -> None:
-        res = await client.views_open(
-            trigger_id=body["trigger_id"],
-            view=self._get_loading_modal_view(body, view_name),
-        )
-        view_id = res["view"]["id"]
-        time.sleep(0.5)
-        await client.views_update(
-            view_id=view_id, view=self._get_pass_modal_view(body, view_name, 2)
-        )
-
     async def get_user(self, ack, body, view) -> models.User:
         user = self._user_repo.get(body["user"]["id"])
         if not user:
@@ -42,6 +25,12 @@ class UserContentService:
             )
             raise ValueError
         return user
+
+    async def open_submit_modal(self, body, client, view_name: str) -> None:
+        await client.views_open(
+            trigger_id=body["trigger_id"],
+            view=self._get_submit_modal_view(body, view_name),
+        )
 
     async def create_submit_content(
         self, ack, body, view, user: models.User
@@ -61,6 +50,17 @@ class UserContentService:
         user.contents.append(content)
         self._user_repo.update(user)
         return content
+
+    async def open_pass_modal(self, body, client, view_name: str) -> None:
+        res = await client.views_open(
+            trigger_id=body["trigger_id"],
+            view=self._get_loading_modal_view(body, view_name),
+        )
+        view_id = res["view"]["id"]
+        time.sleep(0.5)
+        await client.views_update(
+            view_id=view_id, view=self._get_pass_modal_view(body, view_name, 2)
+        )
 
     async def create_pass_content(
         self, ack, body, view, user: models.User
