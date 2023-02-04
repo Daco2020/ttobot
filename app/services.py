@@ -1,56 +1,121 @@
 import datetime
 import re
-import time
 from typing import Any
-from app.client import SpreadSheetClient
-from app import dto
+from app.repositories import FileUserRepository, UserRepository
+from app import models
 from app.utils import now_dt
 
 
-class SubmissionService:
-    def __init__(self, sheets_client: SpreadSheetClient) -> None:
-        self._sheets_client = sheets_client
+class UserContentService:
+    def __init__(self, user_repo: UserRepository) -> None:
+        self._user_repo = user_repo
         self._url_regex = r"((http|https):\/\/)?[a-zA-Z0-9.-]+(\.[a-zA-Z]{2,})"
-        self._type = "submit"
 
-    async def open_modal(self, body, client, view_name: str) -> None:
+    async def open_submit_modal(self, body, client, view_name: str) -> None:
         await client.views_open(
-            trigger_id=body["trigger_id"], view=self._get_modal_view(body, view_name)
+            trigger_id=body["trigger_id"],
+            view=self._get_submit_modal_view(body, view_name),
         )
 
-    async def get(self, ack, body, view) -> dto.Submit:
+    async def open_pass_modal(self, body, client, view_name: str) -> None:
+        res = await client.views_open(
+            trigger_id=body["trigger_id"],
+            view=self._get_loading_modal_view(body, view_name, "제출이력 확인 중"),
+        )
+        view_id = res["view"]["id"]
+        await client.views_update(
+            view_id=view_id, view=self._get_pass_modal_view(body, view_name, 2)
+        )
+
+    async def get_user(self, ack, body, view) -> models.User:
+        user = self._user_repo.get(body["user"]["id"])
+        if not user:
+            await self.error_message(ack, "사용자가 등록되어 있지 않습니다.")
+            raise ValueError
+        if user.channel_id != view["private_metadata"]:
+            await self.error_message(ack, "본인이 속한 채널이 아닙니다.")
+            raise ValueError
+        return user
+
+    async def create_submit_content(
+        self, ack, body, view, user: models.User
+    ) -> models.Content:
         content_url = self._get_content_url(view)
         await self._validate_url(ack, content_url)
-        submission = dto.Submit(
+        content = models.Content(
             dt=datetime.datetime.strftime(now_dt(), "%Y-%m-%d %H:%M:%S"),
             user_id=body["user"]["id"],
             username=body["user"]["username"],
-            content_url=self._get_content_url(view),
+            content_url=content_url,
             category=self._get_category(view),
             description=self._get_description(view),
-            tag=self._get_tag(view),
-            type=self._type,
+            tags=self._get_tag(view),
+            type="submit",
         )
-        return submission
+        user.contents.append(content)
+        self._user_repo.update(user)
+        return content
 
-    def submit(self, submission: dto.Submit) -> None:
-        self._sheets_client.submit(submission)
+    async def create_pass_content(
+        self, ack, body, view, user: models.User
+    ) -> models.Content:
+        await self._validate_pass(ack, body["user"]["id"])
+        content = models.Content(
+            dt=datetime.datetime.strftime(now_dt(), "%Y-%m-%d %H:%M:%S"),
+            user_id=body["user"]["id"],
+            username=body["user"]["username"],
+            description=self._get_description(view),
+            type="pass",
+        )
+        user.contents.append(content)
+        self._user_repo.update(user)
+        return content
 
     async def send_chat_message(
-        self, client, view, logger, submission: dto.Submit
+        self, client, logger, content: models.Content, channel_id
     ) -> None:
-        tag_msg = self._get_tag_msg(submission.tag)
-        description_msg = self._get_description_msg(submission.description)
-        channal = view["private_metadata"]
+        description_chat_message = self._description_chat_message(content.description)
+        if content.type == "submit":
+            message = f"\n>>>🎉 *<@{content.user_id}>님 제출 완료.*{description_chat_message}\
+                \ncategory : {content.category}{self._tag_chat_message(content.tags)}\
+                \nlink : {content.content_url}"
+        else:
+            message = (
+                f"\n>>>🙏🏼 *<@{content.user_id}>님 패스 완료.*{description_chat_message}"
+            )
+
         try:
-            msg = f"\n>>>🎉 *<@{submission.user_id}>님 제출 완료.*{description_msg}\
-                \ncategory : {submission.category}{tag_msg}\
-                \nlink : {submission.content_url}"
-            await client.chat_postMessage(channel=channal, text=msg)
+            await client.chat_postMessage(channel=channel_id, text=message)
         except Exception as e:
             logger.exception(f"Failed to post a message {str(e)}")
 
-    def _get_modal_view(self, body, submit_view: str) -> dict[str, Any]:
+    async def error_message(self, ack, message: str = "") -> None:
+        errors = {}
+        errors["content"] = message
+        await ack(response_action="errors", errors=errors)
+
+    def _get_loading_modal_view(
+        self, body, view_name: str, message: str
+    ) -> dict[str, Any]:
+        view = {
+            "type": "modal",
+            "private_metadata": body["channel_id"],
+            "callback_id": view_name,
+            "title": {"type": "plain_text", "text": "또봇"},
+            "close": {"type": "plain_text", "text": "닫기"},
+            "blocks": [
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "plain_text",
+                        "text": f"🚀💪🏼🍭 {message}...!",
+                    },
+                }
+            ],
+        }
+        return view
+
+    def _get_submit_modal_view(self, body, submit_view: str) -> dict[str, Any]:
         view = {
             "type": "modal",
             "private_metadata": body["channel_id"],
@@ -181,115 +246,9 @@ class SubmissionService:
         }
         return view
 
-    def _get_description(self, view) -> str:
-        description: str = view["state"]["values"]["description"][
-            "plain_text_input-action"
-        ]["value"]
-        if not description:
-            description = ""
-        return description
-
-    def _get_tag(self, view) -> str:
-        tag = ""
-        raw_tag: str = view["state"]["values"]["tag"]["dreamy_input"]["value"]
-        if raw_tag:
-            tag = ",".join(set(tag.strip() for tag in raw_tag.split(",") if tag))
-        return tag
-
-    def _get_category(self, view) -> str:
-        category: str = view["state"]["values"]["category"]["static_select-action"][
-            "selected_option"
-        ]["value"]
-
-        return category
-
-    def _get_content_url(self, view) -> str:
-        content_url: str = view["state"]["values"]["content"]["url_text_input-action"][
-            "value"
-        ]
-        return content_url
-
-    def _get_description_msg(self, description: str) -> str:
-        description_msg = ""
-        if description:
-            description_msg = f"\n\n💬 '{description}'\n"
-        return description_msg
-
-    def _get_tag_msg(self, tag: str | None) -> str:
-        tag_msg = ""
-        if tag:
-            tags = tag.split(",")
-            tag_msg = "\ntag : " + " ".join(set(f"`{tag.strip()}`" for tag in tags))
-        return tag_msg
-
-    async def _validate_url(self, ack, content_url: str) -> None:
-        if not re.match(self._url_regex, content_url):
-            errors = {}
-            errors["content"] = "링크는 url 주소여야 합니다."
-            await ack(response_action="errors", errors=errors)
-            raise ValueError
-
-
-class PassService:
-    def __init__(self, sheets_client: SpreadSheetClient) -> None:
-        self._sheets_client = sheets_client
-        self._type = "pass"
-
-    async def open_modal(self, body, client, view_name: str) -> None:
-        res = await client.views_open(
-            trigger_id=body["trigger_id"],
-            view=self._get_loading_modal_view(body, view_name),
-        )
-        view_id = res["view"]["id"]
-        pass_count, _ = self._sheets_client.get_remaining_pass_count(body["user_id"])
-        time.sleep(0.2)
-        await client.views_update(
-            view_id=view_id, view=self._get_modal_view(body, view_name, pass_count)
-        )
-
-    async def get(self, ack, body, view) -> dto.Submit:
-        await self._validate_passable(ack, body["user"]["id"])
-        pass_ = dto.Submit(
-            dt=datetime.datetime.strftime(now_dt(), "%Y-%m-%d %H:%M:%S"),
-            user_id=body["user"]["id"],
-            username=body["user"]["username"],
-            description=self._get_description(view),
-            type=self._type,
-        )
-        return pass_
-
-    def submit(self, pass_: dto.Submit) -> None:
-        self._sheets_client.submit(pass_)
-
-    async def send_chat_message(self, client, view, logger, pass_: dto.Submit) -> None:
-        description_msg = self._get_description_msg(pass_.description)
-        channal = view["private_metadata"]
-        try:
-            msg = f"\n>>>🙏🏼 *<@{pass_.user_id}>님 패스 완료.*{description_msg}"
-            await client.chat_postMessage(channel=channal, text=msg)
-        except Exception as e:
-            logger.exception(f"Failed to post a message {str(e)}")
-
-    def _get_loading_modal_view(self, body, view_name: str) -> dict[str, Any]:
-        view = {
-            "type": "modal",
-            "private_metadata": body["channel_id"],
-            "callback_id": view_name,
-            "title": {"type": "plain_text", "text": "또봇"},
-            "close": {"type": "plain_text", "text": "닫기"},
-            "blocks": [
-                {
-                    "type": "section",
-                    "text": {
-                        "type": "plain_text",
-                        "text": ":man-biking: 이전 제출이력 확인 중...!",
-                    },
-                }
-            ],
-        }
-        return view
-
-    def _get_modal_view(self, body, view_name: str, pass_count: int) -> dict[str, Any]:
+    def _get_pass_modal_view(
+        self, body, view_name: str, pass_count: int
+    ) -> dict[str, Any]:
         view = {
             "type": "modal",
             "private_metadata": body["channel_id"],
@@ -338,24 +297,50 @@ class PassService:
             description = ""
         return description
 
-    def _get_description_msg(self, description: str) -> str:
-        description_msg = ""
+    def _get_tag(self, view) -> str:
+        tag = ""
+        raw_tag: str = view["state"]["values"]["tag"]["dreamy_input"]["value"]
+        if raw_tag:
+            tag = ",".join(set(tag.strip() for tag in raw_tag.split(",") if tag))
+        return tag
+
+    def _get_category(self, view) -> str:
+        category: str = view["state"]["values"]["category"]["static_select-action"][
+            "selected_option"
+        ]["value"]
+
+        return category
+
+    def _get_content_url(self, view) -> str:
+        content_url: str = view["state"]["values"]["content"]["url_text_input-action"][
+            "value"
+        ]
+        return content_url
+
+    def _description_chat_message(self, description: str) -> str:
+        description_message = ""
         if description:
-            description_msg = f"\n\n💬 '{description}'\n"
-        return description_msg
+            description_message = f"\n\n💬 '{description}'\n"
+        return description_message
 
-    async def _validate_passable(self, ack, user_id: str) -> None:
-        pass_count, before_type = self._sheets_client.get_remaining_pass_count(user_id)
-        errors = {}
-        if pass_count <= 0:
-            errors["description"] = "pass를 모두 소진하였습니다."
-            await ack(response_action="errors", errors=errors)
+    def _tag_chat_message(self, tag: str | None) -> str:
+        tag_message = ""
+        if tag:
+            tags = tag.split(",")
+            tag_message = "\ntag : " + " ".join(set(f"`{tag.strip()}`" for tag in tags))
+        return tag_message
+
+    async def _validate_url(self, ack, content_url: str) -> None:
+        if not re.match(self._url_regex, content_url):
+            await self.error_message(ack, "링크는 url 주소여야 합니다.")
+
+    async def _validate_pass(self, ack, user: models.User) -> None:
+        if user.pass_count <= 0:
+            await self.error_message(ack, "pass를 모두 소진하였습니다.")
             raise ValueError
-        if before_type == "pass":
-            errors["description"] = "pass는 연속으로 사용할 수 없습니다."
-            await ack(response_action="errors", errors=errors)
+        if user.before_type == "pass":
+            await self.error_message(ack, "pass는 연속으로 사용할 수 없습니다.")
             raise ValueError
 
 
-submission_service = SubmissionService(SpreadSheetClient())
-pass_service = PassService(SpreadSheetClient())
+user_content_service = UserContentService(FileUserRepository())
