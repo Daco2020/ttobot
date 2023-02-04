@@ -1,5 +1,6 @@
 import datetime
 import re
+import time
 from typing import Any
 from app.repositories import FileUserRepository, UserRepository
 from app import models
@@ -20,9 +21,10 @@ class UserContentService:
     async def open_pass_modal(self, body, client, view_name: str) -> None:
         res = await client.views_open(
             trigger_id=body["trigger_id"],
-            view=self._get_loading_modal_view(body, view_name, "제출이력 확인 중"),
+            view=self._get_loading_modal_view(body, view_name),
         )
         view_id = res["view"]["id"]
+        time.sleep(0.5)
         await client.views_update(
             view_id=view_id, view=self._get_pass_modal_view(body, view_name, 2)
         )
@@ -30,10 +32,14 @@ class UserContentService:
     async def get_user(self, ack, body, view) -> models.User:
         user = self._user_repo.get(body["user"]["id"])
         if not user:
-            await self.error_message(ack, "사용자가 등록되어 있지 않습니다.")
+            await self.error_message(
+                ack, block_id="description", message="사용자가 등록되어 있지 않습니다."
+            )
             raise ValueError
         if user.channel_id != view["private_metadata"]:
-            await self.error_message(ack, "본인이 속한 채널이 아닙니다.")
+            await self.error_message(
+                ack, block_id="description", message="본인이 속한 채널이 아닙니다."
+            )
             raise ValueError
         return user
 
@@ -59,7 +65,7 @@ class UserContentService:
     async def create_pass_content(
         self, ack, body, view, user: models.User
     ) -> models.Content:
-        await self._validate_pass(ack, body["user"]["id"])
+        await self._validate_pass(ack, user)
         content = models.Content(
             dt=datetime.datetime.strftime(now_dt(), "%Y-%m-%d %H:%M:%S"),
             user_id=body["user"]["id"],
@@ -89,14 +95,12 @@ class UserContentService:
         except Exception as e:
             logger.exception(f"Failed to post a message {str(e)}")
 
-    async def error_message(self, ack, message: str = "") -> None:
+    async def error_message(self, ack, block_id: str, message: str = "") -> None:
         errors = {}
-        errors["content"] = message
+        errors[block_id] = message
         await ack(response_action="errors", errors=errors)
 
-    def _get_loading_modal_view(
-        self, body, view_name: str, message: str
-    ) -> dict[str, Any]:
+    def _get_loading_modal_view(self, body, view_name: str) -> dict[str, Any]:
         view = {
             "type": "modal",
             "private_metadata": body["channel_id"],
@@ -108,7 +112,7 @@ class UserContentService:
                     "type": "section",
                     "text": {
                         "type": "plain_text",
-                        "text": f"🚀💪🏼🍭 {message}...!",
+                        "text": "🚀 지난 제출이력 확인 중...!",
                     },
                 }
             ],
@@ -133,7 +137,7 @@ class UserContentService:
                 },
                 {
                     "type": "input",
-                    "block_id": "content",
+                    "block_id": "content_url",
                     "element": {
                         "type": "url_text_input",
                         "action_id": "url_text_input-action",
@@ -312,9 +316,9 @@ class UserContentService:
         return category
 
     def _get_content_url(self, view) -> str:
-        content_url: str = view["state"]["values"]["content"]["url_text_input-action"][
-            "value"
-        ]
+        content_url: str = view["state"]["values"]["content_url"][
+            "url_text_input-action"
+        ]["value"]
         return content_url
 
     def _description_chat_message(self, description: str) -> str:
@@ -332,14 +336,21 @@ class UserContentService:
 
     async def _validate_url(self, ack, content_url: str) -> None:
         if not re.match(self._url_regex, content_url):
-            await self.error_message(ack, "링크는 url 주소여야 합니다.")
+            await self.error_message(
+                ack, block_id="content_url", message="링크는 url 주소여야 합니다."
+            )
+            raise ValueError
 
     async def _validate_pass(self, ack, user: models.User) -> None:
         if user.pass_count <= 0:
-            await self.error_message(ack, "pass를 모두 소진하였습니다.")
+            await self.error_message(
+                ack, block_id="description", message="pass를 모두 소진하였습니다."
+            )
             raise ValueError
         if user.before_type == "pass":
-            await self.error_message(ack, "pass는 연속으로 사용할 수 없습니다.")
+            await self.error_message(
+                ack, block_id="description", message="pass는 연속으로 사용할 수 없습니다."
+            )
             raise ValueError
 
 
