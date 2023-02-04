@@ -21,8 +21,14 @@ class User(BaseModel):
 
     @property
     def pass_count(self) -> int:
-        return 1
+        return len([content for content in self.contents if content.type == "pass"])
 
     @property
     def before_type(self) -> str:
-        return "submit"
+        if not self.contents:
+            return ""
+        return self.contents.pop().type
+
+    def fetch_content_histories(self) -> list[Content]:
+        # TODO: implement
+        return []

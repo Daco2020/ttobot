@@ -21,8 +21,11 @@ async def submit_command(ack, body, logger, say, client) -> None:
 @slack.view(SUBMIT_VIEW)
 async def submit_view(ack, body, client, view, logger, say) -> None:
     await ack()
+    user_id = body["user"]["id"]
+    channel_id = view["private_metadata"]
+
     try:
-        user = await user_content_service.get_user(ack, body, view)
+        user = await user_content_service.get_user(ack, user_id, channel_id)
         content = await user_content_service.create_submit_content(
             ack, body, view, user
         )
@@ -37,14 +40,17 @@ async def submit_view(ack, body, client, view, logger, say) -> None:
 @slack.command("/패스")
 async def pass_command(ack, body, logger, say, client) -> None:
     await ack()
-    await user_content_service.open_pass_modal(body, client, PASS_VIEW)
+    await user_content_service.open_pass_modal(ack, body, client, logger, PASS_VIEW)
 
 
 @slack.view(PASS_VIEW)
 async def pass_view(ack, body, client, view, logger, say) -> None:
     await ack()
+    user_id = body["user"]["id"]
+    channel_id = view["private_metadata"]
+
     try:
-        user = await user_content_service.get_user(ack, body, view)
+        user = await user_content_service.get_user(ack, user_id, channel_id)
         content = await user_content_service.create_pass_content(ack, body, view, user)
     except ValueError:
         return None

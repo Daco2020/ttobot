@@ -10,21 +10,17 @@ from app.utils import now_dt
 class UserContentService:
     def __init__(self, user_repo: UserRepository) -> None:
         self._user_repo = user_repo
+        # TODO: move to config
         self._url_regex = r"((http|https):\/\/)?[a-zA-Z0-9.-]+(\.[a-zA-Z]{2,})"
 
-    async def get_user(self, ack, body, view) -> models.User:
-        user = self._user_repo.get(body["user"]["id"])
-        if not user:
-            await self.error_message(
-                ack, block_id="description", message="사용자가 등록되어 있지 않습니다."
-            )
-            raise ValueError
-        if user.channel_id != view["private_metadata"]:
-            await self.error_message(
-                ack, block_id="description", message="본인이 속한 채널이 아닙니다."
-            )
-            raise ValueError
-        return user
+    async def get_user(self, ack, user_id, channel_id) -> models.User:
+        user = self._user_repo.get(user_id)
+        await self._validate_user(ack, channel_id, user)
+        return user  # type: ignore
+
+    def update_user(self, user, content):
+        user.contents.append(content)
+        self._user_repo.update(user)
 
     async def open_submit_modal(self, body, client, view_name: str) -> None:
         await client.views_open(
@@ -47,19 +43,28 @@ class UserContentService:
             tags=self._get_tag(view),
             type="submit",
         )
-        user.contents.append(content)
-        self._user_repo.update(user)
+        self.update_user(user, content)
         return content
 
-    async def open_pass_modal(self, body, client, view_name: str) -> None:
+    async def open_pass_modal(self, ack, body, client, logger, view_name: str) -> None:
         res = await client.views_open(
             trigger_id=body["trigger_id"],
             view=self._get_loading_modal_view(body, view_name),
         )
-        view_id = res["view"]["id"]
-        time.sleep(0.5)
+        time.sleep(0.2)
+        try:
+            user = await self.get_user(ack, body["user_id"], body["channel_id"])
+        except ValueError as e:
+            logger.error(e)
+            await client.views_update(
+                view_id=res["view"]["id"],
+                view=self._get_error_modal_view(body, view_name, str(e)),
+            )
+            return None
+
         await client.views_update(
-            view_id=view_id, view=self._get_pass_modal_view(body, view_name, 2)
+            view_id=res["view"]["id"],
+            view=self._get_pass_modal_view(body, view_name, user.pass_count),
         )
 
     async def create_pass_content(
@@ -73,8 +78,7 @@ class UserContentService:
             description=self._get_description(view),
             type="pass",
         )
-        user.contents.append(content)
-        self._user_repo.update(user)
+        self.update_user(user, content)
         return content
 
     async def send_chat_message(
@@ -250,6 +254,25 @@ class UserContentService:
         }
         return view
 
+    def _get_error_modal_view(self, body, view_name: str, e: str) -> dict[str, Any]:
+        view = {
+            "type": "modal",
+            "private_metadata": body["channel_id"],
+            "callback_id": view_name,
+            "title": {"type": "plain_text", "text": "또봇"},
+            "close": {"type": "plain_text", "text": "닫기"},
+            "blocks": [
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "plain_text",
+                        "text": f"🙏🏼 {e}",
+                    },
+                }
+            ],
+        }
+        return view
+
     def _get_pass_modal_view(
         self, body, view_name: str, pass_count: int
     ) -> dict[str, Any]:
@@ -266,7 +289,7 @@ class UserContentService:
                     "text": {
                         "type": "mrkdwn",
                         "text": f"패스 하려면 아래 '패스' 버튼을 눌러주세요.\
-                            \n현재 패스는 {pass_count}번 남았어요.\
+                            \n현재 패스는 {2 - pass_count}번 남았어요.\
                             \n패스는 연속으로 사용할 수 없어요.",
                     },
                 },
@@ -334,6 +357,23 @@ class UserContentService:
             tag_message = "\ntag : " + " ".join(set(f"`{tag.strip()}`" for tag in tags))
         return tag_message
 
+    async def _validate_user(self, ack, channel_id, user):
+        # TODO: exception handling 제출도 모달로 띄우기
+        if not user:
+            await self.error_message(
+                ack,
+                block_id="content_url",
+                message="사용자가 등록되어 있지 않습니다. [글또봇질문] 채널로 문의해주세요.",
+            )
+            raise ValueError("사용자가 등록되어 있지 않습니다. [글또봇질문] 채널로 문의해주세요.")
+        if user.channel_id != channel_id:
+            await self.error_message(
+                ack,
+                block_id="content_url",
+                message="본인이 속한 채널이 아닙니다. 본인의 코어 채널에서 제출해주세요.",
+            )
+            raise ValueError("본인이 속한 채널이 아닙니다. 본인의 코어 채널에서 제출해주세요.")
+
     async def _validate_url(self, ack, content_url: str) -> None:
         if not re.match(self._url_regex, content_url):
             await self.error_message(
@@ -342,7 +382,7 @@ class UserContentService:
             raise ValueError
 
     async def _validate_pass(self, ack, user: models.User) -> None:
-        if user.pass_count <= 0:
+        if user.pass_count >= 2:
             await self.error_message(
                 ack, block_id="description", message="pass를 모두 소진하였습니다."
             )
