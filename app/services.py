@@ -39,7 +39,7 @@ class UserContentService:
             content_url=content_url,
             category=self._get_category(view),
             description=self._get_description(view),
-            tags=self._get_tag(view),
+            tags=self._get_tags(view),
             type="submit",
         )
         self.update_user(user, content)
@@ -286,12 +286,13 @@ class UserContentService:
             description = ""
         return description
 
-    def _get_tag(self, view) -> str:
-        tag = ""
+    def _get_tags(self, view) -> str:
+        tags = ""
         raw_tag: str = view["state"]["values"]["tag"]["dreamy_input"]["value"]
         if raw_tag:
-            tag = ",".join(set(tag.strip() for tag in raw_tag.split(",") if tag))
-        return tag
+            deduplication_tags = list(dict.fromkeys(raw_tag.split(",")))
+            tags = ",".join(tag.strip() for tag in deduplication_tags if tag)
+        return tags
 
     def _get_category(self, view) -> str:
         category: str = view["state"]["values"]["category"]["static_select-action"][
@@ -315,8 +316,9 @@ class UserContentService:
     def _tag_message(self, tag: str | None) -> str:
         tag_message = ""
         if tag:
-            tags = tag.split(",")
-            tag_message = "\ntag : " + " ".join(set(f"`{tag.strip()}`" for tag in tags))
+            tag_message = "\ntag : " + " ".join(
+                [f"`{tag.strip()}`" for tag in tag.split(",")]
+            )
         return tag_message
 
     def _validate_user(self, channel_id, user: models.User | None) -> None:
