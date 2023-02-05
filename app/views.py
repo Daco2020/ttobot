@@ -37,7 +37,6 @@ async def submit_view(ack, body, client, view, logger, say) -> None:
             channel=channel_id, text=user_content_service.get_chat_message(content)
         )
     except Exception as e:
-        # TODO: 추후 모니터링으로 대체
         logger.exception(f"Failed to post a message {str(e)}")
 
 
@@ -64,13 +63,12 @@ async def pass_view(ack, body, client, view, logger, say) -> None:
             channel=channel_id, text=user_content_service.get_chat_message(content)
         )
     except Exception as e:
-        # TODO: 추후 모니터링으로 대체
         logger.exception(f"Failed to post a message {str(e)}")
 
 
 @slack.command("/제출내역")
 async def history_command(ack, body, logger, say, client) -> None:
-    # TODO: 슬랙 개인 디엠으로 본인의 제출내역을 보여준다.
+    # TODO: 슬랙 개인 디엠으로 본인의 제출내역을 반환한다.
     await ack()
     message = "열심히 개발중 🔨💦"
     await client.chat_postMessage(channel=body["user_id"], text=message)

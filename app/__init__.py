@@ -1,8 +1,10 @@
 import os
+import time
 from app.client import SpreadSheetClient
 from app.config import settings
 from fastapi import FastAPI, Request
 from slack_bolt.adapter.socket_mode.aiohttp import AsyncSocketModeHandler
+from apscheduler.schedulers.background import BackgroundScheduler  # type: ignore
 from app.views import slack
 
 
@@ -16,44 +18,28 @@ async def health(request: Request) -> bool:
 
 @api.on_event("startup")
 async def startup():
-    create_store()
+    client = SpreadSheetClient()
+    create_store(client)
+    schedule = BackgroundScheduler(daemon=True, timezone="Asia/Seoul")
+    schedule.add_job(scheduler, "interval", seconds=10, args=[client])
+    schedule.start()
     slack_handler = AsyncSocketModeHandler(slack, settings.APP_TOKEN)
     await slack_handler.start_async()
 
 
-# TODO: 서버 종료시 store 를 백업시트로 업데이트 한다.
+def create_store(client: SpreadSheetClient) -> None:
+    """서버 스토어를 생성합니다."""
+    create_store_path()
+    client.create_users()
+    client.create_contents()
 
 
-def create_store() -> None:
-    client = SpreadSheetClient()
-    _create_store_path()
-    _fetch_users(client)
-    _fetch_contents(client)
-
-
-def _create_store_path():
+def create_store_path():
     try:
         os.mkdir("store")
     except FileExistsError:
         pass
 
 
-def _fetch_users(client: SpreadSheetClient) -> None:
-    users = client._users_sheet.get_values("A:D")  # TODO: 캡슐화
-    with open("store/users.csv", "w") as f:
-        f.writelines([f"{','.join(user)}\n" for user in users])
-
-
-def _fetch_contents(client: SpreadSheetClient) -> None:
-    contents = client._raw_data.get_values("A:H")  # TODO: 캡슐화
-    with open("store/contents.csv", "w") as f:
-        f.writelines([f"{content}" for content in _parse(contents)])
-
-
-def _parse(contents: list[list[str]]) -> list[str]:
-    result = []
-    for content in contents:
-        content[5] = content[5].replace(",", "")
-        content[7] = content[7].replace(",", "#")
-        result.append(",".join(content).replace("\n", " ") + "\n")
-    return result
+def scheduler(client: SpreadSheetClient) -> None:
+    client.upload()

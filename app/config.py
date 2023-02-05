@@ -18,8 +18,7 @@ settings = Settings()
 
 
 # sheet constants
-RAW_SHEET = "raw_data"
-PASS_SHEET = "PASS_DATA"  # TODO: remove this
+RAW_DATA_SHEET = "raw_data"
 USERS_SHEET = "users"
 TEST_SHEET = "test"
 

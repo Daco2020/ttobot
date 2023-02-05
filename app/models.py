@@ -1,3 +1,4 @@
+from zoneinfo import ZoneInfo
 from pydantic import BaseModel
 import datetime
 
@@ -13,10 +14,16 @@ class Content(BaseModel):
     tags: str = ""
 
     @property
-    def datetime(self) -> datetime.datetime:
-        return datetime.datetime.strptime(self.dt, "%Y-%m-%d %H:%M:%S")
+    def dt_(self) -> datetime.datetime:
+        return datetime.datetime.strptime(self.dt, "%Y-%m-%d %H:%M:%S").replace(
+            tzinfo=ZoneInfo("Asia/Seoul")
+        )
 
-    def to_csv_line(self) -> str:
+    @property
+    def date(self) -> datetime.date:
+        return self.dt_.date()
+
+    def to_line(self) -> str:
         return ",".join(
             [
                 self.user_id,
@@ -27,7 +34,6 @@ class Content(BaseModel):
                 self.description.replace(",", ""),
                 self.type,
                 self.tags.replace(",", "#"),
-                "\n",
             ]
         )
 
@@ -54,5 +60,5 @@ class User(BaseModel):
         return self.contents[-1]
 
     def fetch_contents_history(self) -> list[Content]:
-        # TODO: implement
+        # TODO: 유저의 제출내역을 반환한다.
         return []

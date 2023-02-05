@@ -1,75 +1,53 @@
-from dataclasses import asdict
-from typing import Tuple
-from app import dto
-from app.config import PASS_DATA, RAW_DATA, USERS_DATA, settings
+from app.config import RAW_DATA_SHEET, TEST_SHEET, USERS_SHEET, settings
 
 import gspread  # type: ignore
 from oauth2client.service_account import ServiceAccountCredentials  # type: ignore
+
+from app.utils import now_dt
 
 
 credentials = ServiceAccountCredentials.from_json_keyfile_dict(
     settings.JSON_KEYFILE_DICT, settings.SCOPE
 )
 gc = gspread.authorize(credentials)
+upload_queue: list[str] = []
 
 
 class SpreadSheetClient:
     def __init__(self) -> None:
         self._doc = gc.open_by_url(settings.SPREAD_SHEETS_URL)
-        self._raw_data = self._doc.worksheet(RAW_DATA)
-        self._pass_data = self._doc.worksheet(PASS_DATA)
-        self._users_data = self._doc.worksheet(USERS_DATA)
+        self._raw_data_sheet = self._doc.worksheet(RAW_DATA_SHEET)
+        self._users_sheet = self._doc.worksheet(USERS_SHEET)
+        self._test_sheet = self._doc.worksheet(TEST_SHEET)  # TODO 테스트용 시트
 
-    def submit(self, dto: dto.Submit) -> None:
-        data = asdict(dto)
-        cursor = len(self._raw_data.get_values("A:A")) + 1
-        self._raw_data.update(
-            f"A{cursor}",
-            [
-                [
-                    data.get("user_id"),
-                    data.get("username"),
-                    data.get("content_url"),
-                    data.get("dt"),
-                    data.get("category"),
-                    data.get("description"),
-                    data.get("type"),
-                    data.get("tag"),
-                ]
-            ],
-        )
-
-    def get_remaining_pass_count(self, user_id: str) -> Tuple[int, str]:
-        """스프레스시트로부터 패스 사용 수를 가져옵니다."""
-        pass_data = self._pass_data.get_values("A3:D")
-        pass_count = 0
-        before_type = ""
-        for data in pass_data:
-            if data[2] == user_id:
-                pass_count = int(data[3])
-                before_type = data[1]
-                break
-        return pass_count, before_type
-
-    def fetch_all_submit(self, username: str) -> list[dto.Submit]:
-        """유저의 제출이력을 모두 가져옵니다."""
-        values = self._raw_data.get_values("A2:H")
-        return self._sorted_submit(values, username)
-
-    def _sorted_submit(self, values: list[str], username: str) -> list[dto.Submit]:
-        """유저의 제출이력을 최신순으로 정렬하여 반환합니다."""
-        raw_data = [value for value in values if value[1] == username]
-        desc_data = sorted(raw_data, key=lambda x: x[3], reverse=True)
-        return [
-            dto.Submit(
-                user_id=data[0],
-                username=data[1],
-                content_url=data[2],
-                dt=data[3],
-                category=data[4],
-                description=data[5],
-                type=data[6],
-                tag=data[7],
+    def upload(self) -> None:
+        """새로 추가된 queue 가 있다면 upload 합니다."""
+        global upload_queue
+        if upload_queue:
+            cursor = len(self._raw_data_sheet.get_values("A:A")) + 1
+            self._raw_data_sheet.update(
+                f"A{cursor}",
+                [line.split(",") for line in upload_queue],
             )
-            for data in desc_data
-        ]
+            print(f"{now_dt()} : Uploaded {upload_queue}")
+            upload_queue = []
+
+    def create_users(self) -> None:
+        """유저 정보를 스토어에 생성합니다."""
+        users = self._users_sheet.get_values("A:D")
+        with open("store/users.csv", "w") as f:
+            f.writelines([f"{','.join(user)}\n" for user in users])
+
+    def create_contents(self) -> None:
+        """콘텐츠 정보를 스토어에 생성합니다."""
+        contents = self._raw_data_sheet.get_values("A:H")
+        with open("store/contents.csv", "w") as f:
+            f.writelines([f"{content}" for content in self._parse(contents)])
+
+    def _parse(self, contents: list[list[str]]) -> list[str]:
+        result = []
+        for content in contents:
+            content[5] = content[5].replace(",", "")
+            content[7] = content[7].replace(",", "#")
+            result.append(",".join(content).replace("\n", " ") + "\n")
+        return result

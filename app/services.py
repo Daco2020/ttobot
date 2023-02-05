@@ -290,7 +290,9 @@ class UserContentService:
         tags = ""
         raw_tag: str = view["state"]["values"]["tag"]["dreamy_input"]["value"]
         if raw_tag:
-            deduplication_tags = list(dict.fromkeys(raw_tag.split(",")))
+            deduplication_tags = list(
+                dict.fromkeys(raw_tag.replace("#", "").split(","))
+            )
             tags = ",".join(tag.strip() for tag in deduplication_tags if tag)
         return tags
 
@@ -336,6 +338,7 @@ class UserContentService:
             message = "링크는 url 주소여야 합니다."
             await ack(response_action="errors", errors={block_id: message})
             raise ValueError
+        # TODO: 이미 제출한 링크가 있다면 에러를 반환한다.
 
     async def _validate_pass(self, ack, user: models.User) -> None:
         if user.pass_count >= MAX_PASS_COUNT:
