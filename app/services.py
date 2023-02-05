@@ -2,6 +2,7 @@ import datetime
 import re
 import time
 from typing import Any
+from app.config import URL_REGEX
 from app.repositories import FileUserRepository, UserRepository
 from app import models
 from app.utils import now_dt
@@ -10,8 +11,6 @@ from app.utils import now_dt
 class UserContentService:
     def __init__(self, user_repo: UserRepository) -> None:
         self._user_repo = user_repo
-        # TODO: move to config
-        self._url_regex = r"((http|https):\/\/)?[a-zA-Z0-9.-]+(\.[a-zA-Z]{2,})"
 
     async def get_user(self, ack, user_id, channel_id) -> models.User:
         user = self._user_repo.get(user_id)
@@ -375,7 +374,7 @@ class UserContentService:
             raise ValueError("본인이 속한 채널이 아닙니다. 본인의 코어 채널에서 제출해주세요.")
 
     async def _validate_url(self, ack, content_url: str) -> None:
-        if not re.match(self._url_regex, content_url):
+        if not re.match(URL_REGEX, content_url):
             await self.error_message(
                 ack, block_id="content_url", message="링크는 url 주소여야 합니다."
             )

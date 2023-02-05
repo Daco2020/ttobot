@@ -26,3 +26,6 @@ TEST_SHEET = "test"
 # views constants
 SUBMIT_VIEW = "submit_view"
 PASS_VIEW = "pass_view"
+
+# constants
+URL_REGEX = r"((http|https):\/\/)?[a-zA-Z0-9.-]+(\.[a-zA-Z]{2,})"
