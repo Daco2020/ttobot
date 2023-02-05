@@ -22,7 +22,7 @@ class FileUserRepository(UserRepository):
         if not user.contents:
             raise ValueError("업데이트 대상 content 가 없습니다.")
         with open("store/contents.csv", "a") as f:
-            f.write(user.recent_content.to_line())
+            f.write(user.recent_content.to_csv_line())
 
     def get(self, user_id: str) -> models.User | None:
         """User 모델을 가져옵니다."""

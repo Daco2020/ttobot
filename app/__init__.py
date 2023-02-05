@@ -38,14 +38,14 @@ def _create_store_path():
         pass
 
 
-def _fetch_users(client):
-    users = client._users_data.get_values("A:D")
+def _fetch_users(client: SpreadSheetClient) -> None:
+    users = client._users_sheet.get_values("A:D")  # TODO: 캡슐화
     with open("store/users.csv", "w") as f:
         f.writelines([f"{','.join(user)}\n" for user in users])
 
 
-def _fetch_contents(client):
-    contents = client._raw_data.get_values("A:H")
+def _fetch_contents(client: SpreadSheetClient) -> None:
+    contents = client._raw_data.get_values("A:H")  # TODO: 캡슐화
     with open("store/contents.csv", "w") as f:
         f.writelines([f"{content}" for content in _parse(contents)])
 
@@ -53,6 +53,7 @@ def _fetch_contents(client):
 def _parse(contents: list[list[str]]) -> list[str]:
     result = []
     for content in contents:
+        content[5] = content[5].replace(",", "")
         content[7] = content[7].replace(",", "#")
         result.append(",".join(content).replace("\n", " ") + "\n")
     return result

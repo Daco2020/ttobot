@@ -16,7 +16,7 @@ class Content(BaseModel):
     def datetime(self) -> datetime.datetime:
         return datetime.datetime.strptime(self.dt, "%Y-%m-%d %H:%M:%S")
 
-    def to_line(self) -> str:
+    def to_csv_line(self) -> str:
         return ",".join(
             [
                 self.user_id,
@@ -24,9 +24,9 @@ class Content(BaseModel):
                 self.content_url,
                 self.dt,
                 self.category,
-                self.description,
+                self.description.replace(",", ""),
                 self.type,
-                self.tags,
+                self.tags.replace(",", "#"),
                 "\n",
             ]
         )
