@@ -25,22 +25,26 @@ async def submit_view(ack, body, client, view, logger, say) -> None:
     channel_id = view["private_metadata"]
 
     try:
-        user = await user_content_service.get_user(ack, user_id, channel_id)
+        user = user_content_service.get_user(user_id, channel_id)
         content = await user_content_service.create_submit_content(
             ack, body, view, user
         )
     except ValueError:
         return None
 
-    await user_content_service.send_chat_message(
-        client, logger, content, user.channel_id
-    )
+    try:
+        await client.chat_postMessage(
+            channel=channel_id, text=user_content_service.get_chat_message(content)
+        )
+    except Exception as e:
+        # TODO: 추후 모니터링으로 대체
+        logger.exception(f"Failed to post a message {str(e)}")
 
 
 @slack.command("/패스")
 async def pass_command(ack, body, logger, say, client) -> None:
     await ack()
-    await user_content_service.open_pass_modal(ack, body, client, logger, PASS_VIEW)
+    await user_content_service.open_pass_modal(body, client, PASS_VIEW)
 
 
 @slack.view(PASS_VIEW)
@@ -50,14 +54,18 @@ async def pass_view(ack, body, client, view, logger, say) -> None:
     channel_id = view["private_metadata"]
 
     try:
-        user = await user_content_service.get_user(ack, user_id, channel_id)
+        user = user_content_service.get_user(user_id, channel_id)
         content = await user_content_service.create_pass_content(ack, body, view, user)
     except ValueError:
         return None
 
-    await user_content_service.send_chat_message(
-        client, logger, content, user.channel_id
-    )
+    try:
+        await client.chat_postMessage(
+            channel=channel_id, text=user_content_service.get_chat_message(content)
+        )
+    except Exception as e:
+        # TODO: 추후 모니터링으로 대체
+        logger.exception(f"Failed to post a message {str(e)}")
 
 
 @slack.command("/제출내역")

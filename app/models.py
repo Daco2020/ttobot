@@ -1,4 +1,5 @@
 from pydantic import BaseModel
+import datetime
 
 
 class Content(BaseModel):
@@ -7,9 +8,28 @@ class Content(BaseModel):
     username: str
     description: str
     type: str
-    content_url: str | None = None
-    category: str | None = None
-    tags: str | None = None
+    content_url: str = ""
+    category: str = ""
+    tags: str = ""
+
+    @property
+    def datetime(self) -> datetime.datetime:
+        return datetime.datetime.strptime(self.dt, "%Y-%m-%d %H:%M:%S")
+
+    def to_line(self) -> str:
+        return ",".join(
+            [
+                self.user_id,
+                self.username,
+                self.content_url,
+                self.dt,
+                self.category,
+                self.description,
+                self.type,
+                self.tags,
+                "\n",
+            ]
+        )
 
 
 class User(BaseModel):
@@ -27,8 +47,12 @@ class User(BaseModel):
     def before_type(self) -> str:
         if not self.contents:
             return ""
-        return self.contents.pop().type
+        return self.recent_content.type
 
-    def fetch_content_histories(self) -> list[Content]:
+    @property
+    def recent_content(self) -> Content:
+        return self.contents[-1]
+
+    def fetch_contents_history(self) -> list[Content]:
         # TODO: implement
         return []
