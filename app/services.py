@@ -1,185 +1,282 @@
 import datetime
 import re
-import time
-from typing import Any
-from app.client import SpreadSheetClient
-from app import dto
+from app.config import MAX_PASS_COUNT, URL_REGEX
+from app.repositories import FileUserRepository, UserRepository
+from app import models
 from app.utils import now_dt
 
 
-class SubmissionService:
-    def __init__(self, sheets_client: SpreadSheetClient) -> None:
-        self._sheets_client = sheets_client
-        self._url_regex = r"((http|https):\/\/)?[a-zA-Z0-9.-]+(\.[a-zA-Z]{2,})"
-        self._type = "submit"
+class UserContentService:
+    def __init__(self, user_repo: UserRepository) -> None:
+        self._user_repo = user_repo
 
-    async def open_modal(self, body, client, view_name: str) -> None:
-        await client.views_open(
-            trigger_id=body["trigger_id"], view=self._get_modal_view(body, view_name)
-        )
+    def get_user(self, user_id, channel_id) -> models.User:
+        user = self._user_repo.get(user_id)
+        self._validate_user(channel_id, user)
+        return user  # type: ignore
 
-    async def get(self, ack, body, view) -> dto.Submit:
+    def update_user(self, user, content):
+        user.contents.append(content)
+        self._user_repo.update(user)
+
+    async def open_submit_modal(self, body, client, view_name: str) -> None:
+        try:
+            self.get_user(body["user_id"], body["channel_id"])
+        except ValueError as e:
+            await self._open_error_modal(client, body, view_name, str(e))
+            return None
+        await self._open_submit_modal(client, body, view_name)
+
+    async def create_submit_content(
+        self, ack, body, view, user: models.User
+    ) -> models.Content:
         content_url = self._get_content_url(view)
         await self._validate_url(ack, content_url)
-        submission = dto.Submit(
+        content = models.Content(
             dt=datetime.datetime.strftime(now_dt(), "%Y-%m-%d %H:%M:%S"),
             user_id=body["user"]["id"],
             username=body["user"]["username"],
-            content_url=self._get_content_url(view),
+            content_url=content_url,
             category=self._get_category(view),
             description=self._get_description(view),
-            tag=self._get_tag(view),
-            type=self._type,
+            tags=self._get_tags(view),
+            type="submit",
         )
-        return submission
+        self.update_user(user, content)
+        return content
 
-    def submit(self, submission: dto.Submit) -> None:
-        self._sheets_client.submit(submission)
-
-    async def send_chat_message(
-        self, client, view, logger, submission: dto.Submit
-    ) -> None:
-        tag_msg = self._get_tag_msg(submission.tag)
-        description_msg = self._get_description_msg(submission.description)
-        channal = view["private_metadata"]
+    async def open_pass_modal(self, body, client, view_name: str) -> None:
         try:
-            msg = f"\n>>>🎉 *<@{submission.user_id}>님 제출 완료.*{description_msg}\
-                \ncategory : {submission.category}{tag_msg}\
-                \nlink : {submission.content_url}"
-            await client.chat_postMessage(channel=channal, text=msg)
-        except Exception as e:
-            logger.exception(f"Failed to post a message {str(e)}")
+            user = self.get_user(body["user_id"], body["channel_id"])
+        except ValueError as e:
+            await self._open_error_modal(client, body, view_name, str(e))
+            return None
+        await self._open_pass_modal(client, body, view_name, user.pass_count)
 
-    def _get_modal_view(self, body, submit_view: str) -> dict[str, Any]:
-        view = {
-            "type": "modal",
-            "private_metadata": body["channel_id"],
-            "callback_id": submit_view,
-            "title": {"type": "plain_text", "text": "또봇"},
-            "submit": {"type": "plain_text", "text": "제출"},
-            "blocks": [
-                {
-                    "type": "section",
-                    "block_id": "required_section",
-                    "text": {
-                        "type": "mrkdwn",
-                        "text": "글 쓰느라 고생 많았어요~ 👏🏼👏🏼👏🏼\n[글 링크]와 [카테고리]를 제출하면 끝! 🥳",
-                    },
-                },
-                {
-                    "type": "input",
-                    "block_id": "content",
-                    "element": {
-                        "type": "url_text_input",
-                        "action_id": "url_text_input-action",
-                    },
-                    "label": {"type": "plain_text", "text": "글 링크", "emoji": True},
-                },
-                {
-                    "type": "input",
-                    "block_id": "category",
-                    "label": {"type": "plain_text", "text": "카테고리", "emoji": True},
-                    "element": {
-                        "type": "static_select",
-                        "placeholder": {
+    async def create_pass_content(
+        self, ack, body, view, user: models.User
+    ) -> models.Content:
+        await self._validate_pass(ack, user)
+        content = models.Content(
+            dt=datetime.datetime.strftime(now_dt(), "%Y-%m-%d %H:%M:%S"),
+            user_id=body["user"]["id"],
+            username=body["user"]["username"],
+            description=self._get_description(view),
+            type="pass",
+        )
+        self.update_user(user, content)
+        return content
+
+    def get_chat_message(self, content):
+        if content.type == "submit":
+            message = f"\n>>>🎉 *<@{content.user_id}>님 제출 완료.*\
+                {self._description_message(content.description)}\
+                \ncategory : {content.category}\
+                {self._tag_message(content.tags)}\
+                \nlink : {content.content_url}"
+        else:
+            message = f"\n>>>🙏🏼 *<@{content.user_id}>님 패스 완료.*\
+                {self._description_message(content.description)}"
+        return message
+
+    async def _open_error_modal(self, client, body, view_name: str, e: str) -> None:
+        await client.views_open(
+            trigger_id=body["trigger_id"],
+            view={
+                "type": "modal",
+                "private_metadata": body["channel_id"],
+                "callback_id": view_name,
+                "title": {"type": "plain_text", "text": "또봇"},
+                "close": {"type": "plain_text", "text": "닫기"},
+                "blocks": [
+                    {
+                        "type": "section",
+                        "text": {
                             "type": "plain_text",
-                            "text": "카테고리 선택",
+                            "text": f"🥲 \n{e}",
+                        },
+                    }
+                ],
+            },
+        )
+
+    async def _open_submit_modal(self, client, body, view_name: str) -> None:
+        await client.views_open(
+            trigger_id=body["trigger_id"],
+            view={
+                "type": "modal",
+                "private_metadata": body["channel_id"],
+                "callback_id": view_name,
+                "title": {"type": "plain_text", "text": "또봇"},
+                "submit": {"type": "plain_text", "text": "제출"},
+                "blocks": [
+                    {
+                        "type": "section",
+                        "block_id": "required_section",
+                        "text": {
+                            "type": "mrkdwn",
+                            "text": "글 쓰느라 고생 많았어요~ 👏🏼👏🏼👏🏼\n[글 링크]와 [카테고리]를 제출해주세요! 🥳",
+                        },
+                    },
+                    {
+                        "type": "input",
+                        "block_id": "content_url",
+                        "element": {
+                            "type": "url_text_input",
+                            "action_id": "url_text_input-action",
+                        },
+                        "label": {"type": "plain_text", "text": "글 링크", "emoji": True},
+                    },
+                    {
+                        "type": "input",
+                        "block_id": "category",
+                        "label": {"type": "plain_text", "text": "카테고리", "emoji": True},
+                        "element": {
+                            "type": "static_select",
+                            "placeholder": {
+                                "type": "plain_text",
+                                "text": "카테고리 선택",
+                                "emoji": True,
+                            },
+                            "options": [
+                                {
+                                    "text": {
+                                        "type": "plain_text",
+                                        "text": "프로젝트",
+                                        "emoji": True,
+                                    },
+                                    "value": "프로젝트",
+                                },
+                                {
+                                    "text": {
+                                        "type": "plain_text",
+                                        "text": "기술 & 언어",
+                                        "emoji": True,
+                                    },
+                                    "value": "기술 & 언어",
+                                },
+                                {
+                                    "text": {
+                                        "type": "plain_text",
+                                        "text": "조직 & 문화",
+                                        "emoji": True,
+                                    },
+                                    "value": "조직 & 문화",
+                                },
+                                {
+                                    "text": {
+                                        "type": "plain_text",
+                                        "text": "취준 & 이직",
+                                        "emoji": True,
+                                    },
+                                    "value": "취준 & 이직",
+                                },
+                                {
+                                    "text": {
+                                        "type": "plain_text",
+                                        "text": "일상 & 생각",
+                                        "emoji": True,
+                                    },
+                                    "value": "일상 & 생각",
+                                },
+                                {
+                                    "text": {
+                                        "type": "plain_text",
+                                        "text": "기타",
+                                        "emoji": True,
+                                    },
+                                    "value": "기타",
+                                },
+                            ],
+                            "action_id": "static_select-action",
+                        },
+                    },
+                    {"type": "divider"},
+                    {
+                        "type": "input",
+                        "block_id": "description",
+                        "optional": True,
+                        "element": {
+                            "type": "plain_text_input",
+                            "action_id": "plain_text_input-action",
+                            "placeholder": {
+                                "type": "plain_text",
+                                "text": "하고 싶은 말이 있다면 남겨주세요.",
+                            },
+                            "multiline": True,
+                        },
+                        "label": {
+                            "type": "plain_text",
+                            "text": "하고 싶은 말",
                             "emoji": True,
                         },
-                        "options": [
-                            {
-                                "text": {
-                                    "type": "plain_text",
-                                    "text": "프로젝트",
-                                    "emoji": True,
-                                },
-                                "value": "프로젝트",
-                            },
-                            {
-                                "text": {
-                                    "type": "plain_text",
-                                    "text": "기술 & 언어",
-                                    "emoji": True,
-                                },
-                                "value": "기술 & 언어",
-                            },
-                            {
-                                "text": {
-                                    "type": "plain_text",
-                                    "text": "조직 & 문화",
-                                    "emoji": True,
-                                },
-                                "value": "조직 & 문화",
-                            },
-                            {
-                                "text": {
-                                    "type": "plain_text",
-                                    "text": "취준 & 이직",
-                                    "emoji": True,
-                                },
-                                "value": "취준 & 이직",
-                            },
-                            {
-                                "text": {
-                                    "type": "plain_text",
-                                    "text": "일상 & 생각",
-                                    "emoji": True,
-                                },
-                                "value": "일상 & 생각",
-                            },
-                            {
-                                "text": {
-                                    "type": "plain_text",
-                                    "text": "기타",
-                                    "emoji": True,
-                                },
-                                "value": "기타",
-                            },
-                        ],
-                        "action_id": "static_select-action",
                     },
-                },
-                {"type": "divider"},
-                {
-                    "type": "input",
-                    "block_id": "description",
-                    "optional": True,
-                    "element": {
-                        "type": "plain_text_input",
-                        "action_id": "plain_text_input-action",
-                        "placeholder": {
+                    {
+                        "type": "input",
+                        "block_id": "tag",
+                        "label": {
                             "type": "plain_text",
-                            "text": "하고 싶은 말이 있다면 남겨주세요.",
+                            "text": "태그",
                         },
-                        "multiline": True,
+                        "optional": True,
+                        "element": {
+                            "type": "plain_text_input",
+                            "action_id": "dreamy_input",
+                            "placeholder": {
+                                "type": "plain_text",
+                                "text": "태그1,태그2,태그3, ... ",
+                            },
+                            "multiline": False,
+                        },
                     },
-                    "label": {
-                        "type": "plain_text",
-                        "text": "하고 싶은 말",
-                        "emoji": True,
+                ],
+            },
+        )
+
+    async def _open_pass_modal(
+        self, client, body, view_name: str, pass_count: int
+    ) -> None:
+        await client.views_open(
+            trigger_id=body["trigger_id"],
+            view={
+                "type": "modal",
+                "private_metadata": body["channel_id"],
+                "callback_id": view_name,
+                "title": {"type": "plain_text", "text": "또봇"},
+                "submit": {"type": "plain_text", "text": "패스"},
+                "blocks": [
+                    {
+                        "type": "section",
+                        "block_id": "required_section",
+                        "text": {
+                            "type": "mrkdwn",
+                            "text": f"패스 하려면 아래 '패스' 버튼을 눌러주세요.\
+                            \n현재 패스는 {MAX_PASS_COUNT - pass_count}번 남았어요.\
+                            \n패스는 연속으로 사용할 수 없어요.",
+                        },
                     },
-                },
-                {
-                    "type": "input",
-                    "block_id": "tag",
-                    "label": {
-                        "type": "plain_text",
-                        "text": "태그",
-                    },
-                    "optional": True,
-                    "element": {
-                        "type": "plain_text_input",
-                        "action_id": "dreamy_input",
-                        "placeholder": {
+                    {
+                        "type": "input",
+                        "block_id": "description",
+                        "optional": True,
+                        "element": {
+                            "type": "plain_text_input",
+                            "action_id": "plain_text_input-action",
+                            "placeholder": {
+                                "type": "plain_text",
+                                "text": "하고 싶은 말이 있다면 남겨주세요.",
+                            },
+                            "multiline": True,
+                        },
+                        "label": {
                             "type": "plain_text",
-                            "text": "태그1,태그2,태그3, ... ",
+                            "text": "하고 싶은 말",
+                            "emoji": True,
                         },
-                        "multiline": False,
                     },
-                },
-            ],
-        }
-        return view
+                ],
+            },
+        )
 
     def _get_description(self, view) -> str:
         description: str = view["state"]["values"]["description"][
@@ -189,12 +286,15 @@ class SubmissionService:
             description = ""
         return description
 
-    def _get_tag(self, view) -> str:
-        tag = ""
+    def _get_tags(self, view) -> str:
+        tags = ""
         raw_tag: str = view["state"]["values"]["tag"]["dreamy_input"]["value"]
         if raw_tag:
-            tag = ",".join(set(tag.strip() for tag in raw_tag.split(",") if tag))
-        return tag
+            deduplication_tags = list(
+                dict.fromkeys(raw_tag.replace("#", "").split(","))
+            )
+            tags = ",".join(tag.strip() for tag in deduplication_tags if tag)
+        return tags
 
     def _get_category(self, view) -> str:
         category: str = view["state"]["values"]["category"]["static_select-action"][
@@ -204,158 +304,53 @@ class SubmissionService:
         return category
 
     def _get_content_url(self, view) -> str:
-        content_url: str = view["state"]["values"]["content"]["url_text_input-action"][
-            "value"
-        ]
+        content_url: str = view["state"]["values"]["content_url"][
+            "url_text_input-action"
+        ]["value"]
         return content_url
 
-    def _get_description_msg(self, description: str) -> str:
-        description_msg = ""
+    def _description_message(self, description: str) -> str:
+        description_message = ""
         if description:
-            description_msg = f"\n\n💬 '{description}'\n"
-        return description_msg
+            description_message = f"\n\n💬 '{description}'\n"
+        return description_message
 
-    def _get_tag_msg(self, tag: str | None) -> str:
-        tag_msg = ""
+    def _tag_message(self, tag: str | None) -> str:
+        tag_message = ""
         if tag:
-            tags = tag.split(",")
-            tag_msg = "\ntag : " + " ".join(set(f"`{tag.strip()}`" for tag in tags))
-        return tag_msg
+            tag_message = "\ntag : " + " ".join(
+                [f"`{tag.strip()}`" for tag in tag.split(",")]
+            )
+        return tag_message
+
+    def _validate_user(self, channel_id, user: models.User | None) -> None:
+        if not user:
+            raise ValueError("사용자 정보가 등록되어 있지 않습니다.\n[글또봇질문] 채널로 문의해주세요.")
+        if user.channel_id != channel_id:
+            raise ValueError(
+                f"{user.name} 님의 코어 채널은 [{user.channel_name}] 입니다.\
+                             \n코어 채널에서 다시 시도해주세요."
+            )
 
     async def _validate_url(self, ack, content_url: str) -> None:
-        if not re.match(self._url_regex, content_url):
-            errors = {}
-            errors["content"] = "링크는 url 주소여야 합니다."
-            await ack(response_action="errors", errors=errors)
+        if not re.match(URL_REGEX, content_url):
+            block_id = "content_url"
+            message = "링크는 url 주소여야 합니다."
+            await ack(response_action="errors", errors={block_id: message})
+            raise ValueError
+        # TODO: 이미 제출한 링크가 있다면 에러를 반환한다.
+
+    async def _validate_pass(self, ack, user: models.User) -> None:
+        if user.pass_count >= MAX_PASS_COUNT:
+            block_id = "description"
+            message = "사용할 수 있는 pass 가 없습니다."
+            await ack(response_action="errors", errors={block_id: message})
+            raise ValueError
+        if user.before_type == "pass":
+            block_id = "description"
+            message = "연속으로 pass 를 사용할 수 없습니다."
+            await ack(response_action="errors", errors={block_id: message})
             raise ValueError
 
 
-class PassService:
-    def __init__(self, sheets_client: SpreadSheetClient) -> None:
-        self._sheets_client = sheets_client
-        self._type = "pass"
-
-    async def open_modal(self, body, client, view_name: str) -> None:
-        res = await client.views_open(
-            trigger_id=body["trigger_id"],
-            view=self._get_loading_modal_view(body, view_name),
-        )
-        view_id = res["view"]["id"]
-        pass_count, _ = self._sheets_client.get_remaining_pass_count(body["user_id"])
-        time.sleep(0.2)
-        await client.views_update(
-            view_id=view_id, view=self._get_modal_view(body, view_name, pass_count)
-        )
-
-    async def get(self, ack, body, view) -> dto.Submit:
-        await self._validate_passable(ack, body["user"]["id"])
-        pass_ = dto.Submit(
-            dt=datetime.datetime.strftime(now_dt(), "%Y-%m-%d %H:%M:%S"),
-            user_id=body["user"]["id"],
-            username=body["user"]["username"],
-            description=self._get_description(view),
-            type=self._type,
-        )
-        return pass_
-
-    def submit(self, pass_: dto.Submit) -> None:
-        self._sheets_client.submit(pass_)
-
-    async def send_chat_message(self, client, view, logger, pass_: dto.Submit) -> None:
-        description_msg = self._get_description_msg(pass_.description)
-        channal = view["private_metadata"]
-        try:
-            msg = f"\n>>>🙏🏼 *<@{pass_.user_id}>님 패스 완료.*{description_msg}"
-            await client.chat_postMessage(channel=channal, text=msg)
-        except Exception as e:
-            logger.exception(f"Failed to post a message {str(e)}")
-
-    def _get_loading_modal_view(self, body, view_name: str) -> dict[str, Any]:
-        view = {
-            "type": "modal",
-            "private_metadata": body["channel_id"],
-            "callback_id": view_name,
-            "title": {"type": "plain_text", "text": "또봇"},
-            "close": {"type": "plain_text", "text": "닫기"},
-            "blocks": [
-                {
-                    "type": "section",
-                    "text": {
-                        "type": "plain_text",
-                        "text": ":man-biking: 이전 제출이력 확인 중...!",
-                    },
-                }
-            ],
-        }
-        return view
-
-    def _get_modal_view(self, body, view_name: str, pass_count: int) -> dict[str, Any]:
-        view = {
-            "type": "modal",
-            "private_metadata": body["channel_id"],
-            "callback_id": view_name,
-            "title": {"type": "plain_text", "text": "또봇"},
-            "submit": {"type": "plain_text", "text": "패스"},
-            "blocks": [
-                {
-                    "type": "section",
-                    "block_id": "required_section",
-                    "text": {
-                        "type": "mrkdwn",
-                        "text": f"패스 하려면 아래 '패스' 버튼을 눌러주세요.\
-                            \n현재 패스는 {pass_count}번 남았어요.\
-                            \n패스는 연속으로 사용할 수 없어요.",
-                    },
-                },
-                {
-                    "type": "input",
-                    "block_id": "description",
-                    "optional": True,
-                    "element": {
-                        "type": "plain_text_input",
-                        "action_id": "plain_text_input-action",
-                        "placeholder": {
-                            "type": "plain_text",
-                            "text": "하고 싶은 말이 있다면 남겨주세요.",
-                        },
-                        "multiline": True,
-                    },
-                    "label": {
-                        "type": "plain_text",
-                        "text": "하고 싶은 말",
-                        "emoji": True,
-                    },
-                },
-            ],
-        }
-        return view
-
-    def _get_description(self, view) -> str:
-        description: str = view["state"]["values"]["description"][
-            "plain_text_input-action"
-        ]["value"]
-        if not description:
-            description = ""
-        return description
-
-    def _get_description_msg(self, description: str) -> str:
-        description_msg = ""
-        if description:
-            description_msg = f"\n\n💬 '{description}'\n"
-        return description_msg
-
-    async def _validate_passable(self, ack, user_id: str) -> None:
-        pass_count, before_type = self._sheets_client.get_remaining_pass_count(user_id)
-        errors = {}
-        if pass_count <= 0:
-            errors["description"] = "pass를 모두 소진하였습니다."
-            await ack(response_action="errors", errors=errors)
-            raise ValueError
-        if before_type == "pass":
-            errors["description"] = "pass는 연속으로 사용할 수 없습니다."
-            await ack(response_action="errors", errors=errors)
-            raise ValueError
-
-
-submission_service = SubmissionService(SpreadSheetClient())
-pass_service = PassService(SpreadSheetClient())
+user_content_service = UserContentService(FileUserRepository())

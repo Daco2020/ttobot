@@ -1,19 +1,45 @@
+import os
+import time
+from app.client import SpreadSheetClient
 from app.config import settings
 from fastapi import FastAPI, Request
 from slack_bolt.adapter.socket_mode.aiohttp import AsyncSocketModeHandler
+from apscheduler.schedulers.background import BackgroundScheduler  # type: ignore
 from app.views import slack
 
 
 api = FastAPI()
-# TODO: 로킹 미들웨어 추가필요
-
-
-@api.on_event("startup")
-async def startup():
-    slack_handler = AsyncSocketModeHandler(slack, settings.APP_TOKEN)
-    await slack_handler.start_async()
 
 
 @api.post("/")
 async def health(request: Request) -> bool:
     return True
+
+
+@api.on_event("startup")
+async def startup():
+    client = SpreadSheetClient()
+    create_store(client)
+    schedule = BackgroundScheduler(daemon=True, timezone="Asia/Seoul")
+    schedule.add_job(scheduler, "interval", seconds=10, args=[client])
+    schedule.start()
+    slack_handler = AsyncSocketModeHandler(slack, settings.APP_TOKEN)
+    await slack_handler.start_async()
+
+
+def create_store(client: SpreadSheetClient) -> None:
+    """서버 스토어를 생성합니다."""
+    create_store_path()
+    client.create_users()
+    client.create_contents()
+
+
+def create_store_path():
+    try:
+        os.mkdir("store")
+    except FileExistsError:
+        pass
+
+
+def scheduler(client: SpreadSheetClient) -> None:
+    client.upload()
