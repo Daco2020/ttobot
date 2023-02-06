@@ -5,11 +5,11 @@ from app import models, client
 
 class UserRepository(abc.ABC):
     @abc.abstractmethod
-    def get(self, user_id: str) -> models.User | None:
+    def update(self, content) -> None:
         ...
 
     @abc.abstractmethod
-    def update(self, content) -> None:
+    def get(self, user_id: str) -> models.User | None:
         ...
 
 

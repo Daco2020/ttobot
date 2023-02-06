@@ -31,7 +31,7 @@ class UserContentService:
         self, ack, body, view, user: models.User
     ) -> models.Content:
         content_url = self._get_content_url(view)
-        await self._validate_url(ack, content_url)
+        await self._validate_url(ack, content_url, user)
         content = models.Content(
             dt=datetime.datetime.strftime(now_dt(), "%Y-%m-%d %H:%M:%S"),
             user_id=body["user"]["id"],
@@ -67,7 +67,7 @@ class UserContentService:
         self.update_user(user, content)
         return content
 
-    def get_chat_message(self, content):
+    def get_chat_message(self, content) -> str:
         if content.type == "submit":
             message = f"\n>>>🎉 *<@{content.user_id}>님 제출 완료.*\
                 {self._description_message(content.description)}\
@@ -77,6 +77,20 @@ class UserContentService:
         else:
             message = f"\n>>>🙏🏼 *<@{content.user_id}>님 패스 완료.*\
                 {self._description_message(content.description)}"
+        return message
+
+    def get_submit_history(self, user_id: str) -> str:
+        user = self._user_repo.get(user_id)
+        if user is None:
+            return []
+        return self._history_message(user)
+
+    def _history_message(self, user: models.User) -> str:
+        message = f"\n>>>🤗  *<@{user.user_id}> 님의 제출 기록이에요!*\n"
+        for content in user.fetch_contents():
+            message += f"\n{'✅ 제출' if content.type == 'submit' else '▶️ 패스'}  |  "
+            message += f"{content.dt}  |  "
+            message += f"{content.content_url}"
         return message
 
     async def _open_error_modal(self, client, body, view_name: str, e: str) -> None:
@@ -332,13 +346,17 @@ class UserContentService:
                              \n코어 채널에서 다시 시도해주세요."
             )
 
-    async def _validate_url(self, ack, content_url: str) -> None:
+    async def _validate_url(self, ack, content_url: str, user: models.User) -> None:
         if not re.match(URL_REGEX, content_url):
             block_id = "content_url"
-            message = "링크는 url 주소여야 합니다."
+            message = "링크는 url 형식이어야 합니다."
             await ack(response_action="errors", errors={block_id: message})
             raise ValueError
-        # TODO: 이미 제출한 링크가 있다면 에러를 반환한다.
+        if content_url in user.content_urls:
+            block_id = "content_url"
+            message = "이미 제출한 url 입니다."
+            await ack(response_action="errors", errors={block_id: message})
+            raise ValueError
 
     async def _validate_pass(self, ack, user: models.User) -> None:
         if user.pass_count >= MAX_PASS_COUNT:

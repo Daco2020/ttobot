@@ -68,7 +68,6 @@ async def pass_view(ack, body, client, view, logger, say) -> None:
 
 @slack.command("/제출내역")
 async def history_command(ack, body, logger, say, client) -> None:
-    # TODO: 슬랙 개인 디엠으로 본인의 제출내역을 반환한다.
     await ack()
-    message = "열심히 개발중 🔨💦"
-    await client.chat_postMessage(channel=body["user_id"], text=message)
+    submit_history = user_content_service.get_submit_history(body["user_id"])
+    await client.chat_postMessage(channel=body["user_id"], text=submit_history)

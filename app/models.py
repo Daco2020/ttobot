@@ -51,6 +51,7 @@ class User(BaseModel):
 
     @property
     def before_type(self) -> str:
+        # TODO: 추후 날짜기반 으로 변경
         if not self.contents:
             return ""
         return self.recent_content.type
@@ -59,6 +60,9 @@ class User(BaseModel):
     def recent_content(self) -> Content:
         return self.contents[-1]
 
-    def fetch_contents_history(self) -> list[Content]:
-        # TODO: 유저의 제출내역을 반환한다.
-        return []
+    @property
+    def content_urls(self) -> list[str]:
+        return [content.content_url for content in self.contents]
+
+    def fetch_contents(self) -> list[Content]:
+        return self.contents
