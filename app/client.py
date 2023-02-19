@@ -24,11 +24,17 @@ class SpreadSheetClient:
         """새로 추가된 queue 가 있다면 upload 합니다."""
         global upload_queue
         if upload_queue:
-            cursor = len(self._raw_data_sheet.get_values("A:A")) + 1
-            self._raw_data_sheet.update(
-                f"A{cursor}",
-                [line.split(",") for line in upload_queue],
-            )
+            try:
+                cursor = len(self._raw_data_sheet.get_values("A:A")) + 1
+                self._raw_data_sheet.update(
+                    f"A{cursor}",
+                    [line.split(",") for line in upload_queue],
+                )
+            except Exception as e:
+                # TODO: error log 추가 필요
+                print(e)
+                print(f"{now_dt()} : Failed {upload_queue}")
+                return None
             print(f"{now_dt()} : Uploaded {upload_queue}")
             upload_queue = []
 
