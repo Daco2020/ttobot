@@ -31,7 +31,7 @@ class Content(BaseModel):
                 self.content_url,
                 self.dt,
                 self.category,
-                self.description.replace(",", ""),
+                self.description.replace(",", "").replace("\n", " "),
                 self.type,
                 self.tags.replace(",", "#"),
             ]

@@ -50,13 +50,6 @@ class FileUserRepository(UserRepository):
             lines = f.read().splitlines()
             columns = lines[0].split(",")
             contents = self._to_dict(columns, lines)
-            print([content for content in contents if content["user_id"] == user_id])
-            """
-            TODO: 종종 필드 벨리데이션 에러 발생(원인 확인 필요)
-            pydantic.error_wrappers.ValidationError: 1 validation error for Content
-            type
-                field required (type=value_error.missing)
-            """
             return sorted(
                 [
                     models.Content(**content)
