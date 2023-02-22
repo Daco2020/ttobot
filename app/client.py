@@ -31,21 +31,20 @@ class SpreadSheetClient:
                     [line.split(",") for line in upload_queue],
                 )
             except Exception as e:
-                # TODO: error log 추가 필요
                 print(e)
                 print(f"{now_dt()} : Failed {upload_queue}")
                 return None
             print(f"{now_dt()} : Uploaded {upload_queue}")
             upload_queue = []
 
-    def create_users(self) -> None:
-        """유저 정보를 스토어에 생성합니다."""
+    def sync_users(self) -> None:
+        """유저 정보를 동기화합니다."""
         users = self._users_sheet.get_values("A:D")
         with open("store/users.csv", "w") as f:
             f.writelines([f"{','.join(user)}\n" for user in users])
 
-    def create_contents(self) -> None:
-        """콘텐츠 정보를 스토어에 생성합니다."""
+    def sync_contents(self) -> None:
+        """콘텐츠 정보를 동기화합니다."""
         contents = self._raw_data_sheet.get_values("A:H")
         with open("store/contents.csv", "w") as f:
             f.writelines([f"{content}" for content in self._parse(contents)])

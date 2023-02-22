@@ -1,5 +1,4 @@
 import os
-import time
 from app.client import SpreadSheetClient
 from app.config import settings
 from fastapi import FastAPI, Request
@@ -19,7 +18,7 @@ async def health(request: Request) -> bool:
 @api.on_event("startup")
 async def startup():
     client = SpreadSheetClient()
-    create_store(client)
+    sync_store(client)
     schedule = BackgroundScheduler(daemon=True, timezone="Asia/Seoul")
     schedule.add_job(scheduler, "interval", seconds=10, args=[client])
     schedule.start()
@@ -27,11 +26,11 @@ async def startup():
     await slack_handler.start_async()
 
 
-def create_store(client: SpreadSheetClient) -> None:
-    """서버 스토어를 생성합니다."""
+def sync_store(client: SpreadSheetClient) -> None:
+    """서버 스토어를 동기화합니다."""
     create_store_path()
-    client.create_users()
-    client.create_contents()
+    client.sync_users()
+    client.sync_contents()
 
 
 def create_store_path():

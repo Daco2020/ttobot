@@ -82,7 +82,7 @@ class UserContentService:
     def get_submit_history(self, user_id: str) -> str:
         user = self._user_repo.get(user_id)
         if user is None:
-            return []
+            return "사용자 정보가 없습니다. [글또봇질문]채널에 문의해주세요."
         return self._history_message(user)
 
     def _history_message(self, user: models.User) -> str:
@@ -318,6 +318,7 @@ class UserContentService:
         return category
 
     def _get_content_url(self, view) -> str:
+        # 슬랙 앱이 구 버전일 경우 일부 block 이 사라져 키에러가 발생할 수 있음
         content_url: str = view["state"]["values"]["content_url"][
             "url_text_input-action"
         ]["value"]
