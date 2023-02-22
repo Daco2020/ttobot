@@ -40,13 +40,13 @@ class SpreadSheetClient:
     def sync_users(self) -> None:
         """유저 정보를 동기화합니다."""
         users = self._users_sheet.get_values("A:D")
-        with open("store/users.csv", "w") as f:
+        with open("db/users.csv", "w") as f:
             f.writelines([f"{','.join(user)}\n" for user in users])
 
     def sync_contents(self) -> None:
         """콘텐츠 정보를 동기화합니다."""
         contents = self._raw_data_sheet.get_values("A:H")
-        with open("store/contents.csv", "w") as f:
+        with open("db/contents.csv", "w") as f:
             f.writelines([f"{content}" for content in self._parse(contents)])
 
     def _parse(self, contents: list[list[str]]) -> list[str]:

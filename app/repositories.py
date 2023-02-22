@@ -23,7 +23,7 @@ class FileUserRepository(UserRepository):
             raise ValueError("업데이트 대상 content 가 없습니다.")
         line = user.recent_content.to_line()
         client.upload_queue.append(line)
-        with open("store/contents.csv", "a") as f:
+        with open("db/contents.csv", "a") as f:
             f.write(line + "\n")
 
     def get(self, user_id: str) -> models.User | None:
@@ -35,7 +35,7 @@ class FileUserRepository(UserRepository):
 
     def _get_user(self, user_id: str) -> models.User | None:
         """유저를 가져옵니다."""
-        with open("store/users.csv", "r") as f:
+        with open("db/users.csv", "r") as f:
             lines = f.read().splitlines()
             columns = lines[0].split(",")
             users = self._to_dict(columns, lines)
@@ -46,7 +46,7 @@ class FileUserRepository(UserRepository):
 
     def _fetch_contents(self, user_id: str) -> list[models.Content]:
         """유저의 콘텐츠를 오름차순(날짜)으로 정렬하여 가져옵니다."""
-        with open("store/contents.csv", "r") as f:
+        with open("db/contents.csv", "r") as f:
             lines = f.read().splitlines()
             columns = lines[0].split(",")
             contents = self._to_dict(columns, lines)

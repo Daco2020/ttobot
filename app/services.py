@@ -82,7 +82,7 @@ class UserContentService:
     def get_submit_history(self, user_id: str) -> str:
         user = self._user_repo.get(user_id)
         if user is None:
-            return "사용자 정보가 없습니다. [글또봇질문]채널에 문의해주세요."
+            return "사용자 정보가 없습니다. [글또봇질문]채널로 문의해주세요."
         return self._history_message(user)
 
     def _history_message(self, user: models.User) -> str:
