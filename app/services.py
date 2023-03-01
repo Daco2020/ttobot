@@ -85,6 +85,11 @@ class UserContentService:
             return "사용자 정보가 없습니다. [글또봇질문]채널로 문의해주세요."
         return self._history_message(user)
 
+    def validate_admin_user(self, user_id: str) -> None:
+        user = self._user_repo.get(user_id)
+        if user.user_id not in ["U02HPESDZT3", "U04KVHPMQQ6"]:
+            raise ValueError("관리자 계정이 아닙니다.")
+
     def _history_message(self, user: models.User) -> str:
         message = f"\n>>>🤗  *<@{user.user_id}> 님의 제출 기록이에요!*\n"
         for content in user.fetch_contents():

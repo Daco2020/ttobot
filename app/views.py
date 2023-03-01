@@ -1,5 +1,7 @@
+from app.client import SpreadSheetClient
 from app.config import PASS_VIEW, settings, SUBMIT_VIEW
 from slack_bolt.async_app import AsyncApp
+from app.db import sync_db
 
 from app.services import user_content_service
 
@@ -71,3 +73,16 @@ async def history_command(ack, body, logger, say, client) -> None:
     await ack()
     submit_history = user_content_service.get_submit_history(body["user_id"])
     await client.chat_postMessage(channel=body["user_id"], text=submit_history)
+
+
+@slack.command("/관리자")
+async def admin_cmmand(ack, body, logger, say, client) -> None:
+    # TODO: 추후 관리자 메뉴 추가
+    await ack()
+    try:
+        user_content_service.validate_admin_user(body["user_id"])
+        sheet_client = SpreadSheetClient()
+        sync_db(sheet_client)
+        await client.chat_postMessage(channel=body["user_id"], text="DB sync 완료")
+    except ValueError as e:
+        await client.chat_postMessage(channel=body["user_id"], text=str(e))

@@ -3,7 +3,8 @@ from app.client import SpreadSheetClient
 from app.config import settings
 from fastapi import FastAPI, Request
 from slack_bolt.adapter.socket_mode.aiohttp import AsyncSocketModeHandler
-from apscheduler.schedulers.background import BackgroundScheduler  # type: ignore
+from apscheduler.schedulers.background import BackgroundScheduler
+from app.db import sync_db  # type: ignore
 from app.views import slack
 
 api = FastAPI()
@@ -23,21 +24,6 @@ async def startup():
     schedule.start()
     slack_handler = AsyncSocketModeHandler(slack, settings.APP_TOKEN)
     await slack_handler.start_async()
-
-
-def sync_db(client: SpreadSheetClient) -> None:
-    """서버 저장소를 동기화합니다."""
-    # TODO: 1시간 단위로 동기화 하기
-    create_db_path()
-    client.sync_users()
-    client.sync_contents()
-
-
-def create_db_path():
-    try:
-        os.mkdir("db")
-    except FileExistsError:
-        pass
 
 
 def scheduler(client: SpreadSheetClient) -> None:
