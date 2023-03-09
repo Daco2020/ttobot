@@ -1,4 +1,3 @@
-import os
 from app.client import SpreadSheetClient
 from app.config import settings
 from fastapi import FastAPI, Request

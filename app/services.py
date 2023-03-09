@@ -98,7 +98,14 @@ class UserContentService:
             message += f"{content.content_url}"
         return message
 
-    async def _open_error_modal(self, client, body, view_name: str, e: str) -> None:
+    async def _open_error_modal(
+        self, client, body: dict[str, str], view_name: str, e: str
+    ) -> None:
+        message = (
+            f"{body.get('user_id')}({body.get('channel_id')}) 님의 {view_name} 가 실패하였습니다."
+        )
+        print(message, now_dt(), e)
+        e = "Content" in e and "예기치 못한 오류가 발생하였습니다.\n[글또봇질문] 채널로 문의해주세요."
         await client.views_open(
             trigger_id=body["trigger_id"],
             view={
@@ -357,24 +364,24 @@ class UserContentService:
             block_id = "content_url"
             message = "링크는 url 형식이어야 합니다."
             await ack(response_action="errors", errors={block_id: message})
-            raise ValueError
+            raise ValueError(message)
         if content_url in user.content_urls:
             block_id = "content_url"
             message = "이미 제출한 url 입니다."
             await ack(response_action="errors", errors={block_id: message})
-            raise ValueError
+            raise ValueError(message)
 
     async def _validate_pass(self, ack, user: models.User) -> None:
         if user.pass_count >= MAX_PASS_COUNT:
             block_id = "description"
             message = "사용할 수 있는 pass 가 없습니다."
             await ack(response_action="errors", errors={block_id: message})
-            raise ValueError
+            raise ValueError(message)
         if user.before_type == "pass":
             block_id = "description"
             message = "연속으로 pass 를 사용할 수 없습니다."
             await ack(response_action="errors", errors={block_id: message})
-            raise ValueError
+            raise ValueError(message)
 
 
 user_content_service = UserContentService(FileUserRepository())
