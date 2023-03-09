@@ -2,7 +2,7 @@ from app.client import SpreadSheetClient
 from app.config import settings
 from fastapi import FastAPI, Request
 from slack_bolt.adapter.socket_mode.aiohttp import AsyncSocketModeHandler
-from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.schedulers.background import BackgroundScheduler  # type: ignore
 from app.db import sync_db  # type: ignore
 from app.views import slack
 

@@ -86,8 +86,7 @@ class UserContentService:
         return self._history_message(user)
 
     def validate_admin_user(self, user_id: str) -> None:
-        user = self._user_repo.get(user_id)
-        if user.user_id not in ["U02HPESDZT3", "U04KVHPMQQ6"]:
+        if user_id not in ["U02HPESDZT3", "U04KVHPMQQ6"]:
             raise ValueError("관리자 계정이 아닙니다.")
 
     def _history_message(self, user: models.User) -> str:
@@ -105,7 +104,7 @@ class UserContentService:
             f"{body.get('user_id')}({body.get('channel_id')}) 님의 {view_name} 가 실패하였습니다."
         )
         print(message, now_dt(), e)
-        e = "Content" in e and "예기치 못한 오류가 발생하였습니다.\n[글또봇질문] 채널로 문의해주세요."
+        e = "예기치 못한 오류가 발생하였습니다.\n[글또봇질문] 채널로 문의해주세요." if "Content" in e else e
         await client.views_open(
             trigger_id=body["trigger_id"],
             view={
