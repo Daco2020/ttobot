@@ -4,7 +4,7 @@ from slack_bolt.async_app import AsyncApp
 from app.db import sync_db
 
 from app.services import user_content_service
-from app.utils import now_dt
+from app.utils import print_log
 
 
 slack = AsyncApp(token=settings.BOT_TOKEN)
@@ -15,15 +15,13 @@ async def handle_message_event(ack, body) -> None:
     await ack()
 
 
-def log_command(body: dict[str, str], type: str):
-    user_id = body.get("user_id")
-    channel_id = body.get("channel_id")
-    print(f"type: {type}, user: {user_id}, channel: {channel_id}, time: {now_dt()}")
+def get_start_log(body: dict[str, str], type: str):
+    return f"{body.get('user_id')}({body.get('channel_id')}) 님이 {type} 를 시작합니다."
 
 
 @slack.command("/제출")
 async def submit_command(ack, body, logger, say, client) -> None:
-    log_command(body, "submit")
+    print_log(get_start_log(body, "submit"))
     await ack()
     await user_content_service.open_submit_modal(body, client, SUBMIT_VIEW)
 
@@ -44,13 +42,13 @@ async def submit_view(ack, body, client, view, logger, say) -> None:
         )
     except Exception as e:
         message = f"{user.name}({user.channel_name}) 님의 제출이 실패하였습니다."
-        print(message, now_dt(), str(e))
+        print_log(message, str(e))
         return None
 
 
 @slack.command("/패스")
 async def pass_command(ack, body, logger, say, client) -> None:
-    log_command(body, "pass")
+    print_log(get_start_log(body, "pass"))
     await ack()
     await user_content_service.open_pass_modal(body, client, PASS_VIEW)
 
@@ -69,7 +67,7 @@ async def pass_view(ack, body, client, view, logger, say) -> None:
         )
     except Exception as e:
         message = f"{user.name}({user.channel_name}) 님의 패스가 실패하였습니다."
-        print(message, now_dt(), str(e))
+        print_log(message, str(e))
         return None
 
 

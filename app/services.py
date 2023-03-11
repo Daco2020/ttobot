@@ -3,7 +3,7 @@ import re
 from app.config import MAX_PASS_COUNT, URL_REGEX
 from app.repositories import FileUserRepository, UserRepository
 from app import models
-from app.utils import now_dt
+from app.utils import now_dt, print_log
 
 
 class UserContentService:
@@ -103,7 +103,7 @@ class UserContentService:
         message = (
             f"{body.get('user_id')}({body.get('channel_id')}) 님의 {view_name} 가 실패하였습니다."
         )
-        print(message, now_dt(), e)
+        print_log(message, e)
         e = "예기치 못한 오류가 발생하였습니다.\n[글또봇질문] 채널로 문의해주세요." if "Content" in e else e
         await client.views_open(
             trigger_id=body["trigger_id"],
