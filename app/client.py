@@ -3,7 +3,7 @@ from app.config import RAW_DATA_SHEET, TEST_SHEET, USERS_SHEET, settings
 import gspread  # type: ignore
 from oauth2client.service_account import ServiceAccountCredentials  # type: ignore
 
-from app.utils import now_dt
+from app.utils import now_dt, print_log
 
 
 credentials = ServiceAccountCredentials.from_json_keyfile_dict(
@@ -31,10 +31,9 @@ class SpreadSheetClient:
                     [line.split(",") for line in upload_queue],
                 )
             except Exception as e:
-                print(e)
-                print(f"{now_dt()} : Failed {upload_queue}")
+                print_log(f"Failed {upload_queue} : {e}")
                 return None
-            print(f"{now_dt()} : Uploaded {upload_queue}")
+            print_log(f"Uploaded {upload_queue}")
             upload_queue = []
 
     def sync_users(self) -> None:

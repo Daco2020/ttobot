@@ -86,6 +86,8 @@ async def admin_command(ack, body, logger, say, client) -> None:
         user_content_service.validate_admin_user(body["user_id"])
         sheet_client = SpreadSheetClient()
         sync_db(sheet_client)
-        await client.chat_postMessage(channel=body["user_id"], text="DB sync 완료")
+        message = "DB sync 완료"
+        print_log(message)
+        await client.chat_postMessage(channel=body["user_id"], text=message)
     except ValueError as e:
         await client.chat_postMessage(channel=body["user_id"], text=str(e))
