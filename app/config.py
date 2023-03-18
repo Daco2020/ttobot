@@ -20,7 +20,7 @@ settings = Settings()
 # sheet constants
 RAW_DATA_SHEET = "raw_data"
 USERS_SHEET = "users"
-TEST_SHEET = "test"
+LOG_SHEET = "log"
 
 # views constants
 SUBMIT_VIEW = "submit_view"

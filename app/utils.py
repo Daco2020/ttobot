@@ -1,4 +1,5 @@
 import datetime
+import re
 from zoneinfo import ZoneInfo
 
 
@@ -8,7 +9,8 @@ def now_dt() -> datetime.datetime:
 
 
 def print_log(*args) -> None:
-    print("------")
-    print("time:", now_dt())
-    print("message:", *args)
-    print("------")
+    info = re.sub(" +", " ", " ".join(args).replace("\n", " "))
+    log = f"{now_dt()} - - INFO: {info}"
+    print(log)
+    with open("db/logs.csv", "a") as f:
+        f.write(f"{log}\n")

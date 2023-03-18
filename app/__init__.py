@@ -17,6 +17,7 @@ async def health(request: Request) -> bool:
 @api.on_event("startup")
 async def startup():
     client = SpreadSheetClient()
+    client.create_logs()
     sync_db(client)
     schedule = BackgroundScheduler(daemon=True, timezone="Asia/Seoul")
     schedule.add_job(scheduler, "interval", seconds=10, args=[client])
