@@ -81,7 +81,6 @@ async def history_command(ack, body, logger, say, client) -> None:
 @slack.command("/관리자")
 async def admin_command(ack, body, logger, say, client) -> None:
     # TODO: 추후 관리자 메뉴 추가
-    # TODO: 로그 수동업데이트 추가
     await ack()
     try:
         user_content_service.validate_admin_user(body["user_id"])
