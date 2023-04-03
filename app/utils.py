@@ -9,7 +9,7 @@ def now_dt() -> datetime.datetime:
 
 
 def print_log(*args) -> None:
-    info = re.sub(" +", " ", " ".join(args).replace("\n", " "))
+    info = re.sub(" +", " ", " ".join(args).replace("\n", " ").replace(",", " "))
     log = f"{now_dt()} - - INFO: {info}"
     print(log)
     with open("db/logs.csv", "a") as f:

@@ -14,3 +14,13 @@ def create_db_path():
         os.mkdir("db")
     except FileExistsError:
         pass
+
+
+def create_log_file(client: SpreadSheetClient) -> None:
+    """로그파일을 생성합니다."""
+    client.create_log_file()
+
+
+def upload_logs(client: SpreadSheetClient) -> None:
+    """로그를 업로드합니다."""
+    client.upload_logs()

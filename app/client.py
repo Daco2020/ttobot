@@ -57,10 +57,10 @@ class SpreadSheetClient:
             result.append(",".join(content).replace("\n", " ") + "\n")
         return result
 
-    def create_logs(self) -> None:
+    def create_log_file(self) -> None:
         """로그 파일을 생성합니다."""
         with open("db/logs.csv", "w") as f:
-            f.writelines(f"{now_dt()} - - 새로운 로그 파일 생성\n")
+            f.writelines(f"{now_dt()} - - 새로운 로깅을 시작합니다.\n")
 
     def upload_logs(self) -> None:
         """로그 파일을 업로드합니다."""

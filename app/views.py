@@ -1,7 +1,7 @@
 from app.client import SpreadSheetClient
 from app.config import PASS_VIEW, settings, SUBMIT_VIEW
 from slack_bolt.async_app import AsyncApp
-from app.db import sync_db
+from app.db import create_log_file, sync_db, upload_logs
 
 from app.services import user_content_service
 from app.utils import print_log
@@ -87,8 +87,8 @@ async def admin_command(ack, body, logger, say, client) -> None:
         user_content_service.validate_admin_user(body["user_id"])
         sheet_client = SpreadSheetClient()
         sync_db(sheet_client)
-        message = "DB sync 완료"
-        print_log(message)
-        await client.chat_postMessage(channel=body["user_id"], text=message)
+        upload_logs(sheet_client)
+        create_log_file(sheet_client)
+        await client.chat_postMessage(channel=body["user_id"], text="DB sync 완료")
     except ValueError as e:
         await client.chat_postMessage(channel=body["user_id"], text=str(e))
