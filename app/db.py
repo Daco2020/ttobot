@@ -17,7 +17,7 @@ def create_db_path():
 
 
 def create_log_file(client: SpreadSheetClient) -> None:
-    """로그파일을 생성합니다."""
+    """로그파일을 초기화 및 생성합니다."""
     client.create_log_file()
 
 
