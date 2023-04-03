@@ -43,5 +43,4 @@ DUE_DATE = [
     datetime.datetime(2023, 6, 18).date(),
     datetime.datetime(2023, 7, 2).date(),
     datetime.datetime(2023, 7, 16).date(),
-    datetime.datetime(2023, 7, 30).date(),
 ]
