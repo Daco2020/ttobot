@@ -1,3 +1,4 @@
+import datetime
 from pydantic import BaseSettings
 
 
@@ -29,3 +30,18 @@ PASS_VIEW = "pass_view"
 # constants
 URL_REGEX = r"((http|https):\/\/)?[a-zA-Z0-9.-]+(\.[a-zA-Z]{2,})"
 MAX_PASS_COUNT = 2
+DUE_DATE = [
+    datetime.datetime(2023, 2, 12).date(),
+    datetime.datetime(2023, 2, 26).date(),
+    datetime.datetime(2023, 3, 12).date(),
+    datetime.datetime(2023, 3, 26).date(),
+    datetime.datetime(2023, 4, 9).date(),
+    datetime.datetime(2023, 4, 23).date(),
+    datetime.datetime(2023, 5, 7).date(),
+    datetime.datetime(2023, 5, 21).date(),
+    datetime.datetime(2023, 6, 4).date(),
+    datetime.datetime(2023, 6, 18).date(),
+    datetime.datetime(2023, 7, 2).date(),
+    datetime.datetime(2023, 7, 16).date(),
+    datetime.datetime(2023, 7, 30).date(),
+]

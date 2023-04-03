@@ -376,7 +376,7 @@ class UserContentService:
             message = "사용할 수 있는 pass 가 없습니다."
             await ack(response_action="errors", errors={block_id: message})
             raise ValueError(message)
-        if user.before_type == "pass":
+        if user.is_prev_pass:
             block_id = "description"
             message = "연속으로 pass 를 사용할 수 없습니다."
             await ack(response_action="errors", errors={block_id: message})

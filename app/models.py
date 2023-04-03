@@ -1,6 +1,9 @@
 from zoneinfo import ZoneInfo
 from pydantic import BaseModel
 import datetime
+from app.config import DUE_DATE
+
+from app.utils import now_dt
 
 
 class Content(BaseModel):
@@ -50,11 +53,26 @@ class User(BaseModel):
         return len([content for content in self.contents if content.type == "pass"])
 
     @property
-    def before_type(self) -> str:
-        # TODO: 추후 날짜기반 으로 변경
-        if not self.contents:
-            return ""
-        return self.recent_content.type
+    def is_prev_pass(self) -> bool:
+        try:
+            recent_content = self.recent_content
+        except Exception:
+            return False
+
+        if recent_content.type != "pass":
+            return False
+
+        prev_start_date, end_date = self._get_prev_dates()
+        return prev_start_date < recent_content.date <= end_date
+
+    def _get_prev_dates(self):
+        prev_start_date = DUE_DATE[-2]
+        end_date = now_dt().date()
+        for i, date in enumerate(DUE_DATE):
+            if date >= end_date:
+                prev_start_date = DUE_DATE[i - 2]
+                break
+        return prev_start_date, end_date
 
     @property
     def recent_content(self) -> Content:
