@@ -1,3 +1,7 @@
+*또봇을 통해 제출한 글은 [글 검색기](https://docs.google.com/spreadsheets/d/1N8PbadLbobRnSXf-A5BRR6QpEtWFAWX17F6emA5mi9c/edit#gid=242564725) 스프레드 시트에서 검색할 수 있습니다.
+
+<br>
+
 # Slack Bot `또봇`
 
 ### 슬랙 명령어
