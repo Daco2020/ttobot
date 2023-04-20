@@ -6,11 +6,23 @@ from apscheduler.schedulers.background import BackgroundScheduler  # type: ignor
 from app.db import sync_db  # type: ignore
 from app.views import slack
 
+
 api = FastAPI()
 
 
 @api.post("/")
 async def health(request: Request) -> bool:
+    return True
+
+
+@api.post("/run-socket-mode")
+async def run_socket_mode(request: Request) -> None:
+    slack_handler = AsyncSocketModeHandler(slack, settings.APP_TOKEN)
+    await slack_handler.start_async()
+
+
+@api.get("/test")
+async def test() -> bool:
     return True
 
 
@@ -22,9 +34,13 @@ async def startup():
     schedule = BackgroundScheduler(daemon=True, timezone="Asia/Seoul")
     schedule.add_job(scheduler, "interval", seconds=10, args=[client])
     schedule.start()
-    slack_handler = AsyncSocketModeHandler(slack, settings.APP_TOKEN)
-    await slack_handler.start_async()
 
 
 def scheduler(client: SpreadSheetClient) -> None:
+    client.upload()
+
+
+@api.on_event("shutdown")
+async def shutdown():
+    client = SpreadSheetClient()
     client.upload()
