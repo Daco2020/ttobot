@@ -307,25 +307,20 @@ class UserContentService:
         description: str = view["state"]["values"]["description"][
             "plain_text_input-action"
         ]["value"]
-        if not description:
-            description = ""
         return description
 
     def _get_tags(self, view) -> str:
-        tags = ""
         raw_tag: str = view["state"]["values"]["tag"]["dreamy_input"]["value"]
-        if raw_tag:
-            deduplication_tags = list(
-                dict.fromkeys(raw_tag.replace("#", "").split(","))
-            )
-            tags = ",".join(tag.strip() for tag in deduplication_tags if tag)
+        if not raw_tag:
+            return ""
+        deduplication_tags = list(dict.fromkeys(raw_tag.replace("#", "").split(",")))
+        tags = ",".join(tag.strip() for tag in deduplication_tags if tag)
         return tags
 
     def _get_category(self, view) -> str:
         category: str = view["state"]["values"]["category"]["static_select-action"][
             "selected_option"
         ]["value"]
-
         return category
 
     def _get_content_url(self, view) -> str:
@@ -336,17 +331,15 @@ class UserContentService:
         return content_url
 
     def _description_message(self, description: str) -> str:
-        description_message = ""
-        if description:
-            description_message = f"\n\n💬 '{description}'\n"
+        description_message = f"\n\n💬 '{description}'\n" if description else ""
         return description_message
 
     def _tag_message(self, tag: str | None) -> str:
-        tag_message = ""
-        if tag:
-            tag_message = "\ntag : " + " ".join(
-                [f"`{tag.strip()}`" for tag in tag.split(",")]
-            )
+        tag_message = (
+            "\ntag : " + " ".join([f"`{t.strip()}`" for t in tag.split(",")])
+            if tag
+            else ""
+        )
         return tag_message
 
     def _validate_user(self, channel_id, user: models.User | None) -> None:
