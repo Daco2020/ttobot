@@ -67,6 +67,9 @@ class UserContentService:
         self.update_user(user, content)
         return content
 
+    async def open_search_modal(self, body, client, view_name: str) -> None:
+        await self._open_search_modal(client, body, view_name)
+
     def get_chat_message(self, content) -> str:
         if content.type == "submit":
             message = f"\n>>>🎉 *<@{content.user_id}>님 제출 완료.*\
@@ -292,6 +295,44 @@ class UserContentService:
                                 "text": "하고 싶은 말이 있다면 남겨주세요.",
                             },
                             "multiline": True,
+                        },
+                        "label": {
+                            "type": "plain_text",
+                            "text": "하고 싶은 말",
+                            "emoji": True,
+                        },
+                    },
+                ],
+            },
+        )
+
+    async def _open_search_modal(self, client, body, view_name: str) -> None:
+        await client.views_open(
+            trigger_id=body["trigger_id"],
+            view={
+                "type": "modal",
+                # "private_metadata": body["channel_id"],
+                "callback_id": view_name,
+                "title": {"type": "plain_text", "text": "또봇"},
+                "submit": {"type": "plain_text", "text": "패스"},
+                "blocks": [
+                    {
+                        "type": "section",
+                        "block_id": "required_section",
+                        "text": {"type": "mrkdwn", "text": f"아래 조건에 맞는 글을 검색합니다."},
+                    },
+                    {
+                        "type": "input",
+                        "block_id": "author",
+                        "optional": True,
+                        "element": {
+                            "type": "plain_text_input",
+                            "action_id": "plain_text_input-action",
+                            "placeholder": {
+                                "type": "plain_text",
+                                "text": "작성자 이름을 입력해주세요.",
+                            },
+                            "multiline": False,
                         },
                         "label": {
                             "type": "plain_text",

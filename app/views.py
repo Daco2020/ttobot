@@ -1,5 +1,5 @@
 from app.client import SpreadSheetClient
-from app.config import PASS_VIEW, settings, SUBMIT_VIEW
+from app.config import PASS_VIEW, SUBMIT_VIEW, SEARCH_VIEW, settings
 from slack_bolt.async_app import AsyncApp
 from app.db import create_log_file, sync_db, upload_logs
 
@@ -15,13 +15,13 @@ async def handle_message_event(ack, body) -> None:
     await ack()
 
 
-def get_start_log(body: dict[str, str], type: str):
+def _start_log(body: dict[str, str], type: str) -> str:
     return f"{body.get('user_id')}({body.get('channel_id')}) 님이 {type} 를 시작합니다."
 
 
 @slack.command("/제출")
 async def submit_command(ack, body, logger, say, client) -> None:
-    print_log(get_start_log(body, "submit"))
+    print_log(_start_log(body, "submit"))
     await ack()
     await user_content_service.open_submit_modal(body, client, SUBMIT_VIEW)
 
@@ -48,7 +48,7 @@ async def submit_view(ack, body, client, view, logger, say) -> None:
 
 @slack.command("/패스")
 async def pass_command(ack, body, logger, say, client) -> None:
-    print_log(get_start_log(body, "pass"))
+    print_log(_start_log(body, "pass"))
     await ack()
     await user_content_service.open_pass_modal(body, client, PASS_VIEW)
 
@@ -73,6 +73,7 @@ async def pass_view(ack, body, client, view, logger, say) -> None:
 
 @slack.command("/제출내역")
 async def history_command(ack, body, logger, say, client) -> None:
+    print_log(_start_log(body, "history"))
     await ack()
     submit_history = user_content_service.get_submit_history(body["user_id"])
     await client.chat_postMessage(channel=body["user_id"], text=submit_history)
@@ -91,3 +92,10 @@ async def admin_command(ack, body, logger, say, client) -> None:
         await client.chat_postMessage(channel=body["user_id"], text="DB sync 완료")
     except ValueError as e:
         await client.chat_postMessage(channel=body["user_id"], text=str(e))
+
+
+@slack.command("/검색")
+async def search_command(ack, body, logger, say, client) -> None:
+    print_log(_start_log(body, "serach"))
+    await ack()
+    await user_content_service.open_search_modal(body, client, PASS_VIEW)
