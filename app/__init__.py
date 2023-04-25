@@ -3,7 +3,7 @@ from app.config import settings
 from fastapi import FastAPI, Request
 from slack_bolt.adapter.socket_mode.aiohttp import AsyncSocketModeHandler
 from apscheduler.schedulers.background import BackgroundScheduler  # type: ignore
-from app.db import sync_db  # type: ignore
+from app.db import fetch_db  # type: ignore
 from app.views import slack
 
 
@@ -29,7 +29,7 @@ async def test() -> bool:
 @api.on_event("startup")
 async def startup():
     client = SpreadSheetClient()
-    sync_db(client)
+    fetch_db(client)
     client.create_log_file()
     schedule = BackgroundScheduler(daemon=True, timezone="Asia/Seoul")
     schedule.add_job(scheduler, "interval", seconds=10, args=[client])
@@ -40,7 +40,7 @@ def scheduler(client: SpreadSheetClient) -> None:
     client.upload()
 
 
-@api.on_event("shutdown")
-async def shutdown():
-    client = SpreadSheetClient()
-    client.upload()
+# @api.on_event("shutdown")
+# async def shutdown():
+#     client = SpreadSheetClient()
+#     client.upload()

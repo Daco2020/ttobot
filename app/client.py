@@ -37,21 +37,33 @@ class SpreadSheetClient:
             print_log(f"Uploaded {upload_queue}")
             upload_queue = []
 
-    def sync_users(self) -> None:
-        """유저 정보를 동기화합니다."""
+    def fetch_users(self) -> None:
+        """유저 정보를 가져옵니다."""
         users = self._users_sheet.get_values("A:D")
         with open("db/users.csv", "w") as f:
             f.writelines([f"{','.join(user)}\n" for user in users])
 
-    def sync_contents(self) -> None:
-        """콘텐츠 정보를 동기화합니다."""
+    def fetch_contents(self) -> None:
+        """콘텐츠 정보를 가져옵니다."""
         contents = self._raw_data_sheet.get_values("A:H")
         with open("db/contents.csv", "w") as f:
             f.writelines([f"{content}" for content in self._parse(contents)])
 
     def _parse(self, contents: list[list[str]]) -> list[str]:
-        result = []
-        for content in contents:
+        """
+        가져온 콘텐츠를 csv 포멧에 맞게 가공합니다.
+        content[0]: user_id
+        content[1]: username
+        content[2]: content_url
+        content[3]: dt
+        content[4]: categor
+        content[5]: description
+        content[6]: type
+        content[7]: tags
+        """
+        result = [",".join(contents[0]) + "\n"]
+        for content in contents[1:]:
+            content[2] = f'"{content[2]}"'
             content[5] = content[5].replace(",", "")
             content[7] = content[7].replace(",", "#")
             result.append(",".join(content).replace("\n", " ") + "\n")
