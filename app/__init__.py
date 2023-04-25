@@ -21,11 +21,6 @@ async def run_socket_mode(request: Request) -> None:
     await slack_handler.start_async()
 
 
-@api.get("/test")
-async def test() -> bool:
-    return True
-
-
 @api.on_event("startup")
 async def startup():
     client = SpreadSheetClient()
@@ -40,7 +35,7 @@ def scheduler(client: SpreadSheetClient) -> None:
     client.upload()
 
 
-# @api.on_event("shutdown")
-# async def shutdown():
-#     client = SpreadSheetClient()
-#     client.upload()
+@api.on_event("shutdown")
+async def shutdown():
+    client = SpreadSheetClient()
+    client.upload()
