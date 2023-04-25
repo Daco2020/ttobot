@@ -2,6 +2,7 @@ import datetime
 import re
 from typing import Any
 from app.config import MAX_PASS_COUNT, URL_REGEX
+from app.dao import ContentDao, FileContentDao
 from app.repositories import FileUserRepository, UserRepository
 from app import models
 from app.utils import now_dt, print_log
@@ -12,12 +13,27 @@ from bs4 import BeautifulSoup
 
 
 class UserContentService:
-    def __init__(self, user_repo: UserRepository) -> None:
+    def __init__(self, user_repo: UserRepository, content_dao: ContentDao) -> None:
         self._user_repo = user_repo
+        self._content_dao = content_dao
 
-    def fetch(self) -> list[models.User]:
-        users = self._user_repo.fetch()
-        return users
+    def fetch_contents(
+        self, keyword: str = None, name: str = None, category: str = "전체"
+    ) -> list[models.Content]:
+        """콘텐츠를 조건에 맞춰 가져옵니다."""
+        if keyword:
+            contents = self._content_dao.fetch_by_keyword(keyword)
+        else:
+            contents = self._content_dao.fetch_all()
+
+        if name:
+            user_id = self._content_dao.get_user_id(name)
+            contents = [content for content in contents if content.user_id == user_id]
+
+        if category != "전체":
+            contents = [content for content in contents if content.category == category]
+
+        return contents
 
     def get_user(self, user_id, channel_id) -> models.User:
         user = self._user_repo.get(user_id)
@@ -328,7 +344,26 @@ class UserContentService:
                     {
                         "type": "section",
                         "block_id": "description_section",
-                        "text": {"type": "mrkdwn", "text": f"아래 조건에 맞는 글을 검색합니다."},
+                        "text": {"type": "mrkdwn", "text": f"조건에 맞는 글을 검색합니다."},
+                    },
+                    {
+                        "type": "input",
+                        "block_id": "keyword_search",
+                        "optional": True,
+                        "element": {
+                            "type": "plain_text_input",
+                            "action_id": "keyword",
+                            "placeholder": {
+                                "type": "plain_text",
+                                "text": "검색어를 입력해주세요.",
+                            },
+                            "multiline": False,
+                        },
+                        "label": {
+                            "type": "plain_text",
+                            "text": "검색어",
+                            "emoji": True,
+                        },
                     },
                     {
                         "type": "input",
@@ -485,4 +520,6 @@ class UserContentService:
             raise ValueError(message)
 
 
-user_content_service = UserContentService(FileUserRepository())
+user_content_service = UserContentService(
+    user_repo=FileUserRepository(), content_dao=FileContentDao()
+)

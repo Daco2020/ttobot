@@ -1,3 +1,5 @@
+import re
+from app import models
 from app.client import SpreadSheetClient
 from app.config import PASS_VIEW, SUBMIT_VIEW, SEARCH_VIEW, settings
 from slack_bolt.async_app import AsyncApp
@@ -102,52 +104,81 @@ async def search_command(ack, body, logger, say, client) -> None:
 
 
 @slack.view("submit_search")
-async def handle_view_submission(ack, body, client, view, logger):
+async def submit_search(ack, body, client, view, logger):
     # TODO: 로그 리팩터링하기
     user_body = {"user_id": body.get("user", {}).get("id")}
     print_log(_start_log(user_body, "submit_search"))
     await ack()
 
-    users = user_content_service.fetch()
-
     name = _get_name(body)
-    if name:
-        results = [
-            content for user in users if user.name == name for content in user.contents
-        ]
-    else:
-        results = [content for user in users for content in user.contents]
-
     category = _get_category(body)
-    if category != "전체":
-        results = [content for content in results if content.category == category]
+    keyword = _get_keyword(body)
 
-    # TODO: 검색 되돌리기 추가
+    contents = user_content_service.fetch_contents(keyword, name, category)
+
     await client.views_open(
         trigger_id=body["trigger_id"],
         view={
             "type": "modal",
             "callback_id": "back_to_search_view",
-            "title": {"type": "plain_text", "text": f"{len(results)}개의 글을 검색하였습니다 🔍"},
+            "title": {"type": "plain_text", "text": f"총 {len(contents)} 개의 글이 있습니다. 🔍"},
             "submit": {"type": "plain_text", "text": "다시 찾기"},
             "type": "modal",
-            "blocks": [
-                {
-                    "type": "section",
-                    "text": {"type": "plain_text", "text": "You updated the modal!"},
-                },
-                {
-                    "type": "image",
-                    "image_url": "https://media.giphy.com/media/SVZGEcYt7brkFUyU90/giphy.gif",
-                    "alt_text": "Yay! The modal was updated",
-                },
-            ],
+            "blocks": _fetch_blocks(contents),
         },
     )
 
 
+def _fetch_blocks(contents: list[models.Content]) -> list[dict]:
+    blocks = []
+    blocks.append(
+        {
+            "type": "section",
+            "text": {"type": "plain_text", "text": "결과는 최대 20개까지만 표시합니다."},
+        },
+    )
+    for content in contents:
+        blocks.append({"type": "divider"})
+        blocks.append(
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": f"*<{content.content_url}|{re.sub('<|>', '', content.title)}>*",
+                },
+                "accessory": {
+                    "type": "overflow",
+                    "action_id": "overflow-action",
+                    "options": [
+                        {
+                            "text": {
+                                "type": "plain_text",
+                                "text": "👍🏼 추천(추후 도입 예정)",
+                                "emoji": True,
+                            },
+                            "value": "like",
+                        },
+                    ],
+                },
+            }
+        )
+        tags = f"> 태그: {' '.join(content.tags.split('#'))}" if content.tags else " "
+        blocks.append(
+            {
+                "type": "context",
+                "elements": [
+                    {"type": "mrkdwn", "text": f"> 카테고리: {content.category}"},
+                    {"type": "mrkdwn", "text": tags},
+                ],
+            }
+        )
+        if len(blocks) > 60:
+            return blocks
+    return blocks
+
+
 @slack.view("back_to_search_view")
-async def search_command(ack, body, logger, say, client) -> None:
+async def back_to_search_view(ack, body, logger, say, client) -> None:
     # TODO: 로그 리팩터링하기
     user_body = {"user_id": body.get("user", {}).get("id")}
     print_log(_start_log(user_body, "back_to_search_view"))
@@ -165,7 +196,6 @@ def _get_category(body):
         .get("selected_option", {})
         .get("value", "전체")
     )
-
     return category
 
 
@@ -178,5 +208,16 @@ def _get_name(body):
         .get("author_name", {})
         .get("value", "")
     )
+    return name
 
+
+def _get_keyword(body):
+    name = (
+        body.get("view", {})
+        .get("state", {})
+        .get("values", {})
+        .get("keyword_search", {})
+        .get("keyword", {})
+        .get("value", "")
+    )
     return name
