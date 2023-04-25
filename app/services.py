@@ -1,21 +1,30 @@
 import datetime
 import re
+from typing import Any
 from app.config import MAX_PASS_COUNT, URL_REGEX
 from app.repositories import FileUserRepository, UserRepository
 from app import models
 from app.utils import now_dt, print_log
 
 
+import requests
+from bs4 import BeautifulSoup
+
+
 class UserContentService:
     def __init__(self, user_repo: UserRepository) -> None:
         self._user_repo = user_repo
+
+    def fetch(self) -> list[models.User]:
+        users = self._user_repo.fetch()
+        return users
 
     def get_user(self, user_id, channel_id) -> models.User:
         user = self._user_repo.get(user_id)
         self._validate_user(channel_id, user)
         return user  # type: ignore
 
-    def update_user(self, user, content):
+    def update_user(self, user: models.User, content: models.Content):
         user.contents.append(content)
         self._user_repo.update(user)
 
@@ -36,6 +45,7 @@ class UserContentService:
             dt=datetime.datetime.strftime(now_dt(), "%Y-%m-%d %H:%M:%S"),
             user_id=body["user"]["id"],
             username=body["user"]["username"],
+            title=self._get_title(content_url),
             content_url=content_url,
             category=self._get_category(view),
             description=self._get_description(view),
@@ -70,7 +80,7 @@ class UserContentService:
     async def open_search_modal(self, body, client, view_name: str) -> None:
         await self._open_search_modal(client, body, view_name)
 
-    def get_chat_message(self, content) -> str:
+    def get_chat_message(self, content: models.Content) -> str:
         if content.type == "submit":
             message = f"\n>>>🎉 *<@{content.user_id}>님 제출 완료.*\
                 {self._description_message(content.description)}\
@@ -306,38 +316,81 @@ class UserContentService:
             },
         )
 
-    async def _open_search_modal(self, client, body, view_name: str) -> None:
-        await client.views_open(
+    async def _open_search_modal(self, client, body, view_name: str) -> dict[str, Any]:
+        return await client.views_open(
             trigger_id=body["trigger_id"],
             view={
                 "type": "modal",
-                # "private_metadata": body["channel_id"],
-                "callback_id": view_name,
-                "title": {"type": "plain_text", "text": "또봇"},
-                "submit": {"type": "plain_text", "text": "패스"},
+                "callback_id": "submit_search",
+                "title": {"type": "plain_text", "text": "글 검색 🔍"},
+                "submit": {"type": "plain_text", "text": "찾기"},
                 "blocks": [
                     {
                         "type": "section",
-                        "block_id": "required_section",
+                        "block_id": "description_section",
                         "text": {"type": "mrkdwn", "text": f"아래 조건에 맞는 글을 검색합니다."},
                     },
                     {
                         "type": "input",
-                        "block_id": "author",
+                        "block_id": "author_search",
                         "optional": True,
                         "element": {
                             "type": "plain_text_input",
-                            "action_id": "plain_text_input-action",
+                            "action_id": "author_name",
                             "placeholder": {
                                 "type": "plain_text",
-                                "text": "작성자 이름을 입력해주세요.",
+                                "text": "이름을 입력해주세요.",
                             },
                             "multiline": False,
                         },
                         "label": {
                             "type": "plain_text",
-                            "text": "하고 싶은 말",
-                            "emoji": True,
+                            "text": "글 작성자",
+                            "emoji": False,
+                        },
+                    },
+                    {
+                        "type": "input",
+                        "block_id": "category_search",
+                        "label": {"type": "plain_text", "text": "카테고리", "emoji": True},
+                        "element": {
+                            "type": "static_select",
+                            "action_id": "chosen_category",
+                            "placeholder": {"type": "plain_text", "text": "카테고리 선택"},
+                            "initial_option": {
+                                "text": {"type": "plain_text", "text": "전체"},
+                                "value": "전체",
+                            },
+                            "options": [
+                                {
+                                    "text": {"type": "plain_text", "text": "전체"},
+                                    "value": "전체",
+                                },
+                                {
+                                    "text": {"type": "plain_text", "text": "프로젝트"},
+                                    "value": "프로젝트",
+                                },
+                                {
+                                    "text": {"type": "plain_text", "text": "기술 & 언어"},
+                                    "value": "기술 & 언어",
+                                },
+                                {
+                                    "text": {"type": "plain_text", "text": "조직 & 문화"},
+                                    "value": "조직 & 문화",
+                                },
+                                {
+                                    "text": {"type": "plain_text", "text": "취준 & 이직"},
+                                    "value": "취준 & 이직",
+                                },
+                                {
+                                    "text": {"type": "plain_text", "text": "일상 & 생각"},
+                                    "value": "일상 & 생각",
+                                },
+                                {
+                                    "text": {"type": "plain_text", "text": "기타"},
+                                    "value": "기타",
+                                },
+                            ],
                         },
                     },
                 ],
@@ -348,6 +401,8 @@ class UserContentService:
         description: str = view["state"]["values"]["description"][
             "plain_text_input-action"
         ]["value"]
+        if not description:
+            return ""
         return description
 
     def _get_tags(self, view) -> str:
@@ -371,11 +426,22 @@ class UserContentService:
         ]["value"]
         return content_url
 
+    def _get_title(self, url: str) -> tuple[str, str]:
+        try:
+            response = requests.get(url)
+            soup = BeautifulSoup(response.text, "html.parser")
+            title = soup.find("title").text
+            result = title.strip()
+            return result
+        except Exception as e:
+            print_log(str(e))
+            return "title unknown."
+
     def _description_message(self, description: str) -> str:
         description_message = f"\n\n💬 '{description}'\n" if description else ""
         return description_message
 
-    def _tag_message(self, tag: str | None) -> str:
+    def _tag_message(self, tag: str) -> str:
         tag_message = (
             "\ntag : " + " ".join([f"`{t.strip()}`" for t in tag.split(",")])
             if tag
@@ -386,6 +452,8 @@ class UserContentService:
     def _validate_user(self, channel_id, user: models.User | None) -> None:
         if not user:
             raise ValueError("사용자 정보가 등록되어 있지 않습니다.\n[글또봇질문] 채널로 문의해주세요.")
+        if user.channel_id == "ALL":  # 관리자는 모든 채널에서 사용 가능
+            return
         if user.channel_id != channel_id:
             raise ValueError(
                 f"{user.name} 님의 코어 채널은 [{user.channel_name}] 입니다.\

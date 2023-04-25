@@ -11,7 +11,7 @@ credentials = ServiceAccountCredentials.from_json_keyfile_dict(
     settings.JSON_KEYFILE_DICT, settings.SCOPE
 )
 gc = gspread.authorize(credentials)
-upload_queue: list[str] = []
+upload_queue: list[list[str]] = []
 
 
 class SpreadSheetClient:
@@ -27,10 +27,7 @@ class SpreadSheetClient:
         if upload_queue:
             try:
                 cursor = len(self._raw_data_sheet.get_values("A:A")) + 1
-                self._raw_data_sheet.update(
-                    f"A{cursor}",
-                    [line.split(",") for line in upload_queue],
-                )
+                self._raw_data_sheet.update(f"A{cursor}", upload_queue)
             except Exception as e:
                 print_log(f"Failed {upload_queue} : {e}")
                 return None
@@ -45,7 +42,7 @@ class SpreadSheetClient:
 
     def fetch_contents(self) -> None:
         """콘텐츠 정보를 가져옵니다."""
-        contents = self._raw_data_sheet.get_values("A:H")
+        contents = self._raw_data_sheet.get_values("A:I")
         with open("db/contents.csv", "w") as f:
             f.writelines([f"{content}" for content in self._parse(contents)])
 
@@ -54,18 +51,20 @@ class SpreadSheetClient:
         가져온 콘텐츠를 csv 포멧에 맞게 가공합니다.
         content[0]: user_id
         content[1]: username
-        content[2]: content_url
-        content[3]: dt
-        content[4]: categor
-        content[5]: description
-        content[6]: type
-        content[7]: tags
+        content[2]: title
+        content[3]: content_url
+        content[4]: dt
+        content[5]: categor
+        content[6]: description
+        content[7]: type
+        content[8]: tags
         """
         result = [",".join(contents[0]) + "\n"]
         for content in contents[1:]:
             content[2] = f'"{content[2]}"'
-            content[5] = content[5].replace(",", "")
-            content[7] = content[7].replace(",", "#")
+            content[3] = f'"{content[3]}"'
+            content[6] = content[6].replace(",", "")
+            content[8] = content[8].replace(",", "#")
             result.append(",".join(content).replace("\n", " ") + "\n")
         return result
 

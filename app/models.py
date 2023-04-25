@@ -10,9 +10,10 @@ class Content(BaseModel):
     dt: str
     user_id: str
     username: str
-    description: str
+    description: str = ""
     type: str
     content_url: str = ""
+    title: str = ""
     category: str = ""
     tags: str = ""
 
@@ -26,19 +27,33 @@ class Content(BaseModel):
     def date(self) -> datetime.date:
         return self.dt_.date()
 
-    def to_line(self) -> str:
+    def to_line_for_csv(self) -> str:
         return ",".join(
             [
                 self.user_id,
                 self.username,
-                self.content_url,
+                f'"{self.title}"',
+                f'"{self.content_url}"',
                 self.dt,
                 self.category,
-                self.description.replace(",", "").replace("\n", " "),
+                self.description.replace(",", " ").replace("\n", " "),
                 self.type,
                 self.tags.replace(",", "#"),
             ]
         )
+
+    def to_list_for_sheet(self) -> str:
+        return [
+            self.user_id,
+            self.username,
+            self.title,
+            self.content_url,
+            self.dt,
+            self.category,
+            self.description.replace(",", " ").replace("\n", " "),
+            self.type,
+            self.tags.replace(",", "#"),
+        ]
 
 
 class User(BaseModel):
