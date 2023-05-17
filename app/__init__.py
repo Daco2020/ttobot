@@ -15,10 +15,10 @@ async def health(request: Request) -> bool:
     return True
 
 
-@api.post("/run-socket-mode")
-async def run_socket_mode(request: Request) -> None:
-    slack_handler = AsyncSocketModeHandler(slack, settings.APP_TOKEN)
-    await slack_handler.start_async()
+# @api.post("/run-socket-mode")
+# async def run_socket_mode(request: Request) -> None:
+#     slack_handler = AsyncSocketModeHandler(slack, settings.APP_TOKEN)
+#     await slack_handler.start_async()
 
 
 @api.on_event("startup")
@@ -29,6 +29,8 @@ async def startup():
     schedule = BackgroundScheduler(daemon=True, timezone="Asia/Seoul")
     schedule.add_job(scheduler, "interval", seconds=10, args=[client])
     schedule.start()
+    slack_handler = AsyncSocketModeHandler(slack, settings.APP_TOKEN)
+    await slack_handler.start_async()
 
 
 def scheduler(client: SpreadSheetClient) -> None:
