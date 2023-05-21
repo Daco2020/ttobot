@@ -104,3 +104,11 @@ class User(BaseModel):
     def fetch_contents(self) -> list[Content]:
         """유저의 모든 콘텐츠를 반환합니다."""
         return self.contents
+
+    def get_due_date(self) -> tuple[int, datetime.date] | None:
+        now_date = now_dt().date()
+        for i, due_date in enumerate(DUE_DATES):
+            if now_date <= due_date:
+                round = i + 1
+                return round, due_date
+        raise ValueError("글또 활동 기간이 아닙니다.")

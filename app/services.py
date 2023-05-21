@@ -77,7 +77,7 @@ class UserContentService:
         except ValueError as e:
             await self._open_error_modal(client, body, view_name, str(e))
             return None
-        await self._open_pass_modal(client, body, view_name, user.pass_count)
+        await self._open_pass_modal(client, body, view_name, user)
 
     async def create_pass_content(
         self, ack, body, view, user: models.User
@@ -288,8 +288,14 @@ class UserContentService:
         )
 
     async def _open_pass_modal(
-        self, client, body, view_name: str, pass_count: int
+        self, client, body, view_name: str, user: models.User
     ) -> None:
+        pass_count = user.pass_count
+        try:
+            round, due_date = user.get_due_date()
+            guide_message = f"\n- 현재 패스는 {round}회차, 마감일 {due_date}의 패스 입니다."
+        except ValueError:
+            guide_message = ""
         await client.views_open(
             trigger_id=body["trigger_id"],
             view={
@@ -305,8 +311,9 @@ class UserContentService:
                         "text": {
                             "type": "mrkdwn",
                             "text": f"패스 하려면 아래 '패스' 버튼을 눌러주세요.\
-                            \n현재 패스는 {MAX_PASS_COUNT - pass_count}번 남았어요.\
-                            \n패스는 연속으로 사용할 수 없어요.",
+                            \n아래 유의사항을 확인해주세요.\
+                            \n- 패스는 연속으로 사용할 수 없어요.{guide_message}\
+                            \n- 남은 패스는 {MAX_PASS_COUNT - pass_count}번 입니다.",
                         },
                     },
                     {
