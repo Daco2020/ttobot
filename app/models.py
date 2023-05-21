@@ -84,12 +84,12 @@ class User(BaseModel):
     def _is_prev_pass(self, recent_content: Content) -> bool:
         """전전회차 마감일 초과, 현재 날짜 이하 사이에 pass 했는지 여부를 반환합니다."""
         now_date = now_dt().date()
-        prev_due_date = DUE_DATES[-2]
+        second_latest_due_date = DUE_DATES[-2]
         for i, due_date in enumerate(DUE_DATES):
             if now_date <= due_date:
-                prev_due_date = DUE_DATES[i - 2]
+                second_latest_due_date = DUE_DATES[i - 2]
                 break
-        return prev_due_date < recent_content.date <= now_date
+        return second_latest_due_date < recent_content.date <= now_date
 
     @property
     def recent_content(self) -> Content:
@@ -106,9 +106,29 @@ class User(BaseModel):
         return self.contents
 
     def get_due_date(self) -> tuple[int, datetime.date] | None:
+        """현재 회차와 마감일을 반환합니다."""
         now_date = now_dt().date()
         for i, due_date in enumerate(DUE_DATES):
             if now_date <= due_date:
                 round = i + 1
                 return round, due_date
         raise ValueError("글또 활동 기간이 아닙니다.")
+
+    @property
+    def is_submit(self) -> bool:
+        """현재 회차의 제출여부를 반환합니다."""
+        try:
+            recent_content = self.recent_content
+        except Exception:
+            return False
+
+        if recent_content.type != "submit":
+            return False
+
+        now_date = now_dt().date()
+        latest_due_date = DUE_DATES[-2]
+        for i, due_date in enumerate(DUE_DATES):
+            if now_date <= due_date:
+                latest_due_date = DUE_DATES[i - 1]
+                break
+        return latest_due_date < recent_content.date <= now_date

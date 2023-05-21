@@ -46,11 +46,11 @@ class UserContentService:
 
     async def open_submit_modal(self, body, client, view_name: str) -> None:
         try:
-            self.get_user(body["user_id"], body["channel_id"])
+            user = self.get_user(body["user_id"], body["channel_id"])
         except ValueError as e:
             await self._open_error_modal(client, body, view_name, str(e))
             return None
-        await self._open_submit_modal(client, body, view_name)
+        await self._open_submit_modal(client, body, view_name, user)
 
     async def create_submit_content(
         self, ack, body, view, user: models.User
@@ -119,7 +119,7 @@ class UserContentService:
             raise ValueError("관리자 계정이 아닙니다.")
 
     def _history_message(self, user: models.User) -> str:
-        message = f"\n>>>🤗  *<@{user.user_id}> 님의 제출 기록이에요!*\n"
+        message = f"\n>>>🤗  *<@{user.user_id}> 님의 제출 기록이에요.*\n"
         for content in user.fetch_contents():
             message += f"\n{'✅ 제출' if content.type == 'submit' else '▶️ 패스'}  |  "
             message += f"{content.dt}  |  "
@@ -154,7 +154,16 @@ class UserContentService:
             },
         )
 
-    async def _open_submit_modal(self, client, body, view_name: str) -> None:
+    async def _open_submit_modal(
+        self, client, body, view_name: str, user: models.User
+    ) -> None:
+        try:
+            round, due_date = user.get_due_date()
+            guide_message = f"\n\n현재 회차는 {round}회차, 마감일은 {due_date} 이에요."
+            if user.is_submit:
+                guide_message += f"\n({user.name} 님은 이미 {round}회차 글을 제출하셨어요)"
+        except ValueError:
+            guide_message = ""
         await client.views_open(
             trigger_id=body["trigger_id"],
             view={
@@ -169,7 +178,7 @@ class UserContentService:
                         "block_id": "required_section",
                         "text": {
                             "type": "mrkdwn",
-                            "text": "글 쓰느라 고생 많았어요~ 👏🏼👏🏼👏🏼\n[글 링크]와 [카테고리]를 제출해주세요! 🥳",
+                            "text": f"\n[글 링크]와 [카테고리]를 제출해주세요. 🥳{guide_message}",
                         },
                     },
                     {
@@ -293,7 +302,7 @@ class UserContentService:
         pass_count = user.pass_count
         try:
             round, due_date = user.get_due_date()
-            guide_message = f"\n- 현재 패스는 {round}회차, 마감일 {due_date}의 패스 입니다."
+            guide_message = f"\n- 현재 회차는 {round}회차, 마감일은 {due_date} 이에요."
         except ValueError:
             guide_message = ""
         await client.views_open(
@@ -311,9 +320,9 @@ class UserContentService:
                         "text": {
                             "type": "mrkdwn",
                             "text": f"패스 하려면 아래 '패스' 버튼을 눌러주세요.\
-                            \n아래 유의사항을 확인해주세요.\
-                            \n- 패스는 연속으로 사용할 수 없어요.{guide_message}\
-                            \n- 남은 패스는 {MAX_PASS_COUNT - pass_count}번 입니다.",
+                            \n\n아래 유의사항을 확인해주세요.{guide_message}\
+                            \n- 패스는 연속으로 사용할 수 없어요.\
+                            \n- 남은 패스는 {MAX_PASS_COUNT - pass_count}번 이에요.",
                         },
                     },
                     {
