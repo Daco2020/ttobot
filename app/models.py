@@ -55,6 +55,13 @@ class Content(BaseModel):
             self.tags.replace(",", "#"),
         ]
 
+    def get_round(self) -> int:
+        """컨텐츠의 회차를 반환합니다."""
+        for i, due_date in enumerate(DUE_DATES):
+            if self.date <= due_date:
+                return i + 1
+        raise ValueError("글또 활동 기간이 아닙니다.")
+
 
 class User(BaseModel):
     user_id: str

@@ -121,7 +121,10 @@ class UserContentService:
     def _history_message(self, user: models.User) -> str:
         message = f"\n>>>🤗  *<@{user.user_id}> 님의 제출 기록이에요.*\n"
         for content in user.fetch_contents():
-            message += f"\n{'✅ 제출' if content.type == 'submit' else '▶️ 패스'}  |  "
+            round = content.get_round()
+            sumit_head = f"✅  {round}회차 제출"
+            pass_head = f"▶️  {round}회차 패스"
+            message += f"\n{sumit_head if content.type == 'submit' else pass_head}  |  "
             message += f"{content.dt}  |  "
             message += f"{content.content_url}"
         return message
