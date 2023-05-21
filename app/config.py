@@ -31,7 +31,7 @@ SEARCH_VIEW = "search_view"
 # constants
 URL_REGEX = r"((http|https):\/\/)?[a-zA-Z0-9.-]+(\.[a-zA-Z]{2,})"
 MAX_PASS_COUNT = 2
-DUE_DATE = [
+DUE_DATES = [
     datetime.datetime(2023, 2, 12).date(),
     datetime.datetime(2023, 2, 26).date(),
     datetime.datetime(2023, 3, 12).date(),

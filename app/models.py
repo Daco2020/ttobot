@@ -1,7 +1,7 @@
 from zoneinfo import ZoneInfo
 from pydantic import BaseModel
 import datetime
-from app.config import DUE_DATE
+from app.config import DUE_DATES
 
 from app.utils import now_dt
 
@@ -65,10 +65,12 @@ class User(BaseModel):
 
     @property
     def pass_count(self) -> int:
+        """pass 횟수를 반환합니다."""
         return len([content for content in self.contents if content.type == "pass"])
 
     @property
     def is_prev_pass(self) -> bool:
+        """직전에 pass 했는지 여부를 반환합니다."""
         try:
             recent_content = self.recent_content
         except Exception:
@@ -77,25 +79,28 @@ class User(BaseModel):
         if recent_content.type != "pass":
             return False
 
-        prev_start_date, end_date = self._get_prev_dates()
-        return prev_start_date < recent_content.date <= end_date
+        return self._is_prev_pass(recent_content)
 
-    def _get_prev_dates(self):
-        prev_start_date = DUE_DATE[-2]
-        end_date = now_dt().date()
-        for i, date in enumerate(DUE_DATE):
-            if date >= end_date:
-                prev_start_date = DUE_DATE[i - 2]
+    def _is_prev_pass(self, recent_content: Content) -> bool:
+        """전전회차 마감일 초과, 현재 날짜 이하 사이에 pass 했는지 여부를 반환합니다."""
+        now_date = now_dt().date()
+        prev_due_date = DUE_DATES[-2]
+        for i, due_date in enumerate(DUE_DATES):
+            if now_date <= due_date:
+                prev_due_date = DUE_DATES[i - 2]
                 break
-        return prev_start_date, end_date
+        return prev_due_date < recent_content.date <= now_date
 
     @property
     def recent_content(self) -> Content:
+        """최근 콘텐츠를 반환합니다."""
         return self.contents[-1]
 
     @property
     def content_urls(self) -> list[str]:
+        """유저의 모든 콘텐츠 url 을 반환합니다."""
         return [content.content_url for content in self.contents]
 
     def fetch_contents(self) -> list[Content]:
+        """유저의 모든 콘텐츠를 반환합니다."""
         return self.contents
