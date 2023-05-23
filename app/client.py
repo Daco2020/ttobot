@@ -1,5 +1,5 @@
 import csv
-from app.config import RAW_DATA_SHEET, LOG_SHEET, USERS_SHEET, settings
+from app.config import BACKUP_SHEET, RAW_DATA_SHEET, LOG_SHEET, USERS_SHEET, settings
 
 import gspread  # type: ignore
 from oauth2client.service_account import ServiceAccountCredentials  # type: ignore
@@ -20,6 +20,7 @@ class SpreadSheetClient:
         self._raw_data_sheet = self._doc.worksheet(RAW_DATA_SHEET)
         self._users_sheet = self._doc.worksheet(USERS_SHEET)
         self._log_sheet = self._doc.worksheet(LOG_SHEET)
+        self._backup_sheet = self._doc.worksheet(BACKUP_SHEET)
 
     def upload(self) -> None:
         """새로 추가된 queue 가 있다면 upload 합니다."""
@@ -45,6 +46,14 @@ class SpreadSheetClient:
         contents = self._raw_data_sheet.get_values("A:I")
         with open("db/contents.csv", "w") as f:
             f.writelines([f"{content}" for content in self._parse(contents)])
+
+    def push_backup(self) -> None:
+        """백업 시트에 contents.csv를 업로드합니다."""
+        with open("db/contents.csv", "r") as f:
+            reader = csv.reader(f)
+            contents = list(reader)
+        self._backup_sheet.clear()  # 기존 데이터를 지웁니다.
+        self._backup_sheet.append_rows(contents)  # 새로운 데이터를 추가합니다.
 
     def _parse(self, contents: list[list[str]]) -> list[str]:
         """

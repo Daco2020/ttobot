@@ -22,6 +22,7 @@ settings = Settings()
 RAW_DATA_SHEET = "raw_data"
 USERS_SHEET = "users"
 LOG_SHEET = "log"
+BACKUP_SHEET = "backup"
 
 # views constants
 SUBMIT_VIEW = "submit_view"

@@ -88,6 +88,7 @@ async def admin_command(ack, body, logger, say, client) -> None:
     try:
         user_content_service.validate_admin_user(body["user_id"])
         sheet_client = SpreadSheetClient()
+        sheet_client.push_backup()
         fetch_db(sheet_client)
         upload_logs(sheet_client)
         create_log_file(sheet_client)
