@@ -39,13 +39,87 @@ async def submit_view(ack, body, client, view, logger, say) -> None:
         content = await user_content_service.create_submit_content(
             ack, body, view, user
         )
+        text = user_content_service.get_chat_message(content)
         await client.chat_postMessage(
-            channel=channel_id, text=user_content_service.get_chat_message(content)
+            channel=channel_id,
+            blocks=[
+                {
+                    "type": "actions",
+                    "elements": [
+                        {
+                            "type": "button",
+                            "text": {"type": "plain_text", "text": "소개 보기"},
+                            "action_id": "intro_modal",
+                            "value": user.user_id,
+                        },
+                        {
+                            "type": "button",
+                            "text": {"type": "plain_text", "text": "이전 작성글 보기"},
+                            "action_id": "contents_modal",
+                            "value": user.user_id,
+                        },
+                    ],
+                },
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": text,
+                    },
+                },
+            ],
         )
     except Exception as e:
         message = f"{user.name}({user.channel_name}) 님의 제출이 실패하였습니다."
         print_log(message, str(e))
         return None
+
+
+@slack.action("intro_modal")
+async def open_intro_modal(ack, body, client, view, logger):
+    await ack()
+
+    user_body = {"user_id": body.get("user_id")}
+    print_log(_start_log(user_body, "intro_modal"))
+
+    user_id = body["actions"][0]["value"]
+    user = user_content_service.get_user_not_valid(user_id)
+
+    await client.views_open(
+        trigger_id=body["trigger_id"],
+        view={
+            "type": "modal",
+            "title": {"type": "plain_text", "text": f"{user.name}님의 소개"},
+            "close": {"type": "plain_text", "text": "닫기"},
+            "blocks": [
+                {
+                    "type": "section",
+                    "text": {"type": "mrkdwn", "text": user.intro.replace("\\n", "\n")},
+                }
+            ],
+        },
+    )
+
+
+@slack.action("contents_modal")
+async def open_intro_modal(ack, body, client, view, logger):
+    await ack()
+
+    user_body = {"user_id": body.get("user_id")}
+    print_log(_start_log(user_body, "contents_modal"))
+
+    user_id = body["actions"][0]["value"]
+    user = user_content_service.get_user_not_valid(user_id)
+
+    await client.views_open(
+        trigger_id=body["trigger_id"],
+        view={
+            "type": "modal",
+            "title": {"type": "plain_text", "text": f"{user.name}님의 작성글"},
+            "close": {"type": "plain_text", "text": "닫기"},
+            "blocks": _fetch_blocks(user.contents),
+        },
+    )
 
 
 @slack.command("/패스")
@@ -78,7 +152,33 @@ async def history_command(ack, body, logger, say, client) -> None:
     print_log(_start_log(body, "history"))
     await ack()
     submit_history = user_content_service.get_submit_history(body["user_id"])
-    await client.chat_postMessage(channel=body["user_id"], text=submit_history)
+
+    user = user_content_service.get_user_not_valid(body["user_id"])
+    round, due_date = user.get_due_date()
+    guide_message = f"\n*현재 회차는 {round}회차, 마감일은 {due_date} 이에요."
+
+    await client.views_open(
+        trigger_id=body["trigger_id"],
+        view={
+            "type": "modal",
+            "callback_id": "back_to_search_view",
+            "title": {"type": "plain_text", "text": f"{user.name}님의 제출 내역"},
+            "type": "modal",
+            "blocks": [
+                {
+                    "type": "section",
+                    "text": {"type": "mrkdwn", "text": submit_history},
+                },
+                {
+                    "type": "divider",
+                },
+                {
+                    "type": "section",
+                    "text": {"type": "mrkdwn", "text": guide_message},
+                },
+            ],
+        },
+    )
 
 
 @slack.command("/관리자")
@@ -139,40 +239,41 @@ def _fetch_blocks(contents: list[models.Content]) -> list[dict]:
         },
     )
     for content in contents:
-        blocks.append({"type": "divider"})
-        blocks.append(
-            {
-                "type": "section",
-                "text": {
-                    "type": "mrkdwn",
-                    "text": f"*<{content.content_url}|{re.sub('<|>', '', content.title)}>*",
-                },
-                "accessory": {
-                    "type": "overflow",
-                    "action_id": "overflow-action",
-                    "options": [
-                        {
-                            "text": {
-                                "type": "plain_text",
-                                "text": "👍🏼 추천(추후 도입 예정)",
-                                "emoji": True,
+        if content.content_url:
+            blocks.append({"type": "divider"})
+            blocks.append(
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": f"*<{content.content_url}|{re.sub('<|>', '', content.title)}>*",
+                    },
+                    "accessory": {
+                        "type": "overflow",
+                        "action_id": "overflow-action",
+                        "options": [
+                            {
+                                "text": {
+                                    "type": "plain_text",
+                                    "text": "👍🏼 추천(추후 도입 예정)",
+                                    "emoji": True,
+                                },
+                                "value": "like",
                             },
-                            "value": "like",
-                        },
+                        ],
+                    },
+                }
+            )
+            tags = f"> 태그: {' '.join(content.tags.split('#'))}" if content.tags else " "
+            blocks.append(
+                {
+                    "type": "context",
+                    "elements": [
+                        {"type": "mrkdwn", "text": f"> 카테고리: {content.category}"},
+                        {"type": "mrkdwn", "text": tags},
                     ],
-                },
-            }
-        )
-        tags = f"> 태그: {' '.join(content.tags.split('#'))}" if content.tags else " "
-        blocks.append(
-            {
-                "type": "context",
-                "elements": [
-                    {"type": "mrkdwn", "text": f"> 카테고리: {content.category}"},
-                    {"type": "mrkdwn", "text": tags},
-                ],
-            }
-        )
+                }
+            )
         if len(blocks) > 60:
             return blocks
     return blocks

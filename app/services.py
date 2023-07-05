@@ -37,7 +37,14 @@ class UserContentService:
 
     def get_user(self, user_id, channel_id) -> models.User:
         user = self._user_repo.get(user_id)
+
+        # TODO: validate 분리
         self._validate_user(channel_id, user)
+        return user  # type: ignore
+
+    def get_user_not_valid(self, user_id) -> models.User:
+        # TODO: 임시로 사용, 추후 제거
+        user = self._user_repo.get(user_id)
         return user  # type: ignore
 
     def update_user(self, user: models.User, content: models.Content):
@@ -119,7 +126,7 @@ class UserContentService:
             raise ValueError("관리자 계정이 아닙니다.")
 
     def _history_message(self, user: models.User) -> str:
-        message = f"\n>>>🤗  *<@{user.user_id}> 님의 제출 기록이에요.*\n"
+        message = ""
         for content in user.fetch_contents():
             round = content.get_round()
             sumit_head = f"✅  {round}회차 제출"
@@ -127,7 +134,7 @@ class UserContentService:
             message += f"\n{sumit_head if content.type == 'submit' else pass_head}  |  "
             message += f"{content.dt}  |  "
             message += f"{content.content_url}"
-        return message
+        return message or "제출 내역이 없습니다."
 
     async def _open_error_modal(
         self, client, body: dict[str, str], view_name: str, e: str

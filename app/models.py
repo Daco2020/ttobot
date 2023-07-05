@@ -68,6 +68,7 @@ class User(BaseModel):
     name: str
     channel_name: str
     channel_id: str
+    intro: str
     contents: list[Content] = []
 
     @property
