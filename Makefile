@@ -9,3 +9,6 @@ install:
 
 type-check:
 	mypy -p app
+
+test:
+	python test.py
