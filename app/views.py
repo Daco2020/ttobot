@@ -1,4 +1,5 @@
 import re
+from typing import Any
 from app import models
 from app import config
 from app.client import SpreadSheetClient
@@ -103,7 +104,7 @@ async def open_intro_modal(ack, body, client, view, logger):
 
 
 @slack.action("contents_modal")
-async def open_intro_modal(ack, body, client, view, logger):
+async def contents_modal(ack, body, client, view, logger):
     await ack()
 
     user_body = {"user_id": body.get("user_id")}
@@ -253,8 +254,8 @@ async def submit_search(ack, body, client, view, logger):
     )
 
 
-def _fetch_blocks(contents: list[models.Content]) -> list[dict]:
-    blocks = []
+def _fetch_blocks(contents: list[models.Content]) -> list[dict[str, Any]]:
+    blocks: list[dict[str, Any]] = []
     blocks.append(
         {
             "type": "section",

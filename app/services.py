@@ -18,7 +18,7 @@ class UserContentService:
         self._content_dao = content_dao
 
     def fetch_contents(
-        self, keyword: str = None, name: str = None, category: str = "전체"
+        self, keyword: str | None = None, name: str | None = None, category: str = "전체"
     ) -> list[models.Content]:
         """콘텐츠를 조건에 맞춰 가져옵니다."""
         if keyword:
@@ -487,11 +487,12 @@ class UserContentService:
         ]["value"]
         return content_url
 
-    def _get_title(self, url: str) -> tuple[str, str]:
+    def _get_title(self, url: str) -> str:
         try:
             response = requests.get(url)
             soup = BeautifulSoup(response.text, "html.parser")
-            title = soup.find("title").text
+            # TODO: title 태그가 없는 경우 핸들링 필요
+            title = soup.find("title").text  # type: ignore
             result = title.strip()
             return result
         except Exception as e:

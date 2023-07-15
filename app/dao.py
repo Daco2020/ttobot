@@ -54,3 +54,4 @@ class FileContentDao(ContentDao):
             for user in reader:
                 if user["name"] == name:
                     return user["user_id"]
+        return None

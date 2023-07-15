@@ -42,7 +42,7 @@ class Content(BaseModel):
             ]
         )
 
-    def to_list_for_sheet(self) -> str:
+    def to_list_for_sheet(self) -> list[str]:
         return [
             self.user_id,
             self.username,
@@ -114,7 +114,7 @@ class User(BaseModel):
         """유저의 모든 콘텐츠를 반환합니다."""
         return self.contents
 
-    def get_due_date(self) -> tuple[int, datetime.date] | None:
+    def get_due_date(self) -> tuple[int, datetime.date]:
         """현재 회차와 마감일을 반환합니다."""
         now_date = now_dt().date()
         for i, due_date in enumerate(DUE_DATES):
