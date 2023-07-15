@@ -1,5 +1,6 @@
 import re
 from app import models
+from app import config
 from app.client import SpreadSheetClient
 from app.config import PASS_VIEW, SUBMIT_VIEW, SEARCH_VIEW, settings
 from slack_bolt.async_app import AsyncApp
@@ -161,9 +162,7 @@ async def history_command(ack, body, logger, say, client) -> None:
         trigger_id=body["trigger_id"],
         view={
             "type": "modal",
-            "callback_id": "back_to_search_view",
             "title": {"type": "plain_text", "text": f"{user.name}님의 제출 내역"},
-            "type": "modal",
             "blocks": [
                 {
                     "type": "section",
@@ -175,6 +174,31 @@ async def history_command(ack, body, logger, say, client) -> None:
                 {
                     "type": "section",
                     "text": {"type": "mrkdwn", "text": guide_message},
+                },
+            ],
+        },
+    )
+
+
+@slack.command("/보증금")
+async def get_deposit(ack, body, logger, say, client) -> None:
+    print_log(_start_log(body, "deposit"))
+    await ack()
+
+    user = user_content_service.get_user_not_valid(body["user_id"])
+
+    await client.views_open(
+        trigger_id=body["trigger_id"],
+        view={
+            "type": "modal",
+            "title": {"type": "plain_text", "text": f"{user.name}님의 보증금 현황"},
+            "blocks": [
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": f"현재 남은 보증금은 {format(user.deposit, ',d')} 원 입니다\n\n*<{settings.DEPOSIT_SHEETS_URL}|{'보증금 현황 자세히 확인하기'}>*",
+                    },
                 },
             ],
         },
@@ -224,7 +248,6 @@ async def submit_search(ack, body, client, view, logger):
             "callback_id": "back_to_search_view",
             "title": {"type": "plain_text", "text": f"총 {len(contents)} 개의 글이 있습니다. 🔍"},
             "submit": {"type": "plain_text", "text": "다시 찾기"},
-            "type": "modal",
             "blocks": _fetch_blocks(contents),
         },
     )

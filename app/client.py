@@ -37,7 +37,7 @@ class SpreadSheetClient:
 
     def fetch_users(self) -> None:
         """유저 정보를 가져옵니다."""
-        users = self._users_sheet.get_values("A:E")
+        users = self._users_sheet.get_values("A:F")
         with open("db/users.csv", "w") as f:
             f.writelines([f"{','.join(user)}\n" for user in users])
 
