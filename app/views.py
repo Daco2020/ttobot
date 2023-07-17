@@ -181,7 +181,7 @@ async def history_command(ack, body, logger, say, client) -> None:
     )
 
 
-@slack.command("/보증금")
+@slack.command("/예치금")
 async def get_deposit(ack, body, logger, say, client) -> None:
     print_log(_start_log(body, "deposit"))
     await ack()
@@ -192,13 +192,13 @@ async def get_deposit(ack, body, logger, say, client) -> None:
         trigger_id=body["trigger_id"],
         view={
             "type": "modal",
-            "title": {"type": "plain_text", "text": f"{user.name}님의 보증금 현황"},
+            "title": {"type": "plain_text", "text": f"{user.name}님의 예치금 현황"},
             "blocks": [
                 {
                     "type": "section",
                     "text": {
                         "type": "mrkdwn",
-                        "text": f"현재 남은 보증금은 {format(user.deposit, ',d')} 원 입니다\n\n*<{settings.DEPOSIT_SHEETS_URL}|{'보증금 현황 자세히 확인하기'}>*",
+                        "text": f"현재 남은 예치금은 {format(user.deposit, ',d')} 원 입니다.\n\n*<{settings.DEPOSIT_SHEETS_URL}|{'예치금 현황 자세히 확인하기'}>*",
                     },
                 },
             ],
