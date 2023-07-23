@@ -378,7 +378,7 @@ async def guide_command(ack, body, logger, say, client) -> None:
             "type": "modal",
             "title": {
                 "type": "plain_text",
-                "text": f"🌳모여봐요 코드의 숲 가이드🌳",
+                "text": f"'모여봐요 코드의 숲' 가이드",
             },
             "close": {"type": "plain_text", "text": "닫기"},
             "blocks": [
