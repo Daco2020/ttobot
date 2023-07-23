@@ -41,7 +41,11 @@ async def submit_view(ack, body, client, view, logger, say) -> None:
         content = await user_content_service.create_submit_content(
             ack, body, view, user
         )
-        text = user_content_service.get_chat_message(content)
+
+        # TODO: 모코숲 로직 추후 제거
+        animal = ANIMAL_TYPE[user.animal_type]
+
+        text = user_content_service.get_chat_message(content, animal)
         await client.chat_postMessage(
             channel=channel_id,
             blocks=[
@@ -147,8 +151,13 @@ async def pass_view(ack, body, client, view, logger, say) -> None:
     try:
         user = user_content_service.get_user(user_id, channel_id)
         content = await user_content_service.create_pass_content(ack, body, view, user)
+
+        # TODO: 모코숲 로직 추후 제거
+        animal = ANIMAL_TYPE[user.animal_type]
+
         await client.chat_postMessage(
-            channel=channel_id, text=user_content_service.get_chat_message(content)
+            channel=channel_id,
+            text=user_content_service.get_chat_message(content, animal),
         )
     except Exception as e:
         message = f"{user.name}({user.channel_name}) 님의 패스가 실패하였습니다."
@@ -369,7 +378,7 @@ async def guide_command(ack, body, logger, say, client) -> None:
             "type": "modal",
             "title": {
                 "type": "plain_text",
-                "text": f"🌳모여봐요 코드의 숲 가이드숲🌳",
+                "text": f"🌳모여봐요 코드의 숲 가이드🌳",
             },
             "close": {"type": "plain_text", "text": "닫기"},
             "blocks": [

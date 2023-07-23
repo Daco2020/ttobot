@@ -103,15 +103,15 @@ class UserContentService:
     async def open_search_modal(self, body, client, view_name: str) -> None:
         await self._open_search_modal(client, body, view_name)
 
-    def get_chat_message(self, content: models.Content) -> str:
+    def get_chat_message(self, content: models.Content, animal: dict[str, str]) -> str:
         if content.type == "submit":
-            message = f"\n>>>🎉 *<@{content.user_id}>님 제출 완료.*\
+            message = f"\n>>>{animal['emoji']} *<@{content.user_id}>님 제출 완료.*\
                 {self._description_message(content.description)}\
                 \ncategory : {content.category}\
                 {self._tag_message(content.tags)}\
                 \nlink : {content.content_url}"
         else:
-            message = f"\n>>>🙏🏼 *<@{content.user_id}>님 패스 완료.*\
+            message = f"\n>>>{animal['emoji']} *<@{content.user_id}>님 패스 완료.*\
                 {self._description_message(content.description)}"
         return message
 
