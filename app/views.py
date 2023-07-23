@@ -3,7 +3,7 @@ from typing import Any
 from app import models
 from app import config
 from app.client import SpreadSheetClient
-from app.config import PASS_VIEW, SUBMIT_VIEW, SEARCH_VIEW, settings
+from app.config import ANIMAL_TYPE, PASS_VIEW, SUBMIT_VIEW, settings
 from slack_bolt.async_app import AsyncApp
 from app.db import create_log_file, fetch_db, upload_logs
 
@@ -86,12 +86,19 @@ async def open_intro_modal(ack, body, client, view, logger):
 
     user_id = body["actions"][0]["value"]
     user = user_content_service.get_user_not_valid(user_id)
+    # TODO: 모코숲 로직 추후 제거
+    animal = ANIMAL_TYPE[user.animal_type]
 
     await client.views_open(
         trigger_id=body["trigger_id"],
         view={
             "type": "modal",
-            "title": {"type": "plain_text", "text": f"{user.name}님의 소개"},
+            "title": {
+                "type": "plain_text",
+                # "text": f"{user.name}님의 소개",
+                # TODO: 모코숲 로직 추후 제거
+                "text": f"{animal['emoji']}{animal['name']} {user.name}님의 소개",
+            },
             "close": {"type": "plain_text", "text": "닫기"},
             "blocks": [
                 {
@@ -347,3 +354,67 @@ def _get_keyword(body):
         .get("value", "")
     )
     return name
+
+
+# TODO: 모코숲 로직 추후 제거
+@slack.command("/모코숲")
+async def guide_command(ack, body, logger, say, client) -> None:
+    print_log(_start_log(body, "guide"))
+    await ack()
+    # await user_content_service.open_submit_modal(body, client, SUBMIT_VIEW)
+
+    await client.views_open(
+        trigger_id=body["trigger_id"],
+        view={
+            "type": "modal",
+            "title": {
+                "type": "plain_text",
+                "text": f"🌳모여봐요 코드의 숲 가이드숲🌳",
+            },
+            "close": {"type": "plain_text", "text": "닫기"},
+            "blocks": [
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": "\n*설명*\n- 기존 2주 1글쓰기 규칙을 유지해요.\n- ‘모코숲’ 채널에 함께 모여 활동해요.\n- ‘모코숲’ 채널에 들어오면 자신이 어떤 동물인지 알 수 있어요.\n- 글만 올리면 심심하죠? 수다와 각종 모임 제안도 가능(권장)해요!\n\n\n*일정*\n- 7월 23일 일요일 ‘모코숲’이 열려요!\n- 7월 23일부터 9월 24일까지 두 달간 진행합니다.\n- 첫 번째 글 마감은 7월 30일 이에요! (이후 2주 간격 제출)\n\n\n*동물 소개*\n- 🐈 '고양이'는 여유롭게 일상을 즐겨요.\n- 🦦 '해달'은 기술과 도구에 관심이 많고 문제해결을 좋아해요.\n- 🦫 '비버'는 명확한 목표와 함께 협업을 즐겨요.\n- 🐘 '코끼리'는 커리어에 관심이 많고 자부심이 넘치요.\n- 🐕 '강아지'는 조직문화에 관심이 많고 팀워크를 중요하게 여겨요.\n- 🐢 '거북이'는 늦게 시작했지만 끝까지 포기하지 않아요.",
+                    },
+                }
+            ],
+        },
+    )
+
+
+# TODO: 모코숲 로직 추후 제거
+@slack.event("member_joined_channel")
+async def send_welcome_message(event, say):
+    if event["channel"] == "C05K0RNQZA4":
+        try:
+            user_id = event["user"]
+            user = user_content_service.get_user_not_valid(user_id)
+            animal = ANIMAL_TYPE[user.animal_type]
+
+            message = (
+                f"\n>>>{animal['emoji']}{animal['name']} <@{user_id}>님이 🌳모코숲🌳에 입장했습니다👏🏼"
+            )
+            await say(
+                channel=event["channel"],
+                blocks=[
+                    {
+                        "type": "section",
+                        "text": {
+                            "type": "mrkdwn",
+                            "text": message,
+                        },
+                        "accessory": {
+                            "type": "button",
+                            "text": {"type": "plain_text", "text": "소개 보기"},
+                            "action_id": "intro_modal",
+                            "value": user.user_id,
+                        },
+                    },
+                ],
+            )
+        except Exception as e:
+            print_log(e)
+            pass
