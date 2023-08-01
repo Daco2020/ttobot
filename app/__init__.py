@@ -6,6 +6,11 @@ from apscheduler.schedulers.background import BackgroundScheduler  # type: ignor
 from app.db import fetch_db  # type: ignore
 from app.views import slack
 
+# import sys
+# import logging
+
+# logging.basicConfig(level=logging.DEBUG)
+
 
 api = FastAPI()
 

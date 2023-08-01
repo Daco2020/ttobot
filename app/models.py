@@ -70,7 +70,7 @@ class User(BaseModel):
     channel_id: str
     intro: str
     deposit: int
-    animal_type: str | None = None
+    animal_type: str = ""
     contents: list[Content] = []
 
     @property

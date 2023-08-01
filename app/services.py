@@ -27,7 +27,7 @@ class UserContentService:
             contents = self._content_dao.fetch_all()
 
         if name:
-            user_id = self._content_dao.get_user_id(name)
+            user_id = self._content_dao.get_user_id_by_name(name)
             contents = [content for content in contents if content.user_id == user_id]
 
         if category != "전체":

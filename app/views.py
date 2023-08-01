@@ -250,7 +250,6 @@ async def submit_search(ack, body, client, view, logger):
     # TODO: 로그 리팩터링하기
     user_body = {"user_id": body.get("user", {}).get("id")}
     print_log(_start_log(user_body, "submit_search"))
-    await ack()
 
     name = _get_name(body)
     category = _get_category(body)
@@ -258,15 +257,20 @@ async def submit_search(ack, body, client, view, logger):
 
     contents = user_content_service.fetch_contents(keyword, name, category)
 
-    await client.views_open(
-        trigger_id=body["trigger_id"],
-        view={
-            "type": "modal",
-            "callback_id": "back_to_search_view",
-            "title": {"type": "plain_text", "text": f"총 {len(contents)} 개의 글이 있습니다. 🔍"},
-            "submit": {"type": "plain_text", "text": "다시 찾기"},
-            "blocks": _fetch_blocks(contents),
-        },
+    await ack(
+        {
+            "response_action": "update",
+            "view": {
+                "type": "modal",
+                "callback_id": "back_to_search_view",
+                "title": {
+                    "type": "plain_text",
+                    "text": f"총 {len(contents)} 개의 글이 있습니다. 🔍",
+                },
+                "submit": {"type": "plain_text", "text": "다시 찾기"},
+                "blocks": _fetch_blocks(contents),
+            },
+        }
     )
 
 
@@ -324,8 +328,104 @@ async def back_to_search_view(ack, body, logger, say, client) -> None:
     # TODO: 로그 리팩터링하기
     user_body = {"user_id": body.get("user", {}).get("id")}
     print_log(_start_log(user_body, "back_to_search_view"))
-    await ack()
-    await user_content_service.open_search_modal(body, client, PASS_VIEW)
+
+    view = {
+        "type": "modal",
+        "callback_id": "submit_search",
+        "title": {"type": "plain_text", "text": "글 검색 🔍"},
+        "submit": {"type": "plain_text", "text": "찾기"},
+        "blocks": [
+            {
+                "type": "section",
+                "block_id": "description_section",
+                "text": {"type": "mrkdwn", "text": f"조건에 맞는 글을 검색합니다."},
+            },
+            {
+                "type": "input",
+                "block_id": "keyword_search",
+                "optional": True,
+                "element": {
+                    "type": "plain_text_input",
+                    "action_id": "keyword",
+                    "placeholder": {
+                        "type": "plain_text",
+                        "text": "검색어를 입력해주세요.",
+                    },
+                    "multiline": False,
+                },
+                "label": {
+                    "type": "plain_text",
+                    "text": "검색어",
+                    "emoji": True,
+                },
+            },
+            {
+                "type": "input",
+                "block_id": "author_search",
+                "optional": True,
+                "element": {
+                    "type": "plain_text_input",
+                    "action_id": "author_name",
+                    "placeholder": {
+                        "type": "plain_text",
+                        "text": "이름을 입력해주세요.",
+                    },
+                    "multiline": False,
+                },
+                "label": {
+                    "type": "plain_text",
+                    "text": "글 작성자",
+                    "emoji": False,
+                },
+            },
+            {
+                "type": "input",
+                "block_id": "category_search",
+                "label": {"type": "plain_text", "text": "카테고리", "emoji": True},
+                "element": {
+                    "type": "static_select",
+                    "action_id": "chosen_category",
+                    "placeholder": {"type": "plain_text", "text": "카테고리 선택"},
+                    "initial_option": {
+                        "text": {"type": "plain_text", "text": "전체"},
+                        "value": "전체",
+                    },
+                    "options": [
+                        {
+                            "text": {"type": "plain_text", "text": "전체"},
+                            "value": "전체",
+                        },
+                        {
+                            "text": {"type": "plain_text", "text": "프로젝트"},
+                            "value": "프로젝트",
+                        },
+                        {
+                            "text": {"type": "plain_text", "text": "기술 & 언어"},
+                            "value": "기술 & 언어",
+                        },
+                        {
+                            "text": {"type": "plain_text", "text": "조직 & 문화"},
+                            "value": "조직 & 문화",
+                        },
+                        {
+                            "text": {"type": "plain_text", "text": "취준 & 이직"},
+                            "value": "취준 & 이직",
+                        },
+                        {
+                            "text": {"type": "plain_text", "text": "일상 & 생각"},
+                            "value": "일상 & 생각",
+                        },
+                        {
+                            "text": {"type": "plain_text", "text": "기타"},
+                            "value": "기타",
+                        },
+                    ],
+                },
+            },
+        ],
+    }
+
+    await ack({"response_action": "update", "view": view})
 
 
 def _get_category(body):
