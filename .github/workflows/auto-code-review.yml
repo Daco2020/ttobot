@@ -1,0 +1,25 @@
+name: Code Review
+
+permissions:
+  contents: read
+  pull-requests: write
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: anc95/ChatGPT-CodeReview@main
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          # optional
+          LANGUAGE: Korean
+          OPENAI_API_ENDPOINT: https://api.openai.com/v1
+          MODEL: gpt-3.5-turbo-16k
+          PROMPT: "아래는 내가 작성한 코드야. 내가 작성한 코드에 대한 피드백을 줘. 버그 가능성이 있거나 개선할 점은 언제든지 알려줘."
+          temperature: 0.8
+          max_tokens: 10000
