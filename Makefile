@@ -6,9 +6,3 @@ freeze:
 
 install:
 	pip install -r requirements.txt
-
-type-check:
-	mypy -p app
-
-test:
-	python test/test_store.py
