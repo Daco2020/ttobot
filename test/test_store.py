@@ -4,7 +4,7 @@ from app.models import Content, User
 
 
 def test_content_loading() -> None:
-    with open("db/contents.csv", "r") as f:
+    with open("store/contents.csv", "r") as f:
         reader = csv.DictReader(f)
         try:
             for content in reader:
@@ -17,7 +17,7 @@ def test_content_loading() -> None:
 
 
 def test_user_loading() -> None:
-    with open("db/users.csv", "r") as f:
+    with open("store/users.csv", "r") as f:
         reader = csv.DictReader(f)
         try:
             for user in reader:

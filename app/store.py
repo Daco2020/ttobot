@@ -2,16 +2,16 @@ import os
 from app.client import SpreadSheetClient
 
 
-def fetch_db(client: SpreadSheetClient) -> None:
+def fetch_store(client: SpreadSheetClient) -> None:
     """서버 저장소를 동기화합니다."""
-    create_db_path()
+    create_store_path()
     client.fetch_users()
     client.fetch_contents()
 
 
-def create_db_path():
+def create_store_path():
     try:
-        os.mkdir("db")
+        os.mkdir("store")
     except FileExistsError:
         pass
 

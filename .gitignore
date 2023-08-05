@@ -220,3 +220,4 @@ poetry.toml
 secret.json
 .vscode
 db
+store

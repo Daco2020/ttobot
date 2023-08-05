@@ -11,4 +11,4 @@ type-check:
 	mypy -p app
 
 test:
-	python test.py
+	python test/test_store.py

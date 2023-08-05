@@ -38,18 +38,18 @@ class SpreadSheetClient:
     def fetch_users(self) -> None:
         """유저 정보를 가져옵니다."""
         users = self._users_sheet.get_values("A:G")
-        with open("db/users.csv", "w") as f:
+        with open("store/users.csv", "w") as f:
             f.writelines([f"{','.join(user)}\n" for user in users])
 
     def fetch_contents(self) -> None:
         """콘텐츠 정보를 가져옵니다."""
         contents = self._raw_data_sheet.get_values("A:I")
-        with open("db/contents.csv", "w") as f:
+        with open("store/contents.csv", "w") as f:
             f.writelines([f"{content}" for content in self._parse(contents)])
 
     def push_backup(self) -> None:
         """백업 시트에 contents.csv를 업로드합니다."""
-        with open("db/contents.csv", "r") as f:
+        with open("store/contents.csv", "r") as f:
             reader = csv.reader(f)
             contents = list(reader)
         self._backup_sheet.clear()  # 기존 데이터를 지웁니다.
@@ -79,12 +79,12 @@ class SpreadSheetClient:
 
     def create_log_file(self) -> None:
         """로그 파일을 생성합니다."""
-        with open("db/logs.csv", "w") as f:
+        with open("store/logs.csv", "w") as f:
             f.writelines(f"{now_dt()} - - 새로운 로깅을 시작합니다.\n")
 
     def upload_logs(self) -> None:
         """로그 파일을 업로드합니다."""
-        with open("db/logs.csv", "r") as f:
+        with open("store/logs.csv", "r") as f:
             reader = csv.reader(f)
             logs = list(reader)
         cursor = len(self._log_sheet.get_values("A:A")) + 1

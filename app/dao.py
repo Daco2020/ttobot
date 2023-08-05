@@ -26,7 +26,7 @@ class FileContentDao(ContentDao):
         ...
 
     def fetch_all(self) -> list[models.Content]:
-        with open("db/contents.csv", "r") as f:
+        with open("store/contents.csv", "r") as f:
             reader = csv.DictReader(f)
             contents = [
                 models.Content(**content)
@@ -36,7 +36,7 @@ class FileContentDao(ContentDao):
             return sorted(contents, key=lambda content: content.dt_, reverse=True)
 
     def fetch_by_keyword(self, keyword: str) -> list[models.Content]:
-        with open("db/contents.csv", "r") as f:
+        with open("store/contents.csv", "r") as f:
             reader = csv.DictReader(f)
             contents = [
                 models.Content(**content)
@@ -48,7 +48,7 @@ class FileContentDao(ContentDao):
             return sorted(contents, key=lambda content: content.dt_, reverse=True)
 
     def get_user_id_by_name(self, name: str) -> str | None:
-        with open("db/users.csv", "r") as f:
+        with open("store/users.csv", "r") as f:
             reader = csv.DictReader(f)
             matching_users = [user for user in reader if name in user["name"]]
 
