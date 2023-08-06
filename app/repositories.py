@@ -2,12 +2,11 @@ import csv
 from typing import Any
 
 from app import models, client
-from app.store import Store
 
 
 class UserRepository:
-    def __init__(self, store: Store) -> None:
-        self._store = store
+    def __init__(self) -> None:
+        ...
 
     def get_user(self, user_id: str) -> models.User | None:
         """유저와 콘텐츠를 가져옵니다."""

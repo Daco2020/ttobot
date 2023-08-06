@@ -1,7 +1,6 @@
 import datetime
 import re
 from typing import Any
-from app.store import store
 from app.config import MAX_PASS_COUNT, URL_REGEX
 from app.repositories import UserRepository
 from app import models
@@ -546,4 +545,4 @@ class UserContentService:
             raise ValueError(message)
 
 
-user_content_service = UserContentService(user_repo=UserRepository(store))
+user_content_service = UserContentService(user_repo=UserRepository())
