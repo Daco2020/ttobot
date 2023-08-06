@@ -5,7 +5,7 @@ from pydantic import ValidationError
 from app.models import Content, User
 
 
-def test_content_loading() -> None:
+def test_valid_content_loading() -> None:
     with open("store/contents.csv", "r") as f:
         reader = csv.DictReader(f)
         for content in reader:
@@ -15,7 +15,7 @@ def test_content_loading() -> None:
                 pytest.fail("ValidationError should not occur!")
 
 
-def test_user_loading() -> None:
+def test_valid_user_loading() -> None:
     with open("store/users.csv", "r") as f:
         reader = csv.DictReader(f)
         for user in reader:
