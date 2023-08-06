@@ -1,4 +1,5 @@
 import datetime
+from typing import Any
 from pydantic import BaseSettings
 
 
@@ -6,8 +7,8 @@ class Settings(BaseSettings):
     BOT_TOKEN: str
     APP_TOKEN: str
 
-    SCOPE: list
-    JSON_KEYFILE_DICT: dict
+    SCOPE: list[str]
+    JSON_KEYFILE_DICT: dict[str, Any]
     SPREAD_SHEETS_URL: str
     DEPOSIT_SHEETS_URL: str
 
@@ -16,7 +17,7 @@ class Settings(BaseSettings):
         env_file_encoding = "utf-8"
 
 
-settings = Settings()
+settings = Settings()  # type: ignore
 
 
 # sheet constants

@@ -24,3 +24,11 @@ def create_log_file(client: SpreadSheetClient) -> None:
 def upload_logs(client: SpreadSheetClient) -> None:
     """로그를 업로드합니다."""
     client.upload_logs()
+
+
+class Store:
+    def __init__(self) -> None:
+        ...
+
+
+store = Store()

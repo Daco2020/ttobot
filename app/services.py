@@ -1,9 +1,9 @@
 import datetime
 import re
 from typing import Any
+from app.store import store
 from app.config import MAX_PASS_COUNT, URL_REGEX
-from app.dao import ContentDao, FileContentDao
-from app.repositories import FileUserRepository, UserRepository
+from app.repositories import UserRepository
 from app import models
 from app.utils import now_dt, print_log
 
@@ -13,21 +13,20 @@ from bs4 import BeautifulSoup
 
 
 class UserContentService:
-    def __init__(self, user_repo: UserRepository, content_dao: ContentDao) -> None:
+    def __init__(self, user_repo: UserRepository) -> None:
         self._user_repo = user_repo
-        self._content_dao = content_dao
 
     def fetch_contents(
         self, keyword: str | None = None, name: str | None = None, category: str = "전체"
     ) -> list[models.Content]:
         """콘텐츠를 조건에 맞춰 가져옵니다."""
         if keyword:
-            contents = self._content_dao.fetch_by_keyword(keyword)
+            contents = self._user_repo.fetch_contents_by_keyword(keyword)
         else:
-            contents = self._content_dao.fetch_all()
+            contents = self._user_repo.fetch_contents()
 
         if name:
-            user_id = self._content_dao.get_user_id_by_name(name)
+            user_id = self._user_repo.get_user_id_by_name(name)
             contents = [content for content in contents if content.user_id == user_id]
 
         if category != "전체":
@@ -36,7 +35,7 @@ class UserContentService:
         return contents
 
     def get_user(self, user_id, channel_id) -> models.User:
-        user = self._user_repo.get(user_id)
+        user = self._user_repo.get_user(user_id)
 
         # TODO: validate 분리
         self._validate_user(channel_id, user)
@@ -44,7 +43,7 @@ class UserContentService:
 
     def get_user_not_valid(self, user_id) -> models.User:
         # TODO: 임시로 사용, 추후 제거
-        user = self._user_repo.get(user_id)
+        user = self._user_repo.get_user(user_id)
         return user  # type: ignore
 
     def update_user(self, user: models.User, content: models.Content):
@@ -116,7 +115,7 @@ class UserContentService:
         return message
 
     def get_submit_history(self, user_id: str) -> str:
-        user = self._user_repo.get(user_id)
+        user = self._user_repo.get_user(user_id)
         if user is None:
             return "사용자 정보가 없습니다. [글또봇질문]채널로 문의해주세요."
         return self._history_message(user)
@@ -370,7 +369,7 @@ class UserContentService:
                     {
                         "type": "section",
                         "block_id": "description_section",
-                        "text": {"type": "mrkdwn", "text": f"조건에 맞는 글을 검색합니다."},
+                        "text": {"type": "mrkdwn", "text": "조건에 맞는 글을 검색합니다."},
                     },
                     {
                         "type": "input",
@@ -547,6 +546,4 @@ class UserContentService:
             raise ValueError(message)
 
 
-user_content_service = UserContentService(
-    user_repo=FileUserRepository(), content_dao=FileContentDao()
-)
+user_content_service = UserContentService(user_repo=UserRepository(store))
