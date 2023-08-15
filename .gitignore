@@ -221,3 +221,4 @@ secret.json
 .vscode
 db
 store
+.python-version
