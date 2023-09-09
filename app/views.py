@@ -63,6 +63,12 @@ async def submit_view(ack, body, client, view, logger, say) -> None:
                             "action_id": "contents_modal",
                             "value": user.user_id,
                         },
+                        {
+                            "type": "button",
+                            "text": {"type": "plain_text", "text": "북마크 추가📌"},
+                            "action_id": "bookmark_modal",
+                            "value": user.user_id,
+                        },
                     ],
                 },
                 {
@@ -77,7 +83,6 @@ async def submit_view(ack, body, client, view, logger, say) -> None:
     except Exception as e:
         message = f"{user.name}({user.channel_name}) 님의 제출이 실패하였습니다."
         print_log(message, str(e))
-        return None
 
 
 @slack.action("intro_modal")
@@ -161,7 +166,6 @@ async def pass_view(ack, body, client, view, logger, say) -> None:
     except Exception as e:
         message = f"{user.name}({user.channel_name}) 님의 패스가 실패하였습니다."
         print_log(message, str(e))
-        return None
 
 
 @slack.command("/제출내역")

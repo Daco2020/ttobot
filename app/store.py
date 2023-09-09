@@ -11,6 +11,7 @@ def fetch_store(client: SpreadSheetClient) -> None:
 
 
 def create_store_path():
+    """서버 저장소 경로를 생성합니다."""
     try:
         os.mkdir("store")
     except FileExistsError:
