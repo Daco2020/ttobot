@@ -541,5 +541,18 @@ class UserContentService:
             await ack(response_action="errors", errors={block_id: message})
             raise ValueError(message)
 
+    def create_bookmark(
+        self, user_id: str, content_id: str, note: str = ""
+    ) -> models.Bookmark:
+        """북마크를 생성합니다."""
+        bookmark = models.Bookmark(user_id=user_id, content_id=content_id, note=note)
+        self._user_repo.create_bookmark(bookmark)
+        return bookmark
+
+    def get_bookmark(self, user_id: str, content_id: str) -> models.Bookmark | None:
+        """북마크를 가져옵니다."""
+        bookmark = self._user_repo.get_bookmark(user_id, content_id)
+        return bookmark
+
 
 user_content_service = UserContentService(user_repo=UserRepository())

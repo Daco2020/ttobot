@@ -18,8 +18,8 @@ class Content(BaseModel):
     tags: str = ""
 
     @property
-    def content_id(self) -> str:
-        """콘텐츠 유니크 아이디를 반환합니다."""
+    def unique_id(self) -> str:
+        """유니크 아이디를 반환합니다."""
         return f"{self.user_id}:{self.dt}"
 
     @property

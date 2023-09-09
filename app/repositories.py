@@ -45,8 +45,8 @@ class UserRepository:
         """유저의 콘텐츠를 업데이트합니다."""
         if not user.contents:
             raise ValueError("업데이트 대상 content 가 없습니다.")
-        line = user.recent_content.to_line_for_csv()
         client.upload_queue.append(user.recent_content.to_list_for_sheet())
+        line = user.recent_content.to_line_for_csv()
         with open("store/contents.csv", "a") as f:
             f.write(line + "\n")
 
@@ -86,6 +86,18 @@ class UserRepository:
             for user in matching_users:
                 if user["name"] == name:
                     return user["user_id"]
+        return None
+
+    def create_bookmark(self, bookmark: models.Bookmark) -> None:
+        """북마크를 생성합니다."""
+        with open("store/bookmark.csv", "a") as f:
+            f.write(bookmark.to_line_for_csv() + "\n")  # type: ignore
+
+    def get_bookmark(self, user_id: str, content_id: str) -> models.Bookmark | None:
+        bookmarks = self.fetch_bookmark(user_id)
+        for bookmark in bookmarks:
+            if bookmark.content_id == content_id:
+                return bookmark
         return None
 
     def fetch_bookmark(self, user_id: str) -> list[models.Bookmark]:

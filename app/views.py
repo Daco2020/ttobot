@@ -49,11 +49,18 @@ async def submit_view(ack, body, client, view, logger, say) -> None:
             channel=channel_id,
             blocks=[
                 {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": text,
+                    },
+                },
+                {
                     "type": "actions",
                     "elements": [
                         {
                             "type": "button",
-                            "text": {"type": "plain_text", "text": "소개 보기"},
+                            "text": {"type": "plain_text", "text": "자기소개 보기"},
                             "action_id": "intro_modal",
                             "value": user.user_id,
                         },
@@ -67,16 +74,9 @@ async def submit_view(ack, body, client, view, logger, say) -> None:
                             "type": "button",
                             "text": {"type": "plain_text", "text": "북마크 추가📌"},
                             "action_id": "bookmark_modal",
-                            "value": user.user_id,
+                            "value": content.unique_id,
                         },
                     ],
-                },
-                {
-                    "type": "section",
-                    "text": {
-                        "type": "mrkdwn",
-                        "text": text,
-                    },
                 },
             ],
         )
@@ -86,7 +86,7 @@ async def submit_view(ack, body, client, view, logger, say) -> None:
 
 
 @slack.action("intro_modal")
-async def open_intro_modal(ack, body, client, view, logger):
+async def open_intro_modal(ack, body, client, view, logger) -> None:
     await ack()
 
     user_body = {"user_id": body.get("user_id")}
@@ -119,7 +119,7 @@ async def open_intro_modal(ack, body, client, view, logger):
 
 
 @slack.action("contents_modal")
-async def contents_modal(ack, body, client, view, logger):
+async def contents_modal(ack, body, client, view, logger) -> None:
     await ack()
 
     user_body = {"user_id": body.get("user_id")}
@@ -135,6 +135,102 @@ async def contents_modal(ack, body, client, view, logger):
             "title": {"type": "plain_text", "text": f"{user.name}님의 작성글"},
             "close": {"type": "plain_text", "text": "닫기"},
             "blocks": _fetch_blocks(user.contents),
+        },
+    )
+
+
+@slack.action("bookmark_modal")
+async def bookmark_modal(ack, body, client, view, logger) -> None:
+    await ack()
+    user_id = body.get("user_id")
+    print_log(_start_log({"user_id": user_id}, "bookmark_modal"))
+
+    content_id = body["actions"][0]["value"]
+    bookmark = user_content_service.get_bookmark(user_id, content_id)
+
+    if bookmark is not None:
+        # 이미 북마크가 되어 있다면 이를 사용자에게 알린다.
+        await client.views_open(
+            trigger_id=body["trigger_id"],
+            view={
+                "type": "modal",
+                "title": {"type": "plain_text", "text": "북마크"},
+                "close": {"type": "plain_text", "text": "닫기"},
+                "blocks": [
+                    {
+                        "type": "section",
+                        "text": {"type": "mrkdwn", "text": "\n이미 북마크한 글입니다. 😉"},
+                    }
+                ],
+            },
+        )
+        return
+
+    await client.views_open(
+        trigger_id=body["trigger_id"],
+        view={
+            "type": "modal",
+            "private_metadata": body["actions"][0]["value"],
+            "callback_id": "bookmark_view",
+            "title": {"type": "plain_text", "text": "북마크"},
+            "submit": {"type": "plain_text", "text": "북마크 추가"},
+            "blocks": [
+                {
+                    "type": "section",
+                    "block_id": "required_section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": "\n북마크한 글은 `/북마크` 명령어로 다시 확인할 수 있습니다.",
+                    },
+                },
+                {
+                    "type": "input",
+                    "block_id": "bookmark_note",
+                    "optional": True,
+                    "element": {
+                        "type": "plain_text_input",
+                        "action_id": "plain_text_input-action",
+                        "placeholder": {
+                            "type": "plain_text",
+                            "text": "북마크에 대한 메모를 남겨주세요.",
+                        },
+                        "multiline": True,
+                    },
+                    "label": {
+                        "type": "plain_text",
+                        "text": "메모",
+                        "emoji": True,
+                    },
+                },
+            ],
+        },
+    )
+
+
+@slack.view("bookmark_view")
+async def bookmark_view(ack, body, client, view, logger, say) -> None:
+    await ack()
+
+    user_id = body["user"]["id"]
+    print_log(_start_log({"user_id": user_id}, "bookmark_view"))
+
+    content_id = view["private_metadata"]
+    value = view["state"]["values"]["bookmark_note"]["plain_text_input-action"]["value"]
+    note = value if value else ""  # 유저가 입력하지 않으면 None 으로 전달 된다.
+    user_content_service.create_bookmark(user_id, content_id, note)
+
+    await client.views_open(
+        trigger_id=body["trigger_id"],
+        view={
+            "type": "modal",
+            "title": {"type": "plain_text", "text": "북마크"},
+            "close": {"type": "plain_text", "text": "닫기"},
+            "blocks": [
+                {
+                    "type": "section",
+                    "text": {"type": "mrkdwn", "text": "\n북마크를 완료했습니다. 😉"},
+                }
+            ],
         },
     )
 
