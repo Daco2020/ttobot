@@ -87,3 +87,15 @@ class UserRepository:
                 if user["name"] == name:
                     return user["user_id"]
         return None
+
+    def fetch_bookmark(self, user_id: str) -> list[models.Bookmark]:
+        """유저의 삭제되지 않은 북마크를 내림차순으로 가져옵니다."""
+        with open("store/bookmark.csv", "r") as f:
+            reader = csv.DictReader(f)
+            bookmarks = [
+                models.Bookmark(**bookmark)  # type: ignore
+                for bookmark in reader
+                if bookmark["is_deleted"] and bookmark["user_id"] == user_id
+            ]
+
+        return sorted(bookmarks, key=lambda bookmark: bookmark.created_at, reverse=True)

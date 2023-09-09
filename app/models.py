@@ -1,13 +1,13 @@
 from zoneinfo import ZoneInfo
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 import datetime
 from app.config import DUE_DATES
 
-from app.utils import now_dt
+from app.utils import now_dt, now_dt_to_str
 
 
 class Content(BaseModel):
-    dt: str
+    dt: str = Field(default_factory=now_dt_to_str)
     user_id: str
     username: str
     description: str = ""
@@ -142,3 +142,12 @@ class User(BaseModel):
                 latest_due_date = DUE_DATES[i - 1]
                 break
         return latest_due_date < recent_content.date <= now_date
+
+
+class Bookmark(BaseModel):
+    user_id: str
+    content_id: str
+    note: str = ""
+    is_deleted: bool = False
+    created_at: str = Field(default_factory=now_dt_to_str)
+    updated_at: str = Field(default_factory=now_dt_to_str)

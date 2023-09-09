@@ -1,10 +1,9 @@
-import datetime
 import re
 from typing import Any
 from app.config import MAX_PASS_COUNT, URL_REGEX
 from app.repositories import UserRepository
 from app import models
-from app.utils import now_dt, print_log
+from app.utils import print_log
 
 
 import requests
@@ -63,7 +62,6 @@ class UserContentService:
         content_url = self._get_content_url(view)
         await self._validate_url(ack, content_url, user)
         content = models.Content(
-            dt=datetime.datetime.strftime(now_dt(), "%Y-%m-%d %H:%M:%S"),
             user_id=body["user"]["id"],
             username=body["user"]["username"],
             title=self._get_title(content_url),
@@ -89,7 +87,6 @@ class UserContentService:
     ) -> models.Content:
         await self._validate_pass(ack, user)
         content = models.Content(
-            dt=datetime.datetime.strftime(now_dt(), "%Y-%m-%d %H:%M:%S"),
             user_id=body["user"]["id"],
             username=body["user"]["username"],
             description=self._get_description(view),
