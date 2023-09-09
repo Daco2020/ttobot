@@ -18,16 +18,24 @@ class Content(BaseModel):
     tags: str = ""
 
     @property
+    def content_id(self) -> str:
+        """콘텐츠 유니크 아이디를 반환합니다."""
+        return f"{self.user_id}:{self.dt}"
+
+    @property
     def dt_(self) -> datetime.datetime:
+        """생성일시를 datetime 객체로 반환합니다."""
         return datetime.datetime.strptime(self.dt, "%Y-%m-%d %H:%M:%S").replace(
             tzinfo=ZoneInfo("Asia/Seoul")
         )
 
     @property
     def date(self) -> datetime.date:
+        """생성일시를 date 객체로 반환합니다."""
         return self.dt_.date()
 
     def to_line_for_csv(self) -> str:
+        """csv 파일에 쓰기 위한 한 줄을 반환합니다."""
         return ",".join(
             [
                 self.user_id,
@@ -43,6 +51,7 @@ class Content(BaseModel):
         )
 
     def to_list_for_sheet(self) -> list[str]:
+        """구글 시트에 쓰기 위한 리스트를 반환합니다."""
         return [
             self.user_id,
             self.username,
