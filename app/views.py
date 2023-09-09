@@ -1,7 +1,6 @@
 import re
 from typing import Any
 from app import models
-from app import config
 from app.client import SpreadSheetClient
 from app.config import ANIMAL_TYPE, PASS_VIEW, SUBMIT_VIEW, settings
 from slack_bolt.async_app import AsyncApp
@@ -214,7 +213,7 @@ async def get_deposit(ack, body, logger, say, client) -> None:
                     "type": "section",
                     "text": {
                         "type": "mrkdwn",
-                        "text": f"현재 남은 예치금은 {format(user.deposit, ',d')} 원 입니다.\n\n*<{settings.DEPOSIT_SHEETS_URL}|{'예치금 현황 자세히 확인하기'}>*",
+                        "text": f"현재 남은 예치금은 {format(user.deposit, ',d')} 원 입니다.\n\n*<{settings.DEPOSIT_SHEETS_URL}|{'예치금 현황 자세히 확인하기'}>*",  # noqa E501
                     },
                 },
             ],
@@ -290,7 +289,7 @@ def _fetch_blocks(contents: list[models.Content]) -> list[dict[str, Any]]:
                     "type": "section",
                     "text": {
                         "type": "mrkdwn",
-                        "text": f"*<{content.content_url}|{re.sub('<|>', '', content.title)}>*",
+                        "text": f"*<{content.content_url}|{re.sub('<|>', '', content.title)}>*",  # noqa E501
                     },
                     "accessory": {
                         "type": "overflow",
@@ -338,7 +337,7 @@ async def back_to_search_view(ack, body, logger, say, client) -> None:
             {
                 "type": "section",
                 "block_id": "description_section",
-                "text": {"type": "mrkdwn", "text": f"조건에 맞는 글을 검색합니다."},
+                "text": {"type": "mrkdwn", "text": "조건에 맞는 글을 검색합니다."},
             },
             {
                 "type": "input",
@@ -478,7 +477,7 @@ async def guide_command(ack, body, logger, say, client) -> None:
             "type": "modal",
             "title": {
                 "type": "plain_text",
-                "text": f"모여봐요 코드의 숲",
+                "text": "모여봐요 코드의 숲",
             },
             "close": {"type": "plain_text", "text": "닫기"},
             "blocks": [
@@ -486,7 +485,7 @@ async def guide_command(ack, body, logger, say, client) -> None:
                     "type": "section",
                     "text": {
                         "type": "mrkdwn",
-                        "text": "글쓰기를 좋아하는 동물들이 코드의 숲에 모였다?\n우리가 함께 만들어 갈 여름 이야기, 모여봐요 코드의 숲! 🍃\n\n\n*설명*\n- 기존 2주 1글쓰기 규칙을 유지해요.\n- ‘모코숲’ 채널에 함께 모여 활동해요.\n- ‘모코숲’ 채널에 들어오면 자신이 어떤 동물인지 알 수 있어요.\n- 글만 올리면 심심하죠? 수다와 각종 모임 제안도 가능(권장)해요!\n\n\n*일정*\n- 7월 23일 일요일 ‘모코숲’이 열려요!\n- 7월 23일부터 9월 24일까지 두 달간 진행합니다.\n- 첫 번째 글 마감은 7월 30일 이에요! (이후 2주 간격 제출)\n\n\n*동물 소개*\n- 🐈 '고양이'는 여유롭고 독립된 일상을 즐겨요.\n- 🦦 '해달'은 기술과 도구에 관심이 많고 문제해결을 좋아해요.\n- 🦫 '비버'는 명확한 목표와 함께 협업을 즐겨요.\n- 🐘 '코끼리'는 커리어에 관심이 많고 자부심이 넘쳐요.\n- 🐕 '강아지'는 조직문화에 관심이 많고 팀워크를 중요하게 여겨요.\n- 🐢 '거북이'는 늦게 시작했지만 끝까지 포기하지 않아요.",
+                        "text": "글쓰기를 좋아하는 동물들이 코드의 숲에 모였다?\n우리가 함께 만들어 갈 여름 이야기, 모여봐요 코드의 숲! 🍃\n\n\n*설명*\n- 기존 2주 1글쓰기 규칙을 유지해요.\n- ‘모코숲’ 채널에 함께 모여 활동해요.\n- ‘모코숲’ 채널에 들어오면 자신이 어떤 동물인지 알 수 있어요.\n- 글만 올리면 심심하죠? 수다와 각종 모임 제안도 가능(권장)해요!\n\n\n*일정*\n- 7월 23일 일요일 ‘모코숲’이 열려요!\n- 7월 23일부터 9월 24일까지 두 달간 진행합니다.\n- 첫 번째 글 마감은 7월 30일 이에요! (이후 2주 간격 제출)\n\n\n*동물 소개*\n- 🐈 '고양이'는 여유롭고 독립된 일상을 즐겨요.\n- 🦦 '해달'은 기술과 도구에 관심이 많고 문제해결을 좋아해요.\n- 🦫 '비버'는 명확한 목표와 함께 협업을 즐겨요.\n- 🐘 '코끼리'는 커리어에 관심이 많고 자부심이 넘쳐요.\n- 🐕 '강아지'는 조직문화에 관심이 많고 팀워크를 중요하게 여겨요.\n- 🐢 '거북이'는 늦게 시작했지만 끝까지 포기하지 않아요.",  # noqa E501
                     },
                 }
             ],

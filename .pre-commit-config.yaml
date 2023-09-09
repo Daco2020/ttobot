@@ -18,8 +18,8 @@ repos:
           - "slack_bolt"
           - "fastapi"
           - "types-requests"
-
+          
   - repo: https://github.com/Daco2020/auto-commit-msg.git
-    rev: v0.1.0
+    rev: v0.1.3
     hooks:
       - id: "auto-commit-msg"
