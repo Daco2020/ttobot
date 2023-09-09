@@ -5,8 +5,9 @@ from app.client import SpreadSheetClient
 def fetch_store(client: SpreadSheetClient) -> None:
     """서버 저장소를 동기화합니다."""
     create_store_path()
-    client.fetch_users()
-    client.fetch_contents()
+    client.download_users()
+    client.download_contents()
+    client.download_bookmarks()
 
 
 def create_store_path():
