@@ -57,7 +57,7 @@ class SpreadSheetClient:
 
     def download_bookmarks(self) -> None:
         """북마크 정보를 가져옵니다."""
-        bookmarks = self._bookmark.get_values("A:D")
+        bookmarks = self._bookmark.get_values("A:F")
         with open("store/bookmark.csv", "w") as f:
             f.writelines([f"{','.join(bookmark)}\n" for bookmark in bookmarks])
 

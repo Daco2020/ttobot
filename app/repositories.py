@@ -107,7 +107,8 @@ class UserRepository:
             bookmarks = [
                 models.Bookmark(**bookmark)  # type: ignore
                 for bookmark in reader
-                if bookmark["is_deleted"] and bookmark["user_id"] == user_id
+                if bookmark["status"] == models.BookmarkStatusEnum.active
+                and bookmark["user_id"] == user_id
             ]
 
         return sorted(bookmarks, key=lambda bookmark: bookmark.created_at, reverse=True)

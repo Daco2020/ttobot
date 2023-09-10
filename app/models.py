@@ -1,3 +1,4 @@
+from enum import Enum
 from zoneinfo import ZoneInfo
 from pydantic import BaseModel, Field
 import datetime
@@ -153,11 +154,16 @@ class User(BaseModel):
         return latest_due_date < recent_content.date <= now_date
 
 
+class BookmarkStatusEnum(str, Enum):
+    active = "active"
+    deleted = "deleted"
+
+
 class Bookmark(BaseModel):
     user_id: str
     content_id: str
     note: str = ""
-    is_deleted: bool = False
+    status: BookmarkStatusEnum = BookmarkStatusEnum.active
     created_at: str = Field(default_factory=now_dt_to_str)
     updated_at: str = Field(default_factory=now_dt_to_str)
 
@@ -168,7 +174,7 @@ class Bookmark(BaseModel):
                 self.user_id,
                 self.content_id,
                 f'"{self.note}"',
-                str(self.is_deleted),
+                self.status,
                 self.created_at,
                 self.updated_at,
             ]
