@@ -342,7 +342,7 @@ async def admin_command(ack, body, logger, say, client) -> None:
 async def search_command(ack, body, logger, say, client) -> None:
     print_log(_start_log(body, "serach"))
     await ack()
-    await user_content_service.open_search_modal(body, client, PASS_VIEW)
+    await user_content_service.open_search_modal(body, client)
 
 
 @slack.view("submit_search")

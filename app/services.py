@@ -95,8 +95,8 @@ class UserContentService:
         self.update_user(user, content)
         return content
 
-    async def open_search_modal(self, body, client, view_name: str) -> None:
-        await self._open_search_modal(client, body, view_name)
+    async def open_search_modal(self, body, client) -> None:
+        await self._open_search_modal(client, body)
 
     def get_chat_message(self, content: models.Content, animal: dict[str, str]) -> str:
         if content.type == "submit":
@@ -353,7 +353,7 @@ class UserContentService:
             },
         )
 
-    async def _open_search_modal(self, client, body, view_name: str) -> dict[str, Any]:
+    async def _open_search_modal(self, client, body) -> dict[str, Any]:
         return await client.views_open(
             trigger_id=body["trigger_id"],
             view={
