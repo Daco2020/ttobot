@@ -541,7 +541,7 @@ def _get_category(body):
     return category
 
 
-def _get_name(body):
+def _get_name(body) -> str:
     name = (
         body.get("view", {})
         .get("state", {})
@@ -553,8 +553,8 @@ def _get_name(body):
     return name
 
 
-def _get_keyword(body):
-    name = (
+def _get_keyword(body) -> str:
+    ketword = (
         body.get("view", {})
         .get("state", {})
         .get("values", {})
@@ -562,7 +562,7 @@ def _get_keyword(body):
         .get("keyword", {})
         .get("value", "")
     )
-    return name
+    return ketword
 
 
 # TODO: 모코숲 로직 추후 제거
@@ -627,3 +627,29 @@ async def send_welcome_message(event, say):
         except Exception as e:
             print_log(e)
             pass
+
+
+@slack.command("/북마크")
+async def bookmark_command(ack, body, logger, say, client) -> None:
+    await ack()
+
+    print_log(_start_log(body, "bookmark"))
+    user_id = body["user_id"]
+
+    bookmarks = user_content_service.fetch_bookmarks(user_id)
+    content_ids = [bookmark.content_id for bookmark in bookmarks]
+    contents = user_content_service.fetch_contents_by_ids(content_ids)
+
+    await client.views_open(
+        trigger_id=body["trigger_id"],
+        view={
+            "type": "modal",
+            "callback_id": "bookmark_search_view",  # TODO: 뷰 구현 필요
+            "title": {
+                "type": "plain_text",
+                "text": f"총 {len(contents)} 개의 북마크가 있습니다.",
+            },
+            "submit": {"type": "plain_text", "text": "북마크 검색"},
+            "blocks": _fetch_blocks(contents),
+        },
+    )

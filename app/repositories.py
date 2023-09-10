@@ -94,13 +94,13 @@ class UserRepository:
             f.write(bookmark.to_line_for_csv() + "\n")
 
     def get_bookmark(self, user_id: str, content_id: str) -> models.Bookmark | None:
-        bookmarks = self.fetch_bookmark(user_id)
+        bookmarks = self.fetch_bookmarks(user_id)
         for bookmark in bookmarks:
             if bookmark.content_id == content_id:
                 return bookmark
         return None
 
-    def fetch_bookmark(self, user_id: str) -> list[models.Bookmark]:
+    def fetch_bookmarks(self, user_id: str) -> list[models.Bookmark]:
         """유저의 삭제되지 않은 북마크를 내림차순으로 가져옵니다."""
         with open("store/bookmark.csv", "r") as f:
             reader = csv.DictReader(f)
