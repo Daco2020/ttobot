@@ -219,19 +219,21 @@ async def bookmark_view(ack, body, client, view, logger, say) -> None:
     note = value if value else ""  # 유저가 입력하지 않으면 None 으로 전달 된다.
     user_content_service.create_bookmark(user_id, content_id, note)
 
-    await client.views_open(
-        trigger_id=body["trigger_id"],
-        view={
-            "type": "modal",
-            "title": {"type": "plain_text", "text": "북마크"},
-            "close": {"type": "plain_text", "text": "닫기"},
-            "blocks": [
-                {
-                    "type": "section",
-                    "text": {"type": "mrkdwn", "text": "\n북마크를 완료했습니다. 😉"},
-                }
-            ],
-        },
+    await ack(
+        {
+            "response_action": "update",
+            "view": {
+                "type": "modal",
+                "title": {"type": "plain_text", "text": "북마크"},
+                "close": {"type": "plain_text", "text": "닫기"},
+                "blocks": [
+                    {
+                        "type": "section",
+                        "text": {"type": "mrkdwn", "text": "\n북마크를 완료했습니다. 😉"},
+                    }
+                ],
+            },
+        }
     )
 
 
