@@ -4,7 +4,7 @@ from app import models
 from app.client import SpreadSheetClient
 from app.config import ANIMAL_TYPE, PASS_VIEW, SUBMIT_VIEW, settings
 from slack_bolt.async_app import AsyncApp
-from app.store import create_log_file, fetch_store, upload_logs
+from app.store import fetch_store
 
 from app.services import user_content_service
 from app.utils import print_log
@@ -327,12 +327,13 @@ async def admin_command(ack, body, logger, say, client) -> None:
     await ack()
     try:
         user_content_service.validate_admin_user(body["user_id"])
+        await client.chat_postMessage(channel=body["user_id"], text="store sync 완료")
         sheet_client = SpreadSheetClient()
         sheet_client.push_backup()
+        sheet_client.upload_bookmark()  # TODO: 분리 필요
         fetch_store(sheet_client)
-        upload_logs(sheet_client)
-        create_log_file(sheet_client)
-        await client.chat_postMessage(channel=body["user_id"], text="store sync 완료")
+        sheet_client.upload_logs()
+        sheet_client.create_log_file()
     except ValueError as e:
         await client.chat_postMessage(channel=body["user_id"], text=str(e))
 

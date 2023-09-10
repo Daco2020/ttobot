@@ -160,3 +160,16 @@ class Bookmark(BaseModel):
     is_deleted: bool = False
     created_at: str = Field(default_factory=now_dt_to_str)
     updated_at: str = Field(default_factory=now_dt_to_str)
+
+    def to_line_for_csv(self) -> str:
+        """csv 파일에 쓰기 위한 한 줄을 반환합니다."""
+        return ",".join(
+            [
+                self.user_id,
+                self.content_id,
+                f'"{self.note}"',
+                str(self.is_deleted),
+                self.created_at,
+                self.updated_at,
+            ]
+        )

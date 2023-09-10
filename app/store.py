@@ -16,13 +16,3 @@ def create_store_path():
         os.mkdir("store")
     except FileExistsError:
         pass
-
-
-def create_log_file(client: SpreadSheetClient) -> None:
-    """로그파일을 초기화 및 생성합니다."""
-    client.create_log_file()
-
-
-def upload_logs(client: SpreadSheetClient) -> None:
-    """로그를 업로드합니다."""
-    client.upload_logs()

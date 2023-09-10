@@ -91,7 +91,7 @@ class UserRepository:
     def create_bookmark(self, bookmark: models.Bookmark) -> None:
         """북마크를 생성합니다."""
         with open("store/bookmark.csv", "a") as f:
-            f.write(bookmark.to_line_for_csv() + "\n")  # type: ignore
+            f.write(bookmark.to_line_for_csv() + "\n")
 
     def get_bookmark(self, user_id: str, content_id: str) -> models.Bookmark | None:
         bookmarks = self.fetch_bookmark(user_id)
