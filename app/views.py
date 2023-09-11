@@ -451,13 +451,13 @@ async def back_to_search_view(ack, body, logger, say, client) -> None:
                     "action_id": "keyword",
                     "placeholder": {
                         "type": "plain_text",
-                        "text": "검색어를 입력해주세요.",
+                        "text": "키워드를 입력해주세요.",
                     },
                     "multiline": False,
                 },
                 "label": {
                     "type": "plain_text",
-                    "text": "검색어",
+                    "text": "키워드",
                     "emoji": True,
                 },
             },
@@ -655,3 +655,47 @@ async def bookmark_command(ack, body, logger, say, client) -> None:
             "blocks": _fetch_blocks(contents),
         },
     )
+
+
+@slack.view("bookmark_search_view")
+async def bookmark_search_view(ack, body, logger, say, client) -> None:
+    user_body = {"user_id": body.get("user", {}).get("id")}
+    print_log(_start_log(user_body, "back_to_search_view"))
+
+    view = {
+        "type": "modal",
+        "callback_id": "submit_search",
+        "title": {"type": "plain_text", "text": "북마크 검색 🔍"},
+        "submit": {"type": "plain_text", "text": "검색"},
+        "blocks": [
+            {
+                "type": "section",
+                "block_id": "description_section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": "찾고 있는 북마크가 있나요?\n키워드를 입력하면 쉽게 찾을 수 있어요!",
+                },
+            },
+            {
+                "type": "input",
+                "block_id": "keyword_search",
+                "optional": True,
+                "element": {
+                    "type": "plain_text_input",
+                    "action_id": "keyword",
+                    "placeholder": {
+                        "type": "plain_text",
+                        "text": "키워드를 입력해주세요.",
+                    },
+                    "multiline": False,
+                },
+                "label": {
+                    "type": "plain_text",
+                    "text": "키워드",
+                    "emoji": True,
+                },
+            },
+        ],
+    }
+
+    await ack({"response_action": "update", "view": view})
