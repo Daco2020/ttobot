@@ -147,6 +147,7 @@ async def bookmark_modal(ack, body, client, view, logger) -> None:
 
     content_id = body["actions"][0]["value"]
     bookmark = user_content_service.get_bookmark(user_id, content_id)
+    print(bookmark)
 
     if bookmark is not None:
         # 이미 북마크가 되어 있다면 이를 사용자에게 알린다.
@@ -401,10 +402,10 @@ def _fetch_blocks(contents: list[models.Content]) -> list[dict[str, Any]]:
                             {
                                 "text": {
                                     "type": "plain_text",
-                                    "text": "👍🏼 추천(추후 도입 예정)",
+                                    "text": "북마크 추가📌",
                                     "emoji": True,
                                 },
-                                "value": "like",
+                                "value": "add_bookmark",
                             },
                         ],
                     },
@@ -646,15 +647,72 @@ async def bookmark_command(ack, body, logger, say, client) -> None:
         trigger_id=body["trigger_id"],
         view={
             "type": "modal",
-            "callback_id": "bookmark_search_view",  # TODO: 뷰 구현 필요
+            "callback_id": "bookmark_search_view",
             "title": {
                 "type": "plain_text",
                 "text": f"총 {len(contents)} 개의 북마크가 있습니다.",
             },
             "submit": {"type": "plain_text", "text": "북마크 검색"},
-            "blocks": _fetch_blocks(contents),
+            "blocks": _fetch_bookmark_blocks(contents),
         },
     )
+
+
+def _fetch_bookmark_blocks(contents: list[models.Content]) -> list[dict[str, Any]]:
+    blocks: list[dict[str, Any]] = []
+    blocks.append(
+        {
+            "type": "section",
+            "text": {"type": "plain_text", "text": "결과는 최대 20개까지만 표시합니다."},
+        },
+    )
+    for content in contents:
+        if content.content_url:
+            blocks.append({"type": "divider"})
+            blocks.append(
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": f"*<{content.content_url}|{re.sub('<|>', '', content.title)}>*",  # noqa E501
+                    },
+                    "accessory": {
+                        "type": "overflow",
+                        "action_id": "overflow-action",
+                        "options": [
+                            {
+                                "text": {
+                                    "type": "plain_text",
+                                    "text": "북마크 취소📌",
+                                    "emoji": True,
+                                },
+                                "value": "remove_bookmark",
+                            },
+                            {
+                                "text": {
+                                    "type": "plain_text",
+                                    "text": "메모 보기✏️",
+                                    "emoji": True,
+                                },
+                                "value": "note",
+                            },
+                        ],
+                    },
+                }
+            )
+            tags = f"> 태그: {' '.join(content.tags.split('#'))}" if content.tags else " "
+            blocks.append(
+                {
+                    "type": "context",
+                    "elements": [
+                        {"type": "mrkdwn", "text": f"> 카테고리: {content.category}"},
+                        {"type": "mrkdwn", "text": tags},
+                    ],
+                }
+            )
+        if len(blocks) > 60:
+            return blocks
+    return blocks
 
 
 @slack.view("bookmark_search_view")
@@ -664,7 +722,7 @@ async def bookmark_search_view(ack, body, logger, say, client) -> None:
 
     view = {
         "type": "modal",
-        "callback_id": "submit_search",
+        "callback_id": "bookmark_submit_search",  # TODO: 뷰 구현 필요
         "title": {"type": "plain_text", "text": "북마크 검색 🔍"},
         "submit": {"type": "plain_text", "text": "검색"},
         "blocks": [
