@@ -4,7 +4,7 @@ from app import models
 from app.client import SpreadSheetClient
 from app.config import ANIMAL_TYPE, PASS_VIEW, SUBMIT_VIEW, settings
 from slack_bolt.async_app import AsyncApp
-from app.store import create_log_file, fetch_store, upload_logs
+from app.store import sync_store
 
 from app.services import user_content_service
 from app.utils import print_log
@@ -49,11 +49,18 @@ async def submit_view(ack, body, client, view, logger, say) -> None:
             channel=channel_id,
             blocks=[
                 {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": text,
+                    },
+                },
+                {
                     "type": "actions",
                     "elements": [
                         {
                             "type": "button",
-                            "text": {"type": "plain_text", "text": "소개 보기"},
+                            "text": {"type": "plain_text", "text": "자기소개 보기"},
                             "action_id": "intro_modal",
                             "value": user.user_id,
                         },
@@ -63,25 +70,23 @@ async def submit_view(ack, body, client, view, logger, say) -> None:
                             "action_id": "contents_modal",
                             "value": user.user_id,
                         },
+                        {
+                            "type": "button",
+                            "text": {"type": "plain_text", "text": "북마크 추가📌"},
+                            "action_id": "bookmark_modal",
+                            "value": content.unique_id,
+                        },
                     ],
-                },
-                {
-                    "type": "section",
-                    "text": {
-                        "type": "mrkdwn",
-                        "text": text,
-                    },
                 },
             ],
         )
     except Exception as e:
         message = f"{user.name}({user.channel_name}) 님의 제출이 실패하였습니다."
         print_log(message, str(e))
-        return None
 
 
 @slack.action("intro_modal")
-async def open_intro_modal(ack, body, client, view, logger):
+async def open_intro_modal(ack, body, client, view, logger) -> None:
     await ack()
 
     user_body = {"user_id": body.get("user_id")}
@@ -114,7 +119,7 @@ async def open_intro_modal(ack, body, client, view, logger):
 
 
 @slack.action("contents_modal")
-async def contents_modal(ack, body, client, view, logger):
+async def contents_modal(ack, body, client, view, logger) -> None:
     await ack()
 
     user_body = {"user_id": body.get("user_id")}
@@ -131,6 +136,104 @@ async def contents_modal(ack, body, client, view, logger):
             "close": {"type": "plain_text", "text": "닫기"},
             "blocks": _fetch_blocks(user.contents),
         },
+    )
+
+
+@slack.action("bookmark_modal")
+async def bookmark_modal(ack, body, client, view, logger) -> None:
+    await ack()
+    user_id = body.get("user_id")
+    print_log(_start_log({"user_id": user_id}, "bookmark_modal"))
+
+    content_id = body["actions"][0]["value"]
+    bookmark = user_content_service.get_bookmark(user_id, content_id)
+
+    if bookmark is not None:
+        # 이미 북마크가 되어 있다면 이를 사용자에게 알린다.
+        await client.views_open(
+            trigger_id=body["trigger_id"],
+            view={
+                "type": "modal",
+                "title": {"type": "plain_text", "text": "북마크"},
+                "close": {"type": "plain_text", "text": "닫기"},
+                "blocks": [
+                    {
+                        "type": "section",
+                        "text": {"type": "mrkdwn", "text": "\n이미 북마크한 글입니다. 😉"},
+                    }
+                ],
+            },
+        )
+        return
+
+    await client.views_open(
+        trigger_id=body["trigger_id"],
+        view={
+            "type": "modal",
+            "private_metadata": body["actions"][0]["value"],
+            "callback_id": "bookmark_view",
+            "title": {"type": "plain_text", "text": "북마크"},
+            "submit": {"type": "plain_text", "text": "북마크 추가"},
+            "blocks": [
+                {
+                    "type": "section",
+                    "block_id": "required_section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": "\n북마크한 글은 `/북마크` 명령어로 다시 확인할 수 있습니다.",
+                    },
+                },
+                {
+                    "type": "input",
+                    "block_id": "bookmark_note",
+                    "optional": True,
+                    "element": {
+                        "type": "plain_text_input",
+                        "action_id": "plain_text_input-action",
+                        "placeholder": {
+                            "type": "plain_text",
+                            "text": "북마크에 대한 메모를 남겨주세요.",
+                        },
+                        "multiline": True,
+                    },
+                    "label": {
+                        "type": "plain_text",
+                        "text": "메모",
+                        "emoji": True,
+                    },
+                },
+            ],
+        },
+    )
+
+
+@slack.view("bookmark_view")
+async def bookmark_view(ack, body, client, view, logger, say) -> None:
+    await ack()
+
+    user_id = body["user"]["id"]
+    print_log(_start_log({"user_id": user_id}, "bookmark_view"))
+
+    content_id = view["private_metadata"]
+    value = view["state"]["values"]["bookmark_note"]["plain_text_input-action"]["value"]
+    note = value if value else ""  # 유저가 입력하지 않으면 None 으로 전달 된다.
+    user_content_service.create_bookmark(user_id, content_id, note)
+
+    await ack(
+        {
+            "response_action": "update",
+            "view": {
+                "type": "modal",
+                "title": {"type": "plain_text", "text": "북마크"},
+                "close": {"type": "plain_text", "text": "닫기"},
+                "blocks": [
+                    {
+                        "type": "section",
+                        "text": {"type": "mrkdwn", "text": "\n북마크를 완료했습니다. 😉"},
+                    }
+                ],
+            },
+        }
     )
 
 
@@ -161,7 +264,6 @@ async def pass_view(ack, body, client, view, logger, say) -> None:
     except Exception as e:
         message = f"{user.name}({user.channel_name}) 님의 패스가 실패하였습니다."
         print_log(message, str(e))
-        return None
 
 
 @slack.command("/제출내역")
@@ -227,12 +329,13 @@ async def admin_command(ack, body, logger, say, client) -> None:
     await ack()
     try:
         user_content_service.validate_admin_user(body["user_id"])
+        await client.chat_postMessage(channel=body["user_id"], text="store sync 완료")
         sheet_client = SpreadSheetClient()
         sheet_client.push_backup()
-        fetch_store(sheet_client)
-        upload_logs(sheet_client)
-        create_log_file(sheet_client)
-        await client.chat_postMessage(channel=body["user_id"], text="store sync 완료")
+        sheet_client.upload_bookmark()  # TODO: 분리 필요
+        sync_store(sheet_client)
+        sheet_client.upload_logs()
+        sheet_client.create_log_file()
     except ValueError as e:
         await client.chat_postMessage(channel=body["user_id"], text=str(e))
 
@@ -241,7 +344,7 @@ async def admin_command(ack, body, logger, say, client) -> None:
 async def search_command(ack, body, logger, say, client) -> None:
     print_log(_start_log(body, "serach"))
     await ack()
-    await user_content_service.open_search_modal(body, client, PASS_VIEW)
+    await user_content_service.open_search_modal(body, client)
 
 
 @slack.view("submit_search")
@@ -440,7 +543,7 @@ def _get_category(body):
     return category
 
 
-def _get_name(body):
+def _get_name(body) -> str:
     name = (
         body.get("view", {})
         .get("state", {})
@@ -452,8 +555,8 @@ def _get_name(body):
     return name
 
 
-def _get_keyword(body):
-    name = (
+def _get_keyword(body) -> str:
+    ketword = (
         body.get("view", {})
         .get("state", {})
         .get("values", {})
@@ -461,7 +564,7 @@ def _get_keyword(body):
         .get("keyword", {})
         .get("value", "")
     )
-    return name
+    return ketword
 
 
 # TODO: 모코숲 로직 추후 제거
@@ -526,3 +629,29 @@ async def send_welcome_message(event, say):
         except Exception as e:
             print_log(e)
             pass
+
+
+@slack.command("/북마크")
+async def bookmark_command(ack, body, logger, say, client) -> None:
+    await ack()
+
+    print_log(_start_log(body, "bookmark"))
+    user_id = body["user_id"]
+
+    bookmarks = user_content_service.fetch_bookmarks(user_id)
+    content_ids = [bookmark.content_id for bookmark in bookmarks]
+    contents = user_content_service.fetch_contents_by_ids(content_ids)
+
+    await client.views_open(
+        trigger_id=body["trigger_id"],
+        view={
+            "type": "modal",
+            "callback_id": "bookmark_search_view",  # TODO: 뷰 구현 필요
+            "title": {
+                "type": "plain_text",
+                "text": f"총 {len(contents)} 개의 북마크가 있습니다.",
+            },
+            "submit": {"type": "plain_text", "text": "북마크 검색"},
+            "blocks": _fetch_blocks(contents),
+        },
+    )

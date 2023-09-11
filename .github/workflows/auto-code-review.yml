@@ -20,6 +20,6 @@ jobs:
           LANGUAGE: Korean
           OPENAI_API_ENDPOINT: https://api.openai.com/v1
           MODEL: gpt-3.5-turbo-16k
-          PROMPT: "아래는 내가 작성한 코드야. 내가 작성한 코드에 대한 피드백을 줘. 버그 가능성이 있거나 개선할 점은 언제든지 알려줘."
-          temperature: 0.8
+          PROMPT: "버그 가능성이 있거나 개선할 점만 예시 코드와 함께 알려줘."
+          temperature: 0.5
           max_tokens: 10000

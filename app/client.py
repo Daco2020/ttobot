@@ -1,5 +1,12 @@
 import csv
-from app.config import BACKUP_SHEET, RAW_DATA_SHEET, LOG_SHEET, USERS_SHEET, settings
+from app.config import (
+    BACKUP_SHEET,
+    BOOKMARK_SHEET,
+    RAW_DATA_SHEET,
+    LOG_SHEET,
+    USERS_SHEET,
+    settings,
+)
 
 import gspread  # type: ignore
 from oauth2client.service_account import ServiceAccountCredentials  # type: ignore
@@ -21,6 +28,7 @@ class SpreadSheetClient:
         self._users_sheet = self._doc.worksheet(USERS_SHEET)
         self._log_sheet = self._doc.worksheet(LOG_SHEET)
         self._backup_sheet = self._doc.worksheet(BACKUP_SHEET)
+        self._bookmark = self._doc.worksheet(BOOKMARK_SHEET)
 
     def upload(self) -> None:
         """새로 추가된 queue 가 있다면 upload 합니다."""
@@ -35,17 +43,23 @@ class SpreadSheetClient:
             print_log(f"Uploaded {upload_queue}")
             upload_queue = []
 
-    def fetch_users(self) -> None:
+    def download_users(self) -> None:
         """유저 정보를 가져옵니다."""
         users = self._users_sheet.get_values("A:G")
         with open("store/users.csv", "w") as f:
             f.writelines([f"{','.join(user)}\n" for user in users])
 
-    def fetch_contents(self) -> None:
+    def download_contents(self) -> None:
         """콘텐츠 정보를 가져옵니다."""
         contents = self._raw_data_sheet.get_values("A:I")
         with open("store/contents.csv", "w") as f:
             f.writelines([f"{content}" for content in self._parse(contents)])
+
+    def download_bookmarks(self) -> None:
+        """북마크 정보를 가져옵니다."""
+        bookmarks = self._bookmark.get_values("A:F")
+        with open("store/bookmark.csv", "w") as f:
+            f.writelines([f"{','.join(bookmark)}\n" for bookmark in bookmarks])
 
     def push_backup(self) -> None:
         """백업 시트에 contents.csv를 업로드합니다."""
@@ -89,3 +103,12 @@ class SpreadSheetClient:
             logs = list(reader)
         cursor = len(self._log_sheet.get_values("A:A")) + 1
         self._log_sheet.update(f"A{cursor}", logs)
+
+    def upload_bookmark(self) -> None:
+        """북마크를 업로드합니다."""
+        with open("store/bookmark.csv", "r") as f:
+            reader = csv.reader(f)
+            bookmarks = list(reader)
+        cursor = len(self._bookmark.get_values("A:A")) + 1
+        print(bookmarks[cursor - 1 :])
+        self._bookmark.update(f"A{cursor}", bookmarks[cursor - 1 :])

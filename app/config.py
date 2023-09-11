@@ -25,6 +25,7 @@ RAW_DATA_SHEET = "raw_data"
 USERS_SHEET = "users"
 LOG_SHEET = "log"
 BACKUP_SHEET = "backup"
+BOOKMARK_SHEET = "bookmark"
 
 # views constants
 SUBMIT_VIEW = "submit_view"

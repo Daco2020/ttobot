@@ -1,13 +1,14 @@
+from enum import Enum
 from zoneinfo import ZoneInfo
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 import datetime
 from app.config import DUE_DATES
 
-from app.utils import now_dt
+from app.utils import now_dt, now_dt_to_str
 
 
 class Content(BaseModel):
-    dt: str
+    dt: str = Field(default_factory=now_dt_to_str)
     user_id: str
     username: str
     description: str = ""
@@ -18,16 +19,24 @@ class Content(BaseModel):
     tags: str = ""
 
     @property
+    def unique_id(self) -> str:
+        """유니크 아이디를 반환합니다."""
+        return f"{self.user_id}:{self.dt}"
+
+    @property
     def dt_(self) -> datetime.datetime:
+        """생성일시를 datetime 객체로 반환합니다."""
         return datetime.datetime.strptime(self.dt, "%Y-%m-%d %H:%M:%S").replace(
             tzinfo=ZoneInfo("Asia/Seoul")
         )
 
     @property
     def date(self) -> datetime.date:
+        """생성일시를 date 객체로 반환합니다."""
         return self.dt_.date()
 
     def to_line_for_csv(self) -> str:
+        """csv 파일에 쓰기 위한 한 줄을 반환합니다."""
         return ",".join(
             [
                 self.user_id,
@@ -43,6 +52,7 @@ class Content(BaseModel):
         )
 
     def to_list_for_sheet(self) -> list[str]:
+        """구글 시트에 쓰기 위한 리스트를 반환합니다."""
         return [
             self.user_id,
             self.username,
@@ -142,3 +152,30 @@ class User(BaseModel):
                 latest_due_date = DUE_DATES[i - 1]
                 break
         return latest_due_date < recent_content.date <= now_date
+
+
+class BookmarkStatusEnum(str, Enum):
+    active = "active"
+    deleted = "deleted"
+
+
+class Bookmark(BaseModel):
+    user_id: str
+    content_id: str
+    note: str = ""
+    status: BookmarkStatusEnum = BookmarkStatusEnum.active
+    created_at: str = Field(default_factory=now_dt_to_str)
+    updated_at: str = Field(default_factory=now_dt_to_str)
+
+    def to_line_for_csv(self) -> str:
+        """csv 파일에 쓰기 위한 한 줄을 반환합니다."""
+        return ",".join(
+            [
+                self.user_id,
+                self.content_id,
+                f'"{self.note}"',
+                self.status,
+                self.created_at,
+                self.updated_at,
+            ]
+        )

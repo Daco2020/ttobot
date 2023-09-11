@@ -1,10 +1,9 @@
-import datetime
 import re
 from typing import Any
 from app.config import MAX_PASS_COUNT, URL_REGEX
 from app.repositories import UserRepository
 from app import models
-from app.utils import now_dt, print_log
+from app.utils import print_log
 
 
 import requests
@@ -63,7 +62,6 @@ class UserContentService:
         content_url = self._get_content_url(view)
         await self._validate_url(ack, content_url, user)
         content = models.Content(
-            dt=datetime.datetime.strftime(now_dt(), "%Y-%m-%d %H:%M:%S"),
             user_id=body["user"]["id"],
             username=body["user"]["username"],
             title=self._get_title(content_url),
@@ -89,7 +87,6 @@ class UserContentService:
     ) -> models.Content:
         await self._validate_pass(ack, user)
         content = models.Content(
-            dt=datetime.datetime.strftime(now_dt(), "%Y-%m-%d %H:%M:%S"),
             user_id=body["user"]["id"],
             username=body["user"]["username"],
             description=self._get_description(view),
@@ -98,8 +95,8 @@ class UserContentService:
         self.update_user(user, content)
         return content
 
-    async def open_search_modal(self, body, client, view_name: str) -> None:
-        await self._open_search_modal(client, body, view_name)
+    async def open_search_modal(self, body, client) -> None:
+        await self._open_search_modal(client, body)
 
     def get_chat_message(self, content: models.Content, animal: dict[str, str]) -> str:
         if content.type == "submit":
@@ -356,7 +353,7 @@ class UserContentService:
             },
         )
 
-    async def _open_search_modal(self, client, body, view_name: str) -> dict[str, Any]:
+    async def _open_search_modal(self, client, body) -> dict[str, Any]:
         return await client.views_open(
             trigger_id=body["trigger_id"],
             view={
@@ -543,6 +540,29 @@ class UserContentService:
             message = "연속으로 pass 를 사용할 수 없습니다."
             await ack(response_action="errors", errors={block_id: message})
             raise ValueError(message)
+
+    def create_bookmark(
+        self, user_id: str, content_id: str, note: str = ""
+    ) -> models.Bookmark:
+        """북마크를 생성합니다."""
+        bookmark = models.Bookmark(user_id=user_id, content_id=content_id, note=note)
+        self._user_repo.create_bookmark(bookmark)
+        return bookmark
+
+    def get_bookmark(self, user_id: str, content_id: str) -> models.Bookmark | None:
+        """북마크를 가져옵니다."""
+        bookmark = self._user_repo.get_bookmark(user_id, content_id)
+        return bookmark
+
+    def fetch_bookmarks(self, user_id: str) -> list[models.Bookmark]:
+        """유저의 북마크를 모두 가져옵니다."""
+        bookmarks = self._user_repo.fetch_bookmarks(user_id)
+        return bookmarks
+
+    def fetch_contents_by_ids(self, ids: list[str]) -> list[models.Content]:
+        """unique_id 를 확인하여 Contents 를 가져옵니다."""
+        contents = self._user_repo.fetch_contents()
+        return [content for content in contents if content.unique_id in ids]
 
 
 user_content_service = UserContentService(user_repo=UserRepository())
