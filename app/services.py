@@ -556,12 +556,18 @@ class UserContentService:
 
     def fetch_bookmarks(self, user_id: str) -> list[models.Bookmark]:
         """유저의 북마크를 모두 가져옵니다."""
+        # TODO: 키워드로 검색 기능 추가
         bookmarks = self._user_repo.fetch_bookmarks(user_id)
         return bookmarks
 
-    def fetch_contents_by_ids(self, content_ids: list[str]) -> list[models.Content]:
+    def fetch_contents_by_ids(
+        self, content_ids: list[str], keyword: str = ""
+    ) -> list[models.Content]:
         """unique_id 를 확인하여 Contents 를 가져옵니다."""
-        contents = self._user_repo.fetch_contents()
+        if keyword:
+            contents = self._user_repo.fetch_contents_by_keyword(keyword)
+        else:
+            contents = self._user_repo.fetch_contents()
         return [content for content in contents if content.unique_id in content_ids]
 
 

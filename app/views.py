@@ -557,15 +557,15 @@ def _get_name(body) -> str:
 
 
 def _get_keyword(body) -> str:
-    ketword = (
+    keyword = (
         body.get("view", {})
         .get("state", {})
         .get("values", {})
         .get("keyword_search", {})
         .get("keyword", {})
         .get("value", "")
-    )
-    return ketword
+    ) or ""
+    return keyword
 
 
 # TODO: 모코숲 로직 추후 제거
@@ -718,13 +718,13 @@ def _fetch_bookmark_blocks(contents: list[models.Content]) -> list[dict[str, Any
 @slack.view("bookmark_search_view")
 async def bookmark_search_view(ack, body, logger, say, client) -> None:
     user_body = {"user_id": body.get("user", {}).get("id")}
-    print_log(_start_log(user_body, "back_to_search_view"))
+    print_log(_start_log(user_body, "bookmark_search_view"))
 
     view = {
         "type": "modal",
-        "callback_id": "bookmark_submit_search",  # TODO: 뷰 구현 필요
+        "callback_id": "bookmark_submit_search_view",
         "title": {"type": "plain_text", "text": "북마크 검색 🔍"},
-        "submit": {"type": "plain_text", "text": "검색"},
+        "submit": {"type": "plain_text", "text": "검색하기"},
         "blocks": [
             {
                 "type": "section",
@@ -757,3 +757,30 @@ async def bookmark_search_view(ack, body, logger, say, client) -> None:
     }
 
     await ack({"response_action": "update", "view": view})
+
+
+@slack.view("bookmark_submit_search_view")
+async def bookmark_submit_search_view(ack, body, logger, say, client) -> None:
+    user_id = body.get("user", {}).get("id")
+    print_log(_start_log({"user_id": user_id}, "bookmark_submit_search_view"))
+
+    keyword = _get_keyword(body)
+    bookmarks = user_content_service.fetch_bookmarks(user_id)
+    content_ids = [bookmark.content_id for bookmark in bookmarks]
+    contents = user_content_service.fetch_contents_by_ids(content_ids, keyword)
+
+    await ack(
+        {
+            "response_action": "update",
+            "view": {
+                "type": "modal",
+                "callback_id": "bookmark_search_view",
+                "title": {
+                    "type": "plain_text",
+                    "text": f"{len(contents)} 개의 북마크를 찾았습니다.",
+                },
+                "submit": {"type": "plain_text", "text": "북마크 검색"},
+                "blocks": _fetch_blocks(contents),
+            },
+        }
+    )
