@@ -230,7 +230,7 @@ async def bookmark_view(ack, body, client, view, logger, say) -> None:
                 "blocks": [
                     {
                         "type": "section",
-                        "text": {"type": "mrkdwn", "text": "\n북마크를 완료했습니다. 😉"},
+                        "text": {"type": "mrkdwn", "text": "\n북마크를 추가했습니다.😉"},
                     }
                 ],
             },
@@ -694,7 +694,7 @@ def _fetch_bookmark_blocks(contents: list[models.Content]) -> list[dict[str, Any
                                     "text": "메모 보기✏️",
                                     "emoji": True,
                                 },
-                                "value": "note",
+                                "value": "view_note",
                             },
                         ],
                     },
@@ -724,7 +724,7 @@ async def bookmark_search_view(ack, body, logger, say, client) -> None:
         "type": "modal",
         "callback_id": "bookmark_submit_search_view",
         "title": {"type": "plain_text", "text": "북마크 검색 🔍"},
-        "submit": {"type": "plain_text", "text": "검색하기"},
+        "submit": {"type": "plain_text", "text": "다시 검색"},
         "blocks": [
             {
                 "type": "section",
@@ -759,6 +759,49 @@ async def bookmark_search_view(ack, body, logger, say, client) -> None:
     await ack({"response_action": "update", "view": view})
 
 
+@slack.action("overflow-action")
+async def open_overflow_action(ack, body, client, view, logger, say) -> None:
+    await ack()
+
+    user_id = body["user"]["id"]
+    print_log(_start_log({"user_id": user_id}, "overflow-action"))
+
+    title_text = ""
+    block_text = ""
+    value = body["actions"][0]["selected_option"]["value"]
+    if value == "add_bookmark":
+        title_text = "북마크 추가📌"
+        block_text = "북마크 추가"
+        print(value)
+    elif value == "remove_bookmark":
+        title_text = "북마크 취소📌"
+        block_text = "북마크 취소"
+        print(value)
+    elif value == "view_note":
+        title_text = "북마크 메모✏️"
+        block_text = "북마크 메모"
+        print(value)
+
+    await client.views_update(
+        view_id=body["view"]["id"],
+        view={
+            "type": "modal",
+            "callback_id": "bookmark_submit_search_view",  # TODO: 액션에 따라 동적으로 호출
+            "title": {
+                "type": "plain_text",
+                "text": title_text,
+            },
+            "submit": {"type": "plain_text", "text": "돌아가기"},
+            "blocks": [
+                {
+                    "type": "section",
+                    "text": {"type": "mrkdwn", "text": block_text},
+                },
+            ],
+        },
+    )
+
+
 @slack.view("bookmark_submit_search_view")
 async def bookmark_submit_search_view(ack, body, logger, say, client) -> None:
     user_id = body.get("user", {}).get("id")
@@ -780,7 +823,7 @@ async def bookmark_submit_search_view(ack, body, logger, say, client) -> None:
                     "text": f"{len(contents)} 개의 북마크를 찾았습니다.",
                 },
                 "submit": {"type": "plain_text", "text": "북마크 검색"},
-                "blocks": _fetch_blocks(contents),
+                "blocks": _fetch_bookmark_blocks(contents),
             },
         }
     )
