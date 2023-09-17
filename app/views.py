@@ -745,7 +745,7 @@ async def bookmark_search_view(ack, body, logger, say, client) -> None:
         "type": "modal",
         "callback_id": "bookmark_submit_search_view",
         "title": {"type": "plain_text", "text": "북마크 검색 🔍"},
-        "submit": {"type": "plain_text", "text": "다시 검색"},
+        "submit": {"type": "plain_text", "text": "검색"},
         "blocks": [
             {
                 "type": "section",
