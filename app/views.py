@@ -1,3 +1,4 @@
+import ast
 import re
 from typing import Any
 from app import models
@@ -142,35 +143,45 @@ async def contents_modal(ack, body, client, view, logger) -> None:
 @slack.action("bookmark_modal")
 async def bookmark_modal(ack, body, client, view, logger) -> None:
     await ack()
-    user_id = body.get("user_id")
+    user_id = body.get("user_id") or body["user"]["id"]
     print_log(_start_log({"user_id": user_id}, "bookmark_modal"))
 
-    content_id = body["actions"][0]["value"]
-    bookmark = user_content_service.get_bookmark(user_id, content_id)
+    actions = body["actions"][0]
+    is_overflow = actions["type"] == "overflow"  # TODO: 분리할지 고민 필요
+    if is_overflow:
+        content_id = actions["selected_option"]["value"]
+    else:
+        content_id = actions["value"]
 
+    bookmark = user_content_service.get_bookmark(user_id, content_id)
+    view = get_bookmark_view(content_id, bookmark)
+    if is_overflow:
+        await client.views_update(view_id=body["view"]["id"], view=view)
+    else:
+        await client.views_open(trigger_id=body["trigger_id"], view=view)
+
+
+def get_bookmark_view(
+    content_id: str, bookmark: models.Bookmark | None
+) -> dict[str, Any]:
     if bookmark is not None:
         # 이미 북마크가 되어 있다면 이를 사용자에게 알린다.
-        await client.views_open(
-            trigger_id=body["trigger_id"],
-            view={
-                "type": "modal",
-                "title": {"type": "plain_text", "text": "북마크"},
-                "close": {"type": "plain_text", "text": "닫기"},
-                "blocks": [
-                    {
-                        "type": "section",
-                        "text": {"type": "mrkdwn", "text": "\n이미 북마크한 글입니다. 😉"},
-                    }
-                ],
-            },
-        )
-        return
-
-    await client.views_open(
-        trigger_id=body["trigger_id"],
-        view={
+        view = {
             "type": "modal",
-            "private_metadata": body["actions"][0]["value"],
+            "title": {"type": "plain_text", "text": "북마크"},
+            "close": {"type": "plain_text", "text": "닫기"},
+            "blocks": [
+                {
+                    "type": "section",
+                    "text": {"type": "mrkdwn", "text": "\n이미 북마크한 글입니다. 😉"},
+                }
+            ],
+        }
+
+    else:
+        view = {
+            "type": "modal",
+            "private_metadata": content_id,
             "callback_id": "bookmark_view",
             "title": {"type": "plain_text", "text": "북마크"},
             "submit": {"type": "plain_text", "text": "북마크 추가"},
@@ -203,8 +214,9 @@ async def bookmark_modal(ack, body, client, view, logger) -> None:
                     },
                 },
             ],
-        },
-    )
+        }
+
+    return view
 
 
 @slack.view("bookmark_view")
@@ -229,7 +241,7 @@ async def bookmark_view(ack, body, client, view, logger, say) -> None:
                 "blocks": [
                     {
                         "type": "section",
-                        "text": {"type": "mrkdwn", "text": "\n북마크를 완료했습니다. 😉"},
+                        "text": {"type": "mrkdwn", "text": "\n북마크를 추가했습니다.😉"},
                     }
                 ],
             },
@@ -396,15 +408,15 @@ def _fetch_blocks(contents: list[models.Content]) -> list[dict[str, Any]]:
                     },
                     "accessory": {
                         "type": "overflow",
-                        "action_id": "overflow-action",
+                        "action_id": "bookmark_modal",
                         "options": [
                             {
                                 "text": {
                                     "type": "plain_text",
-                                    "text": "👍🏼 추천(추후 도입 예정)",
+                                    "text": "북마크 추가📌",
                                     "emoji": True,
                                 },
-                                "value": "like",
+                                "value": content.unique_id,
                             },
                         ],
                     },
@@ -451,13 +463,13 @@ async def back_to_search_view(ack, body, logger, say, client) -> None:
                     "action_id": "keyword",
                     "placeholder": {
                         "type": "plain_text",
-                        "text": "검색어를 입력해주세요.",
+                        "text": "키워드를 입력해주세요.",
                     },
                     "multiline": False,
                 },
                 "label": {
                     "type": "plain_text",
-                    "text": "검색어",
+                    "text": "키워드",
                     "emoji": True,
                 },
             },
@@ -556,15 +568,15 @@ def _get_name(body) -> str:
 
 
 def _get_keyword(body) -> str:
-    ketword = (
+    keyword = (
         body.get("view", {})
         .get("state", {})
         .get("values", {})
         .get("keyword_search", {})
         .get("keyword", {})
         .get("value", "")
-    )
-    return ketword
+    ) or ""
+    return keyword
 
 
 # TODO: 모코숲 로직 추후 제거
@@ -646,12 +658,191 @@ async def bookmark_command(ack, body, logger, say, client) -> None:
         trigger_id=body["trigger_id"],
         view={
             "type": "modal",
-            "callback_id": "bookmark_search_view",  # TODO: 뷰 구현 필요
+            "callback_id": "bookmark_search_view",
             "title": {
                 "type": "plain_text",
                 "text": f"총 {len(contents)} 개의 북마크가 있습니다.",
             },
             "submit": {"type": "plain_text", "text": "북마크 검색"},
-            "blocks": _fetch_blocks(contents),
+            "blocks": _fetch_bookmark_blocks(contents),
         },
+    )
+
+
+def _fetch_bookmark_blocks(contents: list[models.Content]) -> list[dict[str, Any]]:
+    blocks: list[dict[str, Any]] = []
+    blocks.append(
+        {
+            "type": "section",
+            "text": {"type": "plain_text", "text": "결과는 최대 20개까지만 표시합니다."},
+        },
+    )
+    for content in contents:
+        if content.content_url:
+            blocks.append({"type": "divider"})
+            blocks.append(
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": f"*<{content.content_url}|{re.sub('<|>', '', content.title)}>*",  # noqa E501
+                    },
+                    "accessory": {
+                        "type": "overflow",
+                        "action_id": "bookmark_overflow_action",
+                        "options": [
+                            {
+                                "text": {
+                                    "type": "plain_text",
+                                    "text": "북마크 취소📌",
+                                    "emoji": True,
+                                },
+                                "value": str(  # TODO: 일관된 형식으로 리팩터링 필요
+                                    dict(
+                                        action="remove_bookmark",
+                                        content_id=content.unique_id,
+                                    )
+                                ),
+                            },
+                            {
+                                "text": {
+                                    "type": "plain_text",
+                                    "text": "메모 보기✏️",
+                                    "emoji": True,
+                                },
+                                "value": str(
+                                    dict(
+                                        action="view_note",
+                                        content_id=content.unique_id,
+                                    )
+                                ),
+                            },
+                        ],
+                    },
+                }
+            )
+            tags = f"> 태그: {' '.join(content.tags.split('#'))}" if content.tags else " "
+            blocks.append(
+                {
+                    "type": "context",
+                    "elements": [
+                        {"type": "mrkdwn", "text": f"> 카테고리: {content.category}"},
+                        {"type": "mrkdwn", "text": tags},
+                    ],
+                }
+            )
+        if len(blocks) > 60:
+            return blocks
+    return blocks
+
+
+@slack.view("bookmark_search_view")
+async def bookmark_search_view(ack, body, logger, say, client) -> None:
+    user_body = {"user_id": body.get("user", {}).get("id")}
+    print_log(_start_log(user_body, "bookmark_search_view"))
+
+    view = {
+        "type": "modal",
+        "callback_id": "bookmark_submit_search_view",
+        "title": {"type": "plain_text", "text": "북마크 검색 🔍"},
+        "submit": {"type": "plain_text", "text": "검색"},
+        "blocks": [
+            {
+                "type": "section",
+                "block_id": "description_section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": "찾고 있는 북마크가 있나요?\n키워드를 입력하면 쉽게 찾을 수 있어요!",
+                },
+            },
+            {
+                "type": "input",
+                "block_id": "keyword_search",
+                "optional": True,
+                "element": {
+                    "type": "plain_text_input",
+                    "action_id": "keyword",
+                    "placeholder": {
+                        "type": "plain_text",
+                        "text": "키워드를 입력해주세요.",
+                    },
+                    "multiline": False,
+                },
+                "label": {
+                    "type": "plain_text",
+                    "text": "키워드",
+                    "emoji": True,
+                },
+            },
+        ],
+    }
+
+    await ack({"response_action": "update", "view": view})
+
+
+@slack.action("bookmark_overflow_action")
+async def open_overflow_action(ack, body, client, view, logger, say) -> None:
+    await ack()
+
+    user_id = body["user"]["id"]
+    print_log(_start_log({"user_id": user_id}, "bookmark_overflow_action"))
+
+    title = ""
+    text = ""
+    value = ast.literal_eval(body["actions"][0]["selected_option"]["value"])
+    if value["action"] == "remove_bookmark":
+        title = "북마크 취소📌"
+        user_content_service.update_bookmark(
+            value["content_id"], new_status=models.BookmarkStatusEnum.DELETED
+        )
+        text = "북마크를 취소하였습니다."
+    elif value["action"] == "view_note":
+        title = "북마크 메모✏️"
+        bookmark = user_content_service.get_bookmark(user_id, value["content_id"])
+        text = bookmark.note if bookmark and bookmark.note else "메모가 없습니다."
+
+    await client.views_update(
+        view_id=body["view"]["id"],
+        view={
+            "type": "modal",
+            "callback_id": "bookmark_submit_search_view",  # TODO: 액션에 따라 동적으로 호출
+            "title": {
+                "type": "plain_text",
+                "text": title,
+            },
+            "submit": {"type": "plain_text", "text": "돌아가기"},
+            "blocks": [
+                {
+                    "type": "section",
+                    "text": {"type": "mrkdwn", "text": text},
+                },
+            ],
+        },
+    )
+
+
+@slack.view("bookmark_submit_search_view")
+async def bookmark_submit_search_view(ack, body, logger, say, client) -> None:
+    user_id = body.get("user", {}).get("id")
+    print_log(_start_log({"user_id": user_id}, "bookmark_submit_search_view"))
+
+    keyword = _get_keyword(body)
+    bookmarks = user_content_service.fetch_bookmarks(user_id)
+    content_ids = [bookmark.content_id for bookmark in bookmarks]
+    contents = user_content_service.fetch_contents_by_ids(content_ids, keyword)
+
+    await ack(
+        {
+            "response_action": "update",
+            "view": {
+                "type": "modal",
+                "callback_id": "bookmark_search_view",
+                "title": {
+                    "type": "plain_text",
+                    "text": f"{len(contents)} 개의 북마크를 찾았습니다.",
+                },
+                "submit": {"type": "plain_text", "text": "북마크 검색"},
+                "blocks": _fetch_bookmark_blocks(contents),
+            },
+        }
     )

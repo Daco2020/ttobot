@@ -155,15 +155,15 @@ class User(BaseModel):
 
 
 class BookmarkStatusEnum(str, Enum):
-    active = "active"
-    deleted = "deleted"
+    ACTIVE = "ACTIVE"
+    DELETED = "DELETED"
 
 
 class Bookmark(BaseModel):
     user_id: str
-    content_id: str
+    content_id: str  # user_id:dt 형식의 유니크 키
     note: str = ""
-    status: BookmarkStatusEnum = BookmarkStatusEnum.active
+    status: BookmarkStatusEnum = BookmarkStatusEnum.ACTIVE
     created_at: str = Field(default_factory=now_dt_to_str)
     updated_at: str = Field(default_factory=now_dt_to_str)
 
