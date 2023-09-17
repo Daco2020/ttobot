@@ -1,3 +1,4 @@
+import ast
 import re
 from typing import Any
 from app import models
@@ -144,34 +145,43 @@ async def bookmark_modal(ack, body, client, view, logger) -> None:
     await ack()
     user_id = body.get("user_id")
     print_log(_start_log({"user_id": user_id}, "bookmark_modal"))
+    actions = body["actions"][0]
 
-    content_id = body["actions"][0]["value"]
+    is_overflow = actions["type"] == "overflow"  # TODO: 분리할지 고민 필요
+    if is_overflow:
+        content_id = actions["selected_option"]["value"]
+    else:
+        content_id = actions["value"]
+
     bookmark = user_content_service.get_bookmark(user_id, content_id)
-    print(bookmark)
+    view = get_bookmark_view(content_id, bookmark)
+    if is_overflow:
+        await client.views_update(view_id=body["view"]["id"], view=view)
+    else:
+        await client.views_open(trigger_id=body["trigger_id"], view=view)
 
+
+def get_bookmark_view(
+    content_id: str, bookmark: models.Bookmark | None
+) -> dict[str, Any]:
     if bookmark is not None:
         # 이미 북마크가 되어 있다면 이를 사용자에게 알린다.
-        await client.views_open(
-            trigger_id=body["trigger_id"],
-            view={
-                "type": "modal",
-                "title": {"type": "plain_text", "text": "북마크"},
-                "close": {"type": "plain_text", "text": "닫기"},
-                "blocks": [
-                    {
-                        "type": "section",
-                        "text": {"type": "mrkdwn", "text": "\n이미 북마크한 글입니다. 😉"},
-                    }
-                ],
-            },
-        )
-        return
-
-    await client.views_open(
-        trigger_id=body["trigger_id"],
-        view={
+        view = {
             "type": "modal",
-            "private_metadata": body["actions"][0]["value"],
+            "title": {"type": "plain_text", "text": "북마크"},
+            "close": {"type": "plain_text", "text": "닫기"},
+            "blocks": [
+                {
+                    "type": "section",
+                    "text": {"type": "mrkdwn", "text": "\n이미 북마크한 글입니다. 😉"},
+                }
+            ],
+        }
+
+    else:
+        view = {
+            "type": "modal",
+            "private_metadata": content_id,
             "callback_id": "bookmark_view",
             "title": {"type": "plain_text", "text": "북마크"},
             "submit": {"type": "plain_text", "text": "북마크 추가"},
@@ -204,8 +214,9 @@ async def bookmark_modal(ack, body, client, view, logger) -> None:
                     },
                 },
             ],
-        },
-    )
+        }
+
+    return view
 
 
 @slack.view("bookmark_view")
@@ -397,7 +408,7 @@ def _fetch_blocks(contents: list[models.Content]) -> list[dict[str, Any]]:
                     },
                     "accessory": {
                         "type": "overflow",
-                        "action_id": "overflow-action",
+                        "action_id": "bookmark_modal",
                         "options": [
                             {
                                 "text": {
@@ -405,7 +416,7 @@ def _fetch_blocks(contents: list[models.Content]) -> list[dict[str, Any]]:
                                     "text": "북마크 추가📌",
                                     "emoji": True,
                                 },
-                                "value": "add_bookmark",
+                                "value": content.unique_id,
                             },
                         ],
                     },
@@ -678,7 +689,7 @@ def _fetch_bookmark_blocks(contents: list[models.Content]) -> list[dict[str, Any
                     },
                     "accessory": {
                         "type": "overflow",
-                        "action_id": "overflow-action",
+                        "action_id": "bookmark_overflow_action",
                         "options": [
                             {
                                 "text": {
@@ -686,7 +697,12 @@ def _fetch_bookmark_blocks(contents: list[models.Content]) -> list[dict[str, Any
                                     "text": "북마크 취소📌",
                                     "emoji": True,
                                 },
-                                "value": "remove_bookmark",
+                                "value": str(  # TODO: 일관된 형식으로 리팩터링 필요
+                                    dict(
+                                        action="remove_bookmark",
+                                        content_id=content.unique_id,
+                                    )
+                                ),
                             },
                             {
                                 "text": {
@@ -694,7 +710,12 @@ def _fetch_bookmark_blocks(contents: list[models.Content]) -> list[dict[str, Any
                                     "text": "메모 보기✏️",
                                     "emoji": True,
                                 },
-                                "value": "view_note",
+                                "value": str(
+                                    dict(
+                                        action="view_note",
+                                        content_id=content.unique_id,
+                                    )
+                                ),
                             },
                         ],
                     },
@@ -759,28 +780,26 @@ async def bookmark_search_view(ack, body, logger, say, client) -> None:
     await ack({"response_action": "update", "view": view})
 
 
-@slack.action("overflow-action")
+@slack.action("bookmark_overflow_action")
 async def open_overflow_action(ack, body, client, view, logger, say) -> None:
     await ack()
 
     user_id = body["user"]["id"]
-    print_log(_start_log({"user_id": user_id}, "overflow-action"))
+    print_log(_start_log({"user_id": user_id}, "bookmark_overflow_action"))
 
-    title_text = ""
-    block_text = ""
-    value = body["actions"][0]["selected_option"]["value"]
-    if value == "add_bookmark":
-        title_text = "북마크 추가📌"
-        block_text = "북마크 추가"
-        print(value)
-    elif value == "remove_bookmark":
-        title_text = "북마크 취소📌"
-        block_text = "북마크 취소"
-        print(value)
-    elif value == "view_note":
-        title_text = "북마크 메모✏️"
-        block_text = "북마크 메모"
-        print(value)
+    title = ""
+    text = ""
+    value = ast.literal_eval(body["actions"][0]["selected_option"]["value"])
+    if value["action"] == "remove_bookmark":
+        title = "북마크 취소📌"
+        user_content_service.update_bookmark(
+            value["content_id"], new_status=models.BookmarkStatusEnum.DELETED
+        )
+        text = "북마크를 취소하였습니다."
+    elif value["action"] == "view_note":
+        title = "북마크 메모✏️"
+        bookmark = user_content_service.get_bookmark(user_id, value["content_id"])
+        text = bookmark.note if bookmark and bookmark.note else "메모가 없습니다."
 
     await client.views_update(
         view_id=body["view"]["id"],
@@ -789,13 +808,13 @@ async def open_overflow_action(ack, body, client, view, logger, say) -> None:
             "callback_id": "bookmark_submit_search_view",  # TODO: 액션에 따라 동적으로 호출
             "title": {
                 "type": "plain_text",
-                "text": title_text,
+                "text": title,
             },
             "submit": {"type": "plain_text", "text": "돌아가기"},
             "blocks": [
                 {
                     "type": "section",
-                    "text": {"type": "mrkdwn", "text": block_text},
+                    "text": {"type": "mrkdwn", "text": text},
                 },
             ],
         },

@@ -570,5 +570,14 @@ class UserContentService:
             contents = self._user_repo.fetch_contents()
         return [content for content in contents if content.unique_id in content_ids]
 
+    def update_bookmark(
+        self,
+        content_id: str,
+        new_note: str = "",
+        new_status: models.BookmarkStatusEnum = models.BookmarkStatusEnum.ACTIVE,
+    ) -> None:
+        """북마크를 업데이트합니다."""
+        self._user_repo.update_bookmark(content_id, new_note, new_status)
+
 
 user_content_service = UserContentService(user_repo=UserRepository())

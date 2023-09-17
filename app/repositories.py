@@ -1,7 +1,9 @@
 import csv
 from typing import Any
+import pandas as pd
 
 from app import models, client
+from app.utils import now_dt_to_str
 
 
 class UserRepository:
@@ -107,8 +109,26 @@ class UserRepository:
             bookmarks = [
                 models.Bookmark(**bookmark)  # type: ignore
                 for bookmark in reader
-                if bookmark["status"] == models.BookmarkStatusEnum.active
-                and bookmark["user_id"] == user_id
+                if bookmark["user_id"] == user_id
+                and bookmark["status"] == models.BookmarkStatusEnum.ACTIVE
             ]
 
         return sorted(bookmarks, key=lambda bookmark: bookmark.created_at, reverse=True)
+
+    def update_bookmark(
+        self,
+        content_id: str,
+        new_note: str = "",
+        new_status: models.BookmarkStatusEnum = models.BookmarkStatusEnum.ACTIVE,
+    ) -> None:
+        """북마크를 업데이트합니다."""
+        df = pd.read_csv("store/bookmark.csv")
+
+        if new_note:
+            df.loc[df["content_id"] == content_id, "note"] = new_note
+        if new_status:
+            df.loc[df["content_id"] == content_id, "status"] = new_status
+        if new_note or new_status:
+            df.loc[df["content_id"] == content_id, "updated_at"] = now_dt_to_str()
+
+        df.to_csv("store/bookmark.csv", index=False)
