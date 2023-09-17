@@ -143,10 +143,10 @@ async def contents_modal(ack, body, client, view, logger) -> None:
 @slack.action("bookmark_modal")
 async def bookmark_modal(ack, body, client, view, logger) -> None:
     await ack()
-    user_id = body.get("user_id")
+    user_id = body.get("user_id") or body["user"]["id"]
     print_log(_start_log({"user_id": user_id}, "bookmark_modal"))
-    actions = body["actions"][0]
 
+    actions = body["actions"][0]
     is_overflow = actions["type"] == "overflow"  # TODO: 분리할지 고민 필요
     if is_overflow:
         content_id = actions["selected_option"]["value"]
