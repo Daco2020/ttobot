@@ -6,11 +6,11 @@ from slack_bolt.adapter.socket_mode.aiohttp import AsyncSocketModeHandler
 
 
 class SlackSocketModeHandler:
-    def __init__(self, slack: AsyncApp):
+    def __init__(self, app: AsyncApp):
         self._thread = None
         self._handler = None
         self._loop = asyncio.new_event_loop()
-        self._slack = slack
+        self._app = app
 
     def start(self):
         self._thread = threading.Thread(target=self._run, daemon=True)
@@ -24,7 +24,7 @@ class SlackSocketModeHandler:
 
     def _run(self):
         asyncio.set_event_loop(self._loop)
-        self._handler = AsyncSocketModeHandler(self._slack, settings.APP_TOKEN)
+        self._handler = AsyncSocketModeHandler(self._app, settings.APP_TOKEN)
         self._loop.run_until_complete(self._handler.start_async())
 
     def _close(self):

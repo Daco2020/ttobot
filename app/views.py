@@ -4,33 +4,26 @@ from typing import Any
 from app import models
 from app.client import SpreadSheetClient
 from app.config import ANIMAL_TYPE, PASS_VIEW, SUBMIT_VIEW, settings
-from slack_bolt.async_app import AsyncApp
 from app.store import sync_store
-
 from app.services import user_content_service
-from app.utils import print_log
+from app.utils import _start_log, my_decorator, print_log
+from app.slack import app
 
 
-slack = AsyncApp(token=settings.BOT_TOKEN)
-
-
-@slack.event("message")
+@app.event("message")
 async def handle_message_event(ack, body) -> None:
     await ack()
 
 
-def _start_log(body: dict[str, str], type: str) -> str:
-    return f"{body.get('user_id')}({body.get('channel_id')}) 님이 {type} 를 시작합니다."
-
-
-@slack.command("/제출")
+@app.command("/제출")
+@my_decorator
 async def submit_command(ack, body, logger, say, client) -> None:
     print_log(_start_log(body, "submit"))
     await ack()
     await user_content_service.open_submit_modal(body, client, SUBMIT_VIEW)
 
 
-@slack.view(SUBMIT_VIEW)
+@app.view(SUBMIT_VIEW)
 async def submit_view(ack, body, client, view, logger, say) -> None:
     await ack()
     user_id = body["user"]["id"]
@@ -86,7 +79,7 @@ async def submit_view(ack, body, client, view, logger, say) -> None:
         print_log(message, str(e))
 
 
-@slack.action("intro_modal")
+@app.action("intro_modal")
 async def open_intro_modal(ack, body, client, view, logger) -> None:
     await ack()
 
@@ -119,7 +112,7 @@ async def open_intro_modal(ack, body, client, view, logger) -> None:
     )
 
 
-@slack.action("contents_modal")
+@app.action("contents_modal")
 async def contents_modal(ack, body, client, view, logger) -> None:
     await ack()
 
@@ -140,7 +133,7 @@ async def contents_modal(ack, body, client, view, logger) -> None:
     )
 
 
-@slack.action("bookmark_modal")
+@app.action("bookmark_modal")
 async def bookmark_modal(ack, body, client, view, logger) -> None:
     await ack()
     user_id = body.get("user_id") or body["user"]["id"]
@@ -219,7 +212,7 @@ def get_bookmark_view(
     return view
 
 
-@slack.view("bookmark_view")
+@app.view("bookmark_view")
 async def bookmark_view(ack, body, client, view, logger, say) -> None:
     await ack()
 
@@ -249,14 +242,14 @@ async def bookmark_view(ack, body, client, view, logger, say) -> None:
     )
 
 
-@slack.command("/패스")
+@app.command("/패스")
 async def pass_command(ack, body, logger, say, client) -> None:
     print_log(_start_log(body, "pass"))
     await ack()
     await user_content_service.open_pass_modal(body, client, PASS_VIEW)
 
 
-@slack.view(PASS_VIEW)
+@app.view(PASS_VIEW)
 async def pass_view(ack, body, client, view, logger, say) -> None:
     await ack()
     user_id = body["user"]["id"]
@@ -278,7 +271,7 @@ async def pass_view(ack, body, client, view, logger, say) -> None:
         print_log(message, str(e))
 
 
-@slack.command("/제출내역")
+@app.command("/제출내역")
 async def history_command(ack, body, logger, say, client) -> None:
     print_log(_start_log(body, "history"))
     await ack()
@@ -310,7 +303,7 @@ async def history_command(ack, body, logger, say, client) -> None:
     )
 
 
-@slack.command("/예치금")
+@app.command("/예치금")
 async def get_deposit(ack, body, logger, say, client) -> None:
     print_log(_start_log(body, "deposit"))
     await ack()
@@ -335,7 +328,7 @@ async def get_deposit(ack, body, logger, say, client) -> None:
     )
 
 
-@slack.command("/관리자")
+@app.command("/관리자")
 async def admin_command(ack, body, logger, say, client) -> None:
     # TODO: 추후 관리자 메뉴 추가
     await ack()
@@ -352,14 +345,14 @@ async def admin_command(ack, body, logger, say, client) -> None:
         await client.chat_postMessage(channel=body["user_id"], text=str(e))
 
 
-@slack.command("/검색")
+@app.command("/검색")
 async def search_command(ack, body, logger, say, client) -> None:
     print_log(_start_log(body, "serach"))
     await ack()
     await user_content_service.open_search_modal(body, client)
 
 
-@slack.view("submit_search")
+@app.view("submit_search")
 async def submit_search(ack, body, client, view, logger):
     # TODO: 로그 리팩터링하기
     user_body = {"user_id": body.get("user", {}).get("id")}
@@ -437,7 +430,7 @@ def _fetch_blocks(contents: list[models.Content]) -> list[dict[str, Any]]:
     return blocks
 
 
-@slack.view("back_to_search_view")
+@app.view("back_to_search_view")
 async def back_to_search_view(ack, body, logger, say, client) -> None:
     # TODO: 로그 리팩터링하기
     user_body = {"user_id": body.get("user", {}).get("id")}
@@ -580,7 +573,7 @@ def _get_keyword(body) -> str:
 
 
 # TODO: 모코숲 로직 추후 제거
-@slack.command("/모코숲")
+@app.command("/모코숲")
 async def guide_command(ack, body, logger, say, client) -> None:
     print_log(_start_log(body, "guide"))
     await ack()
@@ -609,7 +602,7 @@ async def guide_command(ack, body, logger, say, client) -> None:
 
 
 # TODO: 모코숲 로직 추후 제거
-@slack.event("member_joined_channel")
+@app.event("member_joined_channel")
 async def send_welcome_message(event, say):
     if event["channel"] == "C05K0RNQZA4":
         try:
@@ -643,7 +636,7 @@ async def send_welcome_message(event, say):
             pass
 
 
-@slack.command("/북마크")
+@app.command("/북마크")
 async def bookmark_command(ack, body, logger, say, client) -> None:
     await ack()
 
@@ -736,7 +729,7 @@ def _fetch_bookmark_blocks(contents: list[models.Content]) -> list[dict[str, Any
     return blocks
 
 
-@slack.view("bookmark_search_view")
+@app.view("bookmark_search_view")
 async def bookmark_search_view(ack, body, logger, say, client) -> None:
     user_body = {"user_id": body.get("user", {}).get("id")}
     print_log(_start_log(user_body, "bookmark_search_view"))
@@ -780,7 +773,7 @@ async def bookmark_search_view(ack, body, logger, say, client) -> None:
     await ack({"response_action": "update", "view": view})
 
 
-@slack.action("bookmark_overflow_action")
+@app.action("bookmark_overflow_action")
 async def open_overflow_action(ack, body, client, view, logger, say) -> None:
     await ack()
 
@@ -821,7 +814,7 @@ async def open_overflow_action(ack, body, client, view, logger, say) -> None:
     )
 
 
-@slack.view("bookmark_submit_search_view")
+@app.view("bookmark_submit_search_view")
 async def bookmark_submit_search_view(ack, body, logger, say, client) -> None:
     user_id = body.get("user", {}).get("id")
     print_log(_start_log({"user_id": user_id}, "bookmark_submit_search_view"))
