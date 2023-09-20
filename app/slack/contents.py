@@ -2,28 +2,17 @@ import ast
 import re
 from typing import Any
 from app import models
-from app.client import SpreadSheetClient
-from app.config import ANIMAL_TYPE, PASS_VIEW, SUBMIT_VIEW, settings
-from app.store import sync_store
+from app.config import ANIMAL_TYPE, PASS_VIEW, SUBMIT_VIEW
 from app.services import user_content_service
-from app.utils import _start_log, my_decorator, print_log
-from app.slack import app
+from app.utils import _start_log, print_log
 
 
-@app.event("message")
-async def handle_message_event(ack, body) -> None:
-    await ack()
-
-
-@app.command("/제출")
-@my_decorator
 async def submit_command(ack, body, logger, say, client) -> None:
     print_log(_start_log(body, "submit"))
     await ack()
     await user_content_service.open_submit_modal(body, client, SUBMIT_VIEW)
 
 
-@app.view(SUBMIT_VIEW)
 async def submit_view(ack, body, client, view, logger, say) -> None:
     await ack()
     user_id = body["user"]["id"]
@@ -79,7 +68,6 @@ async def submit_view(ack, body, client, view, logger, say) -> None:
         print_log(message, str(e))
 
 
-@app.action("intro_modal")
 async def open_intro_modal(ack, body, client, view, logger) -> None:
     await ack()
 
@@ -112,7 +100,6 @@ async def open_intro_modal(ack, body, client, view, logger) -> None:
     )
 
 
-@app.action("contents_modal")
 async def contents_modal(ack, body, client, view, logger) -> None:
     await ack()
 
@@ -133,7 +120,6 @@ async def contents_modal(ack, body, client, view, logger) -> None:
     )
 
 
-@app.action("bookmark_modal")
 async def bookmark_modal(ack, body, client, view, logger) -> None:
     await ack()
     user_id = body.get("user_id") or body["user"]["id"]
@@ -212,7 +198,6 @@ def get_bookmark_view(
     return view
 
 
-@app.view("bookmark_view")
 async def bookmark_view(ack, body, client, view, logger, say) -> None:
     await ack()
 
@@ -242,14 +227,12 @@ async def bookmark_view(ack, body, client, view, logger, say) -> None:
     )
 
 
-@app.command("/패스")
 async def pass_command(ack, body, logger, say, client) -> None:
     print_log(_start_log(body, "pass"))
     await ack()
     await user_content_service.open_pass_modal(body, client, PASS_VIEW)
 
 
-@app.view(PASS_VIEW)
 async def pass_view(ack, body, client, view, logger, say) -> None:
     await ack()
     user_id = body["user"]["id"]
@@ -271,88 +254,12 @@ async def pass_view(ack, body, client, view, logger, say) -> None:
         print_log(message, str(e))
 
 
-@app.command("/제출내역")
-async def history_command(ack, body, logger, say, client) -> None:
-    print_log(_start_log(body, "history"))
-    await ack()
-    submit_history = user_content_service.get_submit_history(body["user_id"])
-
-    user = user_content_service.get_user_not_valid(body["user_id"])
-    round, due_date = user.get_due_date()
-    guide_message = f"\n*현재 회차는 {round}회차, 마감일은 {due_date} 이에요."
-
-    await client.views_open(
-        trigger_id=body["trigger_id"],
-        view={
-            "type": "modal",
-            "title": {"type": "plain_text", "text": f"{user.name}님의 제출 내역"},
-            "blocks": [
-                {
-                    "type": "section",
-                    "text": {"type": "mrkdwn", "text": submit_history},
-                },
-                {
-                    "type": "divider",
-                },
-                {
-                    "type": "section",
-                    "text": {"type": "mrkdwn", "text": guide_message},
-                },
-            ],
-        },
-    )
-
-
-@app.command("/예치금")
-async def get_deposit(ack, body, logger, say, client) -> None:
-    print_log(_start_log(body, "deposit"))
-    await ack()
-
-    user = user_content_service.get_user_not_valid(body["user_id"])
-
-    await client.views_open(
-        trigger_id=body["trigger_id"],
-        view={
-            "type": "modal",
-            "title": {"type": "plain_text", "text": f"{user.name}님의 예치금 현황"},
-            "blocks": [
-                {
-                    "type": "section",
-                    "text": {
-                        "type": "mrkdwn",
-                        "text": f"현재 남은 예치금은 {format(user.deposit, ',d')} 원 입니다.\n\n*<{settings.DEPOSIT_SHEETS_URL}|{'예치금 현황 자세히 확인하기'}>*",  # noqa E501
-                    },
-                },
-            ],
-        },
-    )
-
-
-@app.command("/관리자")
-async def admin_command(ack, body, logger, say, client) -> None:
-    # TODO: 추후 관리자 메뉴 추가
-    await ack()
-    try:
-        user_content_service.validate_admin_user(body["user_id"])
-        await client.chat_postMessage(channel=body["user_id"], text="store sync 완료")
-        sheet_client = SpreadSheetClient()
-        sheet_client.push_backup()
-        sheet_client.upload_bookmark()  # TODO: 분리 필요
-        sync_store(sheet_client)
-        sheet_client.upload_logs()
-        sheet_client.create_log_file()
-    except ValueError as e:
-        await client.chat_postMessage(channel=body["user_id"], text=str(e))
-
-
-@app.command("/검색")
 async def search_command(ack, body, logger, say, client) -> None:
     print_log(_start_log(body, "serach"))
     await ack()
     await user_content_service.open_search_modal(body, client)
 
 
-@app.view("submit_search")
 async def submit_search(ack, body, client, view, logger):
     # TODO: 로그 리팩터링하기
     user_body = {"user_id": body.get("user", {}).get("id")}
@@ -430,7 +337,6 @@ def _fetch_blocks(contents: list[models.Content]) -> list[dict[str, Any]]:
     return blocks
 
 
-@app.view("back_to_search_view")
 async def back_to_search_view(ack, body, logger, say, client) -> None:
     # TODO: 로그 리팩터링하기
     user_body = {"user_id": body.get("user", {}).get("id")}
@@ -572,71 +478,6 @@ def _get_keyword(body) -> str:
     return keyword
 
 
-# TODO: 모코숲 로직 추후 제거
-@app.command("/모코숲")
-async def guide_command(ack, body, logger, say, client) -> None:
-    print_log(_start_log(body, "guide"))
-    await ack()
-    # await user_content_service.open_submit_modal(body, client, SUBMIT_VIEW)
-
-    await client.views_open(
-        trigger_id=body["trigger_id"],
-        view={
-            "type": "modal",
-            "title": {
-                "type": "plain_text",
-                "text": "모여봐요 코드의 숲",
-            },
-            "close": {"type": "plain_text", "text": "닫기"},
-            "blocks": [
-                {
-                    "type": "section",
-                    "text": {
-                        "type": "mrkdwn",
-                        "text": "글쓰기를 좋아하는 동물들이 코드의 숲에 모였다?\n우리가 함께 만들어 갈 여름 이야기, 모여봐요 코드의 숲! 🍃\n\n\n*설명*\n- 기존 2주 1글쓰기 규칙을 유지해요.\n- ‘모코숲’ 채널에 함께 모여 활동해요.\n- ‘모코숲’ 채널에 들어오면 자신이 어떤 동물인지 알 수 있어요.\n- 글만 올리면 심심하죠? 수다와 각종 모임 제안도 가능(권장)해요!\n\n\n*일정*\n- 7월 23일 일요일 ‘모코숲’이 열려요!\n- 7월 23일부터 9월 24일까지 두 달간 진행합니다.\n- 첫 번째 글 마감은 7월 30일 이에요! (이후 2주 간격 제출)\n\n\n*동물 소개*\n- 🐈 '고양이'는 여유롭고 독립된 일상을 즐겨요.\n- 🦦 '해달'은 기술과 도구에 관심이 많고 문제해결을 좋아해요.\n- 🦫 '비버'는 명확한 목표와 함께 협업을 즐겨요.\n- 🐘 '코끼리'는 커리어에 관심이 많고 자부심이 넘쳐요.\n- 🐕 '강아지'는 조직문화에 관심이 많고 팀워크를 중요하게 여겨요.\n- 🐢 '거북이'는 늦게 시작했지만 끝까지 포기하지 않아요.",  # noqa E501
-                    },
-                }
-            ],
-        },
-    )
-
-
-# TODO: 모코숲 로직 추후 제거
-@app.event("member_joined_channel")
-async def send_welcome_message(event, say):
-    if event["channel"] == "C05K0RNQZA4":
-        try:
-            user_id = event["user"]
-            user = user_content_service.get_user_not_valid(user_id)
-            animal = ANIMAL_TYPE[user.animal_type]
-
-            message = (
-                f"\n>>>{animal['emoji']}{animal['name']} <@{user_id}>님이 🌳모코숲🌳에 입장했습니다👏🏼"
-            )
-            await say(
-                channel=event["channel"],
-                blocks=[
-                    {
-                        "type": "section",
-                        "text": {
-                            "type": "mrkdwn",
-                            "text": message,
-                        },
-                        "accessory": {
-                            "type": "button",
-                            "text": {"type": "plain_text", "text": "소개 보기"},
-                            "action_id": "intro_modal",
-                            "value": user.user_id,
-                        },
-                    },
-                ],
-            )
-        except Exception as e:
-            print_log(e)
-            pass
-
-
-@app.command("/북마크")
 async def bookmark_command(ack, body, logger, say, client) -> None:
     await ack()
 
@@ -729,7 +570,6 @@ def _fetch_bookmark_blocks(contents: list[models.Content]) -> list[dict[str, Any
     return blocks
 
 
-@app.view("bookmark_search_view")
 async def bookmark_search_view(ack, body, logger, say, client) -> None:
     user_body = {"user_id": body.get("user", {}).get("id")}
     print_log(_start_log(user_body, "bookmark_search_view"))
@@ -773,7 +613,6 @@ async def bookmark_search_view(ack, body, logger, say, client) -> None:
     await ack({"response_action": "update", "view": view})
 
 
-@app.action("bookmark_overflow_action")
 async def open_overflow_action(ack, body, client, view, logger, say) -> None:
     await ack()
 
@@ -814,7 +653,6 @@ async def open_overflow_action(ack, body, client, view, logger, say) -> None:
     )
 
 
-@app.view("bookmark_submit_search_view")
 async def bookmark_submit_search_view(ack, body, logger, say, client) -> None:
     user_id = body.get("user", {}).get("id")
     print_log(_start_log({"user_id": user_id}, "bookmark_submit_search_view"))
