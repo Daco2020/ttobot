@@ -8,7 +8,7 @@ app = AsyncApp(token=settings.BOT_TOKEN)
 
 
 @app.middleware
-async def simple_middleware(req, resp, next):
+async def log_middleware(req, resp, next):
     # print(req.body)
     print(req.__dict__)
     print(resp)
