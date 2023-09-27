@@ -2,11 +2,11 @@ from app.client import SpreadSheetClient
 from app.config import settings
 from app.services import user_content_service
 from app.store import sync_store
-from app.utils import _start_log, print_log
+from app.logging import event_log
 
 
-async def get_deposit(ack, body, logger, say, client) -> None:
-    print_log(_start_log(body, "deposit"))
+async def get_deposit(ack, body, logger, say, client, user_id: str) -> None:
+    event_log(user_id, event="예치금 조회")
     await ack()
 
     user = user_content_service.get_user_not_valid(body["user_id"])
@@ -29,8 +29,8 @@ async def get_deposit(ack, body, logger, say, client) -> None:
     )
 
 
-async def history_command(ack, body, logger, say, client) -> None:
-    print_log(_start_log(body, "history"))
+async def history_command(ack, body, logger, say, client, user_id: str) -> None:
+    event_log(user_id, event="제출내역 조회")
     await ack()
     submit_history = user_content_service.get_submit_history(body["user_id"])
 
@@ -60,7 +60,8 @@ async def history_command(ack, body, logger, say, client) -> None:
     )
 
 
-async def admin_command(ack, body, logger, say, client) -> None:
+async def admin_command(ack, body, logger, say, client, user_id: str) -> None:
+    event_log(user_id, event="관리자 메뉴 조회")
     # TODO: 추후 관리자 메뉴 추가
     await ack()
     try:

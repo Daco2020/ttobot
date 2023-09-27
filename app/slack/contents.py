@@ -1,21 +1,25 @@
 import ast
 import re
 from typing import Any
+
+import loguru
 from app import models
 from app.config import ANIMAL_TYPE, PASS_VIEW, SUBMIT_VIEW
 from app.services import user_content_service
-from app.utils import _start_log, print_log
+from app.logging import event_log
 
 
-async def submit_command(ack, body, logger, say, client) -> None:
-    print_log(_start_log(body, "submit"))
+async def submit_command(ack, body, logger, say, client, user_id: str) -> None:
+    event_log(user_id, event="글 제출 시작")
     await ack()
+
     await user_content_service.open_submit_modal(body, client, SUBMIT_VIEW)
 
 
-async def submit_view(ack, body, client, view, logger, say) -> None:
+async def submit_view(ack, body, client, view, logger, say, user_id: str) -> None:
+    event_log(user_id, event="글 제출 완료")
     await ack()
-    user_id = body["user"]["id"]
+
     channel_id = view["private_metadata"]
 
     try:
@@ -64,18 +68,16 @@ async def submit_view(ack, body, client, view, logger, say) -> None:
             ],
         )
     except Exception as e:
-        message = f"{user.name}({user.channel_name}) 님의 제출이 실패하였습니다."
-        print_log(message, str(e))
+        message = f"{user.name}({user.channel_name}) 님의 제출이 실패하였습니다. {str(e)}"
+        loguru.logger.error(message)  # TODO: 디스코드 알림 보내기
 
 
-async def open_intro_modal(ack, body, client, view, logger) -> None:
+async def open_intro_modal(ack, body, client, view, logger, user_id: str) -> None:
+    event_log(user_id, event="다른 유저의 자기소개 확인")
     await ack()
 
-    user_body = {"user_id": body.get("user_id")}
-    print_log(_start_log(user_body, "intro_modal"))
-
-    user_id = body["actions"][0]["value"]
-    user = user_content_service.get_user_not_valid(user_id)
+    target_user_id = body["actions"][0]["value"]
+    user = user_content_service.get_user_not_valid(target_user_id)
     # TODO: 모코숲 로직 추후 제거
     animal = ANIMAL_TYPE[user.animal_type]
 
@@ -100,14 +102,12 @@ async def open_intro_modal(ack, body, client, view, logger) -> None:
     )
 
 
-async def contents_modal(ack, body, client, view, logger) -> None:
+async def contents_modal(ack, body, client, view, logger, user_id: str) -> None:
+    event_log(user_id, event="다른 유저의 제출한 글 목록 확인")
     await ack()
 
-    user_body = {"user_id": body.get("user_id")}
-    print_log(_start_log(user_body, "contents_modal"))
-
-    user_id = body["actions"][0]["value"]
-    user = user_content_service.get_user_not_valid(user_id)
+    target_user_id = body["actions"][0]["value"]
+    user = user_content_service.get_user_not_valid(target_user_id)
 
     await client.views_open(
         trigger_id=body["trigger_id"],
@@ -120,13 +120,12 @@ async def contents_modal(ack, body, client, view, logger) -> None:
     )
 
 
-async def bookmark_modal(ack, body, client, view, logger) -> None:
+async def bookmark_modal(ack, body, client, view, logger, user_id: str) -> None:
+    event_log(user_id, event="북마크 저장 시작")
     await ack()
-    user_id = body.get("user_id") or body["user"]["id"]
-    print_log(_start_log({"user_id": user_id}, "bookmark_modal"))
 
     actions = body["actions"][0]
-    is_overflow = actions["type"] == "overflow"  # TODO: 분리할지 고민 필요
+    is_overflow = actions["type"] == "overflow"  # TODO: 분리필요
     if is_overflow:
         content_id = actions["selected_option"]["value"]
     else:
@@ -198,11 +197,10 @@ def get_bookmark_view(
     return view
 
 
-async def bookmark_view(ack, body, client, view, logger, say) -> None:
-    await ack()
+async def bookmark_view(ack, body, client, view, logger, say, user_id: str) -> None:
+    event_log(user_id, event="북마크 저장 완료")
 
-    user_id = body["user"]["id"]
-    print_log(_start_log({"user_id": user_id}, "bookmark_view"))
+    await ack()
 
     content_id = view["private_metadata"]
     value = view["state"]["values"]["bookmark_note"]["plain_text_input-action"]["value"]
@@ -227,15 +225,17 @@ async def bookmark_view(ack, body, client, view, logger, say) -> None:
     )
 
 
-async def pass_command(ack, body, logger, say, client) -> None:
-    print_log(_start_log(body, "pass"))
+async def pass_command(ack, body, logger, say, client, user_id: str) -> None:
+    event_log(user_id, event="글 패스 시작")
     await ack()
+
     await user_content_service.open_pass_modal(body, client, PASS_VIEW)
 
 
-async def pass_view(ack, body, client, view, logger, say) -> None:
+async def pass_view(ack, body, client, view, logger, say, user_id: str) -> None:
+    event_log(user_id, event="글 패스 완료")
     await ack()
-    user_id = body["user"]["id"]
+
     channel_id = view["private_metadata"]
 
     try:
@@ -250,20 +250,19 @@ async def pass_view(ack, body, client, view, logger, say) -> None:
             text=user_content_service.get_chat_message(content, animal),
         )
     except Exception as e:
-        message = f"{user.name}({user.channel_name}) 님의 패스가 실패하였습니다."
-        print_log(message, str(e))
+        message = f"{user.name}({user.channel_name}) 님의 패스가 실패하였습니다. {str(e)}"
+        loguru.logger.error(message)  # TODO: 디스코드 알림 보내기
 
 
-async def search_command(ack, body, logger, say, client) -> None:
-    print_log(_start_log(body, "serach"))
+async def search_command(ack, body, logger, say, client, user_id: str) -> None:
+    event_log(user_id, event="글 검색 시작")
     await ack()
+
     await user_content_service.open_search_modal(body, client)
 
 
-async def submit_search(ack, body, client, view, logger):
-    # TODO: 로그 리팩터링하기
-    user_body = {"user_id": body.get("user", {}).get("id")}
-    print_log(_start_log(user_body, "submit_search"))
+async def submit_search(ack, body, client, view, logger, user_id: str):
+    event_log(user_id, event="글 검색 완료")
 
     name = _get_name(body)
     category = _get_category(body)
@@ -337,10 +336,8 @@ def _fetch_blocks(contents: list[models.Content]) -> list[dict[str, Any]]:
     return blocks
 
 
-async def back_to_search_view(ack, body, logger, say, client) -> None:
-    # TODO: 로그 리팩터링하기
-    user_body = {"user_id": body.get("user", {}).get("id")}
-    print_log(_start_log(user_body, "back_to_search_view"))
+async def back_to_search_view(ack, body, logger, say, client, user_id: str) -> None:
+    event_log(user_id, event="글 검색 다시 시작")
 
     view = {
         "type": "modal",
@@ -478,11 +475,9 @@ def _get_keyword(body) -> str:
     return keyword
 
 
-async def bookmark_command(ack, body, logger, say, client) -> None:
+async def bookmark_command(ack, body, logger, say, client, user_id: str) -> None:
+    event_log(user_id, event="북마크 조회")
     await ack()
-
-    print_log(_start_log(body, "bookmark"))
-    user_id = body["user_id"]
 
     bookmarks = user_content_service.fetch_bookmarks(user_id)
     content_ids = [bookmark.content_id for bookmark in bookmarks]
@@ -570,9 +565,8 @@ def _fetch_bookmark_blocks(contents: list[models.Content]) -> list[dict[str, Any
     return blocks
 
 
-async def bookmark_search_view(ack, body, logger, say, client) -> None:
-    user_body = {"user_id": body.get("user", {}).get("id")}
-    print_log(_start_log(user_body, "bookmark_search_view"))
+async def bookmark_search_view(ack, body, logger, say, client, user_id: str) -> None:
+    event_log(user_id, event="북마크 검색 시작")
 
     view = {
         "type": "modal",
@@ -613,11 +607,11 @@ async def bookmark_search_view(ack, body, logger, say, client) -> None:
     await ack({"response_action": "update", "view": view})
 
 
-async def open_overflow_action(ack, body, client, view, logger, say) -> None:
+async def open_overflow_action(
+    ack, body, client, view, logger, say, user_id: str
+) -> None:
+    event_log(user_id, event="북마크 메뉴 선택")
     await ack()
-
-    user_id = body["user"]["id"]
-    print_log(_start_log({"user_id": user_id}, "bookmark_overflow_action"))
 
     title = ""
     text = ""
@@ -653,9 +647,10 @@ async def open_overflow_action(ack, body, client, view, logger, say) -> None:
     )
 
 
-async def bookmark_submit_search_view(ack, body, logger, say, client) -> None:
-    user_id = body.get("user", {}).get("id")
-    print_log(_start_log({"user_id": user_id}, "bookmark_submit_search_view"))
+async def bookmark_submit_search_view(
+    ack, body, logger, say, client, user_id: str
+) -> None:
+    event_log(user_id, event="북마크 검색 완료")
 
     keyword = _get_keyword(body)
     bookmarks = user_content_service.fetch_bookmarks(user_id)

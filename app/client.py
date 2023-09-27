@@ -1,4 +1,6 @@
 import csv
+
+import loguru
 from app.config import (
     BACKUP_SHEET,
     BOOKMARK_SHEET,
@@ -11,7 +13,7 @@ from app.config import (
 import gspread  # type: ignore
 from oauth2client.service_account import ServiceAccountCredentials  # type: ignore
 
-from app.utils import now_dt, print_log
+from app.utils import now_dt
 
 
 credentials = ServiceAccountCredentials.from_json_keyfile_dict(
@@ -38,9 +40,11 @@ class SpreadSheetClient:
                 cursor = len(self._raw_data_sheet.get_values("A:A")) + 1
                 self._raw_data_sheet.update(f"A{cursor}", upload_queue)
             except Exception as e:
-                print_log(f"Failed {upload_queue} : {e}")
+                loguru.logger.error(f"Failed to upload: {str(e)}")
+                # print_log(f"Failed {upload_queue} : {e}")
                 return None
-            print_log(f"Uploaded {upload_queue}")
+            loguru.logger.info(f"Uploaded {upload_queue}")
+            # print_log(f"Uploaded {upload_queue}")
             upload_queue = []
 
     def download_users(self) -> None:

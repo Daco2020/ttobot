@@ -1,10 +1,11 @@
+import loguru
 from app.config import ANIMAL_TYPE
 from app.services import user_content_service
-from app.utils import _start_log, print_log
+from app.logging import event_log
 
 
-async def guide_command(ack, body, logger, say, client) -> None:
-    print_log(_start_log(body, "guide"))
+async def guide_command(ack, body, logger, say, client, user_id: str) -> None:
+    event_log(user_id, event="모코숲 가이드 조회")
     await ack()
     # await user_content_service.open_submit_modal(body, client, SUBMIT_VIEW)
 
@@ -30,8 +31,9 @@ async def guide_command(ack, body, logger, say, client) -> None:
     )
 
 
-async def send_welcome_message(event, say):
+async def send_welcome_message(event, say, user_id: str):
     if event["channel"] == "C05K0RNQZA4":
+        event_log(user_id, event="모코숲 채널 입장")
         try:
             user_id = event["user"]
             user = user_content_service.get_user_not_valid(user_id)
@@ -59,5 +61,5 @@ async def send_welcome_message(event, say):
                 ],
             )
         except Exception as e:
-            print_log(e)
+            loguru.logger.error(e)  # TODO: 디스코드 알림 보내기
             pass

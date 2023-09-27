@@ -1,9 +1,10 @@
 import re
 from typing import Any
+
+import loguru
 from app.config import MAX_PASS_COUNT, URL_REGEX
 from app.repositories import UserRepository
 from app import models
-from app.utils import print_log
 
 
 import requests
@@ -137,7 +138,7 @@ class UserContentService:
         message = (
             f"{body.get('user_id')}({body.get('channel_id')}) 님의 {view_name} 가 실패하였습니다."
         )
-        print_log(message, e)
+        loguru.logger.error(message + e)  # TODO: 디스코드 알림 보내기
         e = "예기치 못한 오류가 발생하였습니다.\n[글또봇질문] 채널로 문의해주세요." if "Content" in e else e
         await client.views_open(
             trigger_id=body["trigger_id"],
@@ -491,7 +492,7 @@ class UserContentService:
             result = title.strip()
             return result
         except Exception as e:
-            print_log(str(e))
+            loguru.logger.error(str(e))  # TODO: 디스코드 알림 보내기
             return "title unknown."
 
     def _description_message(self, description: str) -> str:

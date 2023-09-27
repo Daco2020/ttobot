@@ -8,10 +8,7 @@ app = AsyncApp(token=settings.BOT_TOKEN)
 
 
 @app.middleware
-async def log_middleware(req, resp, next):
-    # print(req.body)
-    print(req.__dict__)
-    print(resp)
+async def middleware(req, resp, next):
     await next()
 
 
@@ -20,7 +17,11 @@ async def handle_message_event(ack, body) -> None:
     await ack()
 
 
-# TODO: user_id 는 context 안에 있으며 기본적으로 주입된다. 이에 맞춰 로직 수정할 것
+# community
+app.command("/모코숲")(community.guide_command)
+app.event("member_joined_channel")(community.send_welcome_message)
+
+# contents
 app.command("/제출")(contents.submit_command)
 app.view(SUBMIT_VIEW)(contents.submit_view)
 app.action("intro_modal")(contents.open_intro_modal)
@@ -37,9 +38,7 @@ app.view("bookmark_search_view")(contents.bookmark_search_view)
 app.action("bookmark_overflow_action")(contents.open_overflow_action)
 app.view("bookmark_submit_search_view")(contents.bookmark_submit_search_view)
 
+# core
 app.command("/예치금")(core.get_deposit)
 app.command("/제출내역")(core.history_command)
 app.command("/관리자")(core.admin_command)
-
-app.command("/모코숲")(community.guide_command)
-app.event("member_joined_channel")(community.send_welcome_message)

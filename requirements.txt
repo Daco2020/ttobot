@@ -25,6 +25,7 @@ httplib2==0.21.0
 identify==2.5.26
 idna==3.4
 iniconfig==2.0.0
+loguru==0.7.2
 multidict==6.0.4
 mypy==0.991
 mypy-extensions==0.4.3
