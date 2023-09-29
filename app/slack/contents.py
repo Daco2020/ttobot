@@ -127,6 +127,7 @@ async def contents_modal(ack, body, client, view, user_id: str) -> None:
 
 @exception_handler_decorator
 async def bookmark_modal(ack, body, client, view, user_id: str) -> None:
+    # TODO: 글 검색에서 넘어온 경우 북마크 저장 후 검색 모달로 돌아가야 함
     event_log(user_id, event="북마크 저장 시작")
     await ack()
 
@@ -632,7 +633,7 @@ async def open_overflow_action(ack, body, client, view, say, user_id: str) -> No
     if value["action"] == "remove_bookmark":
         title = "북마크 취소📌"
         user_content_service.update_bookmark(
-            value["content_id"], new_status=models.BookmarkStatusEnum.DELETED
+            user_id, value["content_id"], new_status=models.BookmarkStatusEnum.DELETED
         )
         text = "북마크를 취소하였습니다."
     elif value["action"] == "view_note":

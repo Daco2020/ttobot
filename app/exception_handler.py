@@ -11,7 +11,7 @@ def exception_handler_decorator(func):
         try:
             return await func(*args, **kwargs)
         except Exception as e:
-            logger.error(e)
+            logger.error(str(e))
             trace = traceback.format_exc()
             await slack.app.client.chat_postMessage(
                 channel=settings.ADMIN_CHANNEL, text=trace

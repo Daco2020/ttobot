@@ -1,10 +1,11 @@
 import re
 from typing import Any
+from app.exception import BotException
 
 from app.logging import logger
 from app.config import MAX_PASS_COUNT, URL_REGEX
 from app.repositories import UserRepository
-from app import models
+from app import client, models
 
 
 import requests
@@ -548,6 +549,7 @@ class UserContentService:
         """북마크를 생성합니다."""
         bookmark = models.Bookmark(user_id=user_id, content_id=content_id, note=note)
         self._user_repo.create_bookmark(bookmark)
+        client.bookmark_upload_queue.append(bookmark.to_list_for_sheet())
         return bookmark
 
     def get_bookmark(self, user_id: str, content_id: str) -> models.Bookmark | None:
@@ -573,12 +575,25 @@ class UserContentService:
 
     def update_bookmark(
         self,
+        user_id: str,
         content_id: str,
         new_note: str = "",
         new_status: models.BookmarkStatusEnum = models.BookmarkStatusEnum.ACTIVE,
     ) -> None:
         """북마크를 업데이트합니다."""
+        # TODO: 북마크 삭제와 수정 분리할 것
         self._user_repo.update_bookmark(content_id, new_note, new_status)
+        bookmark = self._user_repo.get_bookmark(user_id, content_id, status=new_status)
+        if bookmark:
+            client.bookmark_update_queue.append(bookmark)
+        else:
+            data = dict(
+                user_id=user_id,
+                content_id=content_id,
+                new_note=new_note,
+                new_status=new_status,
+            )
+            raise BotException(f"수정한 북마크가 존재하지 않습니다. {data=}")
 
 
 user_content_service = UserContentService(user_repo=UserRepository())

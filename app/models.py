@@ -179,3 +179,14 @@ class Bookmark(BaseModel):
                 self.updated_at,
             ]
         )
+
+    def to_list_for_sheet(self) -> list[str]:
+        """구글 시트에 쓰기 위한 리스트를 반환합니다."""
+        return [
+            self.user_id,
+            self.content_id,
+            self.note.replace(",", " ").replace("\n", " "),
+            self.status,
+            self.created_at,
+            self.updated_at,
+        ]
