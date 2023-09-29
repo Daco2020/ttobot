@@ -3,7 +3,7 @@ from app.client import SpreadSheetClient
 
 
 def sync_store(client: SpreadSheetClient) -> None:
-    """서버 저장소를 동기화합니다."""
+    """데이터를 가져와 서버 저장소를 덮어씁니다."""
     create_store_path()
     client.download_users()
     client.download_contents()
