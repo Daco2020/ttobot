@@ -12,6 +12,8 @@ class Settings(BaseSettings):
     SPREAD_SHEETS_URL: str
     DEPOSIT_SHEETS_URL: str
 
+    ENV: str
+
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"

@@ -1,45 +1,49 @@
 from app.client import SpreadSheetClient
 from fastapi import FastAPI, Request
-from apscheduler.schedulers.background import BackgroundScheduler  # type: ignore
+from apscheduler.schedulers.background import BackgroundScheduler
+from app.config import settings
 from app.store import sync_store
-from app.slack_handler import SlackSocketModeHandler  # type: ignore
-from app.views import slack
+from app import slack
+from slack_bolt.adapter.socket_mode.aiohttp import AsyncSocketModeHandler
+
+app = FastAPI()
+slack_handler = AsyncSocketModeHandler(slack.app, settings.APP_TOKEN)
 
 
-api = FastAPI()
-slack_handler = SlackSocketModeHandler(slack)
-
-
-@api.post("/")
+@app.post("/")
 async def health(request: Request) -> bool:
     return True
 
 
-@api.on_event("startup")
-async def startup():
-    # 서버 저장소 동기화
-    client = SpreadSheetClient()
-    sync_store(client)
-    client.create_log_file()
+if settings.ENV == "prod":
 
-    # 업로드 스케줄러
-    schedule = BackgroundScheduler(daemon=True, timezone="Asia/Seoul")
-    schedule.add_job(scheduler, "interval", seconds=10, args=[client])
-    schedule.start()
+    @app.on_event("startup")
+    async def startup():
+        # 서버 저장소 동기화
+        client = SpreadSheetClient()
+        sync_store(client)
+        client.create_log_file()
 
-    # 슬랙 소켓 모드 실행
-    slack_handler.start()
+        # 업로드 스케줄러
+        schedule = BackgroundScheduler(daemon=True, timezone="Asia/Seoul")
+        schedule.add_job(scheduler, "interval", seconds=10, args=[client])
+        schedule.start()
 
+        # 슬랙 소켓 모드 실행
+        await slack_handler.connect_async()
 
-def scheduler(client: SpreadSheetClient) -> None:
-    client.upload()
+    def scheduler(client: SpreadSheetClient) -> None:
+        client.upload()
 
+    @app.on_event("shutdown")
+    async def shutdown():
+        # 서버 저장소 업로드
+        client = SpreadSheetClient()
+        client.upload()
 
-@api.on_event("shutdown")
-async def shutdown():
-    # 서버 저장소 업로드
-    client = SpreadSheetClient()
-    client.upload()
+else:
 
-    # 슬랙 소켓 모드 종료
-    slack_handler.stop()
+    @app.on_event("startup")
+    async def startup():
+        # 슬랙 소켓 모드 실행
+        await slack_handler.connect_async()
