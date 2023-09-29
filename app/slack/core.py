@@ -5,7 +5,7 @@ from app.store import sync_store
 from app.logging import event_log
 
 
-async def get_deposit(ack, body, logger, say, client, user_id: str) -> None:
+async def get_deposit(ack, body, say, client, user_id: str) -> None:
     event_log(user_id, event="예치금 조회")
     await ack()
 
@@ -29,7 +29,7 @@ async def get_deposit(ack, body, logger, say, client, user_id: str) -> None:
     )
 
 
-async def history_command(ack, body, logger, say, client, user_id: str) -> None:
+async def history_command(ack, body, say, client, user_id: str) -> None:
     event_log(user_id, event="제출내역 조회")
     await ack()
     submit_history = user_content_service.get_submit_history(body["user_id"])
@@ -60,7 +60,7 @@ async def history_command(ack, body, logger, say, client, user_id: str) -> None:
     )
 
 
-async def admin_command(ack, body, logger, say, client, user_id: str) -> None:
+async def admin_command(ack, body, say, client, user_id: str) -> None:
     event_log(user_id, event="관리자 메뉴 조회")
     # TODO: 추후 관리자 메뉴 추가
     await ack()

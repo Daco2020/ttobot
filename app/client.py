@@ -1,6 +1,6 @@
 import csv
 
-import loguru
+from app.logging import logger
 from app.config import (
     BACKUP_SHEET,
     BOOKMARK_SHEET,
@@ -40,11 +40,9 @@ class SpreadSheetClient:
                 cursor = len(self._raw_data_sheet.get_values("A:A")) + 1
                 self._raw_data_sheet.update(f"A{cursor}", upload_queue)
             except Exception as e:
-                loguru.logger.error(f"Failed to upload: {str(e)}")
-                # print_log(f"Failed {upload_queue} : {e}")
+                logger.error(f"Failed to upload: {str(e)}")
                 return None
-            loguru.logger.info(f"Uploaded {upload_queue}")
-            # print_log(f"Uploaded {upload_queue}")
+            logger.info(f"Uploaded {upload_queue}")
             upload_queue = []
 
     def download_users(self) -> None:

@@ -2,21 +2,23 @@ import ast
 import re
 from typing import Any
 
-import loguru
+from app.logging import logger
 from app import models
 from app.config import ANIMAL_TYPE, PASS_VIEW, SUBMIT_VIEW
 from app.services import user_content_service
 from app.logging import event_log
+from app.slack.exception_handler import exception_handler_decorator
 
 
-async def submit_command(ack, body, logger, say, client, user_id: str) -> None:
+@exception_handler_decorator
+async def submit_command(ack, body, say, client, user_id: str) -> None:
     event_log(user_id, event="글 제출 시작")
     await ack()
 
     await user_content_service.open_submit_modal(body, client, SUBMIT_VIEW)
 
 
-async def submit_view(ack, body, client, view, logger, say, user_id: str) -> None:
+async def submit_view(ack, body, client, view, say, user_id: str) -> None:
     event_log(user_id, event="글 제출 완료")
     await ack()
 
@@ -69,10 +71,10 @@ async def submit_view(ack, body, client, view, logger, say, user_id: str) -> Non
         )
     except Exception as e:
         message = f"{user.name}({user.channel_name}) 님의 제출이 실패하였습니다. {str(e)}"
-        loguru.logger.error(message)  # TODO: 디스코드 알림 보내기
+        logger.error(message)  # TODO: 디스코드 알림 보내기
 
 
-async def open_intro_modal(ack, body, client, view, logger, user_id: str) -> None:
+async def open_intro_modal(ack, body, client, view, user_id: str) -> None:
     event_log(user_id, event="다른 유저의 자기소개 확인")
     await ack()
 
@@ -102,7 +104,7 @@ async def open_intro_modal(ack, body, client, view, logger, user_id: str) -> Non
     )
 
 
-async def contents_modal(ack, body, client, view, logger, user_id: str) -> None:
+async def contents_modal(ack, body, client, view, user_id: str) -> None:
     event_log(user_id, event="다른 유저의 제출한 글 목록 확인")
     await ack()
 
@@ -120,7 +122,7 @@ async def contents_modal(ack, body, client, view, logger, user_id: str) -> None:
     )
 
 
-async def bookmark_modal(ack, body, client, view, logger, user_id: str) -> None:
+async def bookmark_modal(ack, body, client, view, user_id: str) -> None:
     event_log(user_id, event="북마크 저장 시작")
     await ack()
 
@@ -197,7 +199,7 @@ def get_bookmark_view(
     return view
 
 
-async def bookmark_view(ack, body, client, view, logger, say, user_id: str) -> None:
+async def bookmark_view(ack, body, client, view, say, user_id: str) -> None:
     event_log(user_id, event="북마크 저장 완료")
 
     await ack()
@@ -225,14 +227,14 @@ async def bookmark_view(ack, body, client, view, logger, say, user_id: str) -> N
     )
 
 
-async def pass_command(ack, body, logger, say, client, user_id: str) -> None:
+async def pass_command(ack, body, say, client, user_id: str) -> None:
     event_log(user_id, event="글 패스 시작")
     await ack()
 
     await user_content_service.open_pass_modal(body, client, PASS_VIEW)
 
 
-async def pass_view(ack, body, client, view, logger, say, user_id: str) -> None:
+async def pass_view(ack, body, client, view, say, user_id: str) -> None:
     event_log(user_id, event="글 패스 완료")
     await ack()
 
@@ -251,17 +253,17 @@ async def pass_view(ack, body, client, view, logger, say, user_id: str) -> None:
         )
     except Exception as e:
         message = f"{user.name}({user.channel_name}) 님의 패스가 실패하였습니다. {str(e)}"
-        loguru.logger.error(message)  # TODO: 디스코드 알림 보내기
+        logger.error(message)  # TODO: 디스코드 알림 보내기
 
 
-async def search_command(ack, body, logger, say, client, user_id: str) -> None:
+async def search_command(ack, body, say, client, user_id: str) -> None:
     event_log(user_id, event="글 검색 시작")
     await ack()
 
     await user_content_service.open_search_modal(body, client)
 
 
-async def submit_search(ack, body, client, view, logger, user_id: str):
+async def submit_search(ack, body, client, view, user_id: str):
     event_log(user_id, event="글 검색 완료")
 
     name = _get_name(body)
@@ -336,7 +338,7 @@ def _fetch_blocks(contents: list[models.Content]) -> list[dict[str, Any]]:
     return blocks
 
 
-async def back_to_search_view(ack, body, logger, say, client, user_id: str) -> None:
+async def back_to_search_view(ack, body, say, client, user_id: str) -> None:
     event_log(user_id, event="글 검색 다시 시작")
 
     view = {
@@ -475,7 +477,7 @@ def _get_keyword(body) -> str:
     return keyword
 
 
-async def bookmark_command(ack, body, logger, say, client, user_id: str) -> None:
+async def bookmark_command(ack, body, say, client, user_id: str) -> None:
     event_log(user_id, event="북마크 조회")
     await ack()
 
@@ -565,7 +567,7 @@ def _fetch_bookmark_blocks(contents: list[models.Content]) -> list[dict[str, Any
     return blocks
 
 
-async def bookmark_search_view(ack, body, logger, say, client, user_id: str) -> None:
+async def bookmark_search_view(ack, body, say, client, user_id: str) -> None:
     event_log(user_id, event="북마크 검색 시작")
 
     view = {
@@ -607,9 +609,7 @@ async def bookmark_search_view(ack, body, logger, say, client, user_id: str) -> 
     await ack({"response_action": "update", "view": view})
 
 
-async def open_overflow_action(
-    ack, body, client, view, logger, say, user_id: str
-) -> None:
+async def open_overflow_action(ack, body, client, view, say, user_id: str) -> None:
     event_log(user_id, event="북마크 메뉴 선택")
     await ack()
 
@@ -647,9 +647,7 @@ async def open_overflow_action(
     )
 
 
-async def bookmark_submit_search_view(
-    ack, body, logger, say, client, user_id: str
-) -> None:
+async def bookmark_submit_search_view(ack, body, say, client, user_id: str) -> None:
     event_log(user_id, event="북마크 검색 완료")
 
     keyword = _get_keyword(body)

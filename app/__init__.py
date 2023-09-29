@@ -31,6 +31,7 @@ async def startup():
     # 슬랙 소켓 모드 실행
     await slack_handler.connect_async()
 
+
 def scheduler(client: SpreadSheetClient) -> None:
     client.upload()
 
@@ -40,7 +41,4 @@ async def shutdown():
     # # 서버 저장소 업로드
     # client = SpreadSheetClient()
     # client.upload()
-
-    # 슬랙 소켓 모드 종료
-    # slack_handler.stop()
     ...

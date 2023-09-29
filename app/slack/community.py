@@ -1,13 +1,12 @@
-import loguru
+from app.logging import logger
 from app.config import ANIMAL_TYPE
 from app.services import user_content_service
 from app.logging import event_log
 
 
-async def guide_command(ack, body, logger, say, client, user_id: str) -> None:
+async def guide_command(ack, body, say, client, user_id: str) -> None:
     event_log(user_id, event="모코숲 가이드 조회")
     await ack()
-    # await user_content_service.open_submit_modal(body, client, SUBMIT_VIEW)
 
     await client.views_open(
         trigger_id=body["trigger_id"],
@@ -61,5 +60,5 @@ async def send_welcome_message(event, say, user_id: str):
                 ],
             )
         except Exception as e:
-            loguru.logger.error(e)  # TODO: 디스코드 알림 보내기
+            logger.error(e)  # TODO: 디스코드 알림 보내기
             pass

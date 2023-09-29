@@ -1,15 +1,14 @@
 import datetime
 import decimal
 import uuid
+import orjson
+import inspect
+
 from typing import Any
 from app.utils import now_dt_to_str
+from loguru import logger
 
-
-import loguru
-import orjson
-
-
-import inspect
+logger.add("store/logs.csv", format="{time},{level},{message}")
 
 
 def default(obj: Any) -> str | list[Any]:
@@ -35,8 +34,8 @@ def event_log(user_id: str, event: str) -> None:
             caller=inspect.stack()[1].function,
             timestamp=now_dt_to_str(),
         )
-        loguru.logger.info(orjson.dumps(data, default=default).decode("utf-8"))
+        logger.info(orjson.dumps(data, default=default).decode("utf-8"))
     except Exception as e:
-        loguru.logger.error(
+        logger.error(
             f"Failed to log event: {str(e)}"
         )  # TODO: 디스코드 알림 보내기, exception 선택 필요
