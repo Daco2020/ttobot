@@ -122,20 +122,12 @@ class SpreadSheetClient:
 
     def upload_logs(self) -> None:
         """로그 파일을 업로드합니다."""
+        # TODO: 업로드 자동화 필요
         with open("store/logs.csv", "r") as f:
             reader = csv.reader(f)
             logs = list(reader)
         cursor = len(self._log_sheet.get_values("A:A")) + 1
         self._log_sheet.update(f"A{cursor}", logs)
-
-    def upload_bookmark(self) -> None:
-        """북마크를 업로드합니다."""
-        with open("store/bookmark.csv", "r") as f:
-            reader = csv.reader(f)
-            bookmarks = list(reader)
-        cursor = len(self._bookmark_sheet.get_values("A:A")) + 1
-        print(bookmarks[cursor - 1 :])
-        self._bookmark_sheet.update(f"A{cursor}", bookmarks[cursor - 1 :])
 
     def update_bookmark(self, bookmark: Bookmark) -> None:
         """북마크를 업데이트합니다."""
