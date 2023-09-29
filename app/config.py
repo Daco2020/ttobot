@@ -13,6 +13,7 @@ class Settings(BaseSettings):
     DEPOSIT_SHEETS_URL: str
 
     ENV: str
+    ADMIN_CHANNEL: str
 
     class Config:
         env_file = ".env"
