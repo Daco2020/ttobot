@@ -47,7 +47,7 @@ class UserRepository:
         """유저의 콘텐츠를 업데이트합니다."""
         if not user.contents:
             raise ValueError("업데이트 대상 content 가 없습니다.")
-        client.upload_queue.append(user.recent_content.to_list_for_sheet())
+        client.content_upload_queue.append(user.recent_content.to_list_for_sheet())
         line = user.recent_content.to_line_for_csv()
         with open("store/contents.csv", "a") as f:
             f.write(line + "\n")
@@ -95,22 +95,30 @@ class UserRepository:
         with open("store/bookmark.csv", "a") as f:
             f.write(bookmark.to_line_for_csv() + "\n")
 
-    def get_bookmark(self, user_id: str, content_id: str) -> models.Bookmark | None:
-        bookmarks = self.fetch_bookmarks(user_id)
+    def get_bookmark(
+        self,
+        user_id: str,
+        content_id: str,
+        status: models.BookmarkStatusEnum = models.BookmarkStatusEnum.ACTIVE,
+    ) -> models.Bookmark | None:
+        bookmarks = self.fetch_bookmarks(user_id, status)
         for bookmark in bookmarks:
             if bookmark.content_id == content_id:
                 return bookmark
         return None
 
-    def fetch_bookmarks(self, user_id: str) -> list[models.Bookmark]:
+    def fetch_bookmarks(
+        self,
+        user_id: str,
+        status: models.BookmarkStatusEnum = models.BookmarkStatusEnum.ACTIVE,
+    ) -> list[models.Bookmark]:
         """유저의 삭제되지 않은 북마크를 내림차순으로 가져옵니다."""
         with open("store/bookmark.csv", "r") as f:
             reader = csv.DictReader(f)
             bookmarks = [
                 models.Bookmark(**bookmark)  # type: ignore
                 for bookmark in reader
-                if bookmark["user_id"] == user_id
-                and bookmark["status"] == models.BookmarkStatusEnum.ACTIVE
+                if bookmark["user_id"] == user_id and bookmark["status"] == status
             ]
 
         return sorted(bookmarks, key=lambda bookmark: bookmark.created_at, reverse=True)

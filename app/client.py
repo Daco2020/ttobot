@@ -10,8 +10,9 @@ from app.config import (
     settings,
 )
 
-import gspread  # type: ignore
-from oauth2client.service_account import ServiceAccountCredentials  # type: ignore
+import gspread
+from oauth2client.service_account import ServiceAccountCredentials
+from app.models import Bookmark
 
 from app.utils import now_dt
 
@@ -20,7 +21,9 @@ credentials = ServiceAccountCredentials.from_json_keyfile_dict(
     settings.JSON_KEYFILE_DICT, settings.SCOPE
 )
 gc = gspread.authorize(credentials)
-upload_queue: list[list[str]] = []
+content_upload_queue: list[list[str]] = []
+bookmark_upload_queue: list[list[str]] = []
+bookmark_update_queue: list[Bookmark] = []  # TODO: 추후 타입 수정 필요
 
 
 class SpreadSheetClient:
@@ -30,20 +33,39 @@ class SpreadSheetClient:
         self._users_sheet = self._doc.worksheet(USERS_SHEET)
         self._log_sheet = self._doc.worksheet(LOG_SHEET)
         self._backup_sheet = self._doc.worksheet(BACKUP_SHEET)
-        self._bookmark = self._doc.worksheet(BOOKMARK_SHEET)
+        self._bookmark_sheet = self._doc.worksheet(BOOKMARK_SHEET)
 
     def upload(self) -> None:
         """새로 추가된 queue 가 있다면 upload 합니다."""
-        global upload_queue
-        if upload_queue:
+        # TODO: 이벤트 로그 적용할 것
+        global content_upload_queue
+        if content_upload_queue:
             try:
                 cursor = len(self._raw_data_sheet.get_values("A:A")) + 1
-                self._raw_data_sheet.update(f"A{cursor}", upload_queue)
+                self._raw_data_sheet.update(f"A{cursor}", content_upload_queue)
             except Exception as e:
-                logger.error(f"Failed to upload: {str(e)}")
+                logger.error(f"Failed to upload content: {str(e)}")
                 return None
-            logger.info(f"Uploaded {upload_queue}")
-            upload_queue = []
+            logger.info(f"Successfully Uploaded content: {content_upload_queue}")
+            content_upload_queue = []
+
+        global bookmark_upload_queue
+        if bookmark_upload_queue:
+            try:
+                cursor = len(self._bookmark_sheet.get_values("A:A")) + 1
+                self._bookmark_sheet.update(f"A{cursor}", bookmark_upload_queue)
+            except Exception as e:
+                logger.error(f"Failed to upload bookmark: {str(e)}")
+                return None
+            logger.info(f"Successfully Uploaded bookmark {bookmark_upload_queue}")
+            bookmark_upload_queue = []
+
+        global bookmark_update_queue
+        if bookmark_update_queue:
+            for bookmark in bookmark_update_queue:
+                self.update_bookmark(bookmark)
+            logger.info(f"Successfully Updated bookmark {bookmark_update_queue}")
+            bookmark_update_queue = []
 
     def download_users(self) -> None:
         """유저 정보를 가져옵니다."""
@@ -59,7 +81,7 @@ class SpreadSheetClient:
 
     def download_bookmarks(self) -> None:
         """북마크 정보를 가져옵니다."""
-        bookmarks = self._bookmark.get_values("A:F")
+        bookmarks = self._bookmark_sheet.get_values("A:F")
         with open("store/bookmark.csv", "w") as f:
             f.writelines([f"{','.join(bookmark)}\n" for bookmark in bookmarks])
 
@@ -100,17 +122,30 @@ class SpreadSheetClient:
 
     def upload_logs(self) -> None:
         """로그 파일을 업로드합니다."""
+        # TODO: 업로드 자동화 필요
         with open("store/logs.csv", "r") as f:
             reader = csv.reader(f)
             logs = list(reader)
         cursor = len(self._log_sheet.get_values("A:A")) + 1
         self._log_sheet.update(f"A{cursor}", logs)
 
-    def upload_bookmark(self) -> None:
-        """북마크를 업로드합니다."""
-        with open("store/bookmark.csv", "r") as f:
-            reader = csv.reader(f)
-            bookmarks = list(reader)
-        cursor = len(self._bookmark.get_values("A:A")) + 1
-        print(bookmarks[cursor - 1 :])
-        self._bookmark.update(f"A{cursor}", bookmarks[cursor - 1 :])
+    def update_bookmark(self, bookmark: Bookmark) -> None:
+        """북마크를 업데이트합니다."""
+        records = self._bookmark_sheet.get_all_records()
+        target_record = dict()
+        row_number = 2  # +1은 enumerate이 0부터 시작하기 때문, +1은 헤더 행 때문
+        for idx, record in enumerate(records):
+            if (
+                bookmark.user_id == record["user_id"]
+                and bookmark.content_id == record["content_id"]
+            ):
+                target_record = record
+                row_number += idx
+                break
+
+        values = bookmark.to_list_for_sheet()
+
+        if not target_record:
+            logger.error(f"시트에 해당 북마크가 존재하지 않습니다. {values}")
+
+        self._bookmark_sheet.update(f"A{row_number}:F{row_number}", [values])

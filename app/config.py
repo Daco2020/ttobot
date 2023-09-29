@@ -38,7 +38,7 @@ SEARCH_VIEW = "search_view"
 # constants
 URL_REGEX = r"((http|https):\/\/)?[a-zA-Z0-9.-]+(\.[a-zA-Z]{2,})"
 MAX_PASS_COUNT = 2
-DUE_DATES = [
+DUE_DATES = [  # TODO: 환경변수로 변경하기
     datetime.datetime(2023, 2, 12).date(),
     datetime.datetime(2023, 2, 26).date(),
     datetime.datetime(2023, 3, 12).date(),
@@ -57,6 +57,8 @@ DUE_DATES = [
     datetime.datetime(2023, 9, 10).date(),
     datetime.datetime(2023, 9, 24).date(),
     datetime.datetime(2023, 10, 8).date(),
+    datetime.datetime(2023, 10, 22).date(),
+    datetime.datetime(2023, 11, 5).date(),
 ]
 
 

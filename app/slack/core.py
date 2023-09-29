@@ -73,7 +73,6 @@ async def admin_command(ack, body, say, client, user_id: str) -> None:
         await client.chat_postMessage(channel=body["user_id"], text="store sync 완료")
         sheet_client = SpreadSheetClient()
         sheet_client.push_backup()
-        sheet_client.upload_bookmark()  # TODO: 분리 필요
         sync_store(sheet_client)
         sheet_client.upload_logs()
         sheet_client.create_log_file()
