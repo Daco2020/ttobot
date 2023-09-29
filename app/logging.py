@@ -36,6 +36,4 @@ def event_log(user_id: str, event: str) -> None:
         )
         logger.info(orjson.dumps(data, default=default).decode("utf-8"))
     except Exception as e:
-        logger.error(
-            f"Failed to log event: {str(e)}"
-        )  # TODO: 디스코드 알림 보내기, exception 선택 필요
+        logger.debug(f"Failed to log event: {str(e)}")

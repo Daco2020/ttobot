@@ -1,10 +1,12 @@
 from app.client import SpreadSheetClient
 from app.config import settings
+from app.exception_handler import exception_handler_decorator
 from app.services import user_content_service
 from app.store import sync_store
 from app.logging import event_log
 
 
+@exception_handler_decorator
 async def get_deposit(ack, body, say, client, user_id: str) -> None:
     event_log(user_id, event="예치금 조회")
     await ack()
@@ -29,6 +31,7 @@ async def get_deposit(ack, body, say, client, user_id: str) -> None:
     )
 
 
+@exception_handler_decorator
 async def history_command(ack, body, say, client, user_id: str) -> None:
     event_log(user_id, event="제출내역 조회")
     await ack()
@@ -60,6 +63,7 @@ async def history_command(ack, body, say, client, user_id: str) -> None:
     )
 
 
+@exception_handler_decorator
 async def admin_command(ack, body, say, client, user_id: str) -> None:
     event_log(user_id, event="관리자 메뉴 조회")
     # TODO: 추후 관리자 메뉴 추가

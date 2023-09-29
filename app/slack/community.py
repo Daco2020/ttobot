@@ -1,9 +1,11 @@
-from app.logging import logger
+from app.exception import BotException
 from app.config import ANIMAL_TYPE
+from app.exception_handler import exception_handler_decorator
 from app.services import user_content_service
 from app.logging import event_log
 
 
+@exception_handler_decorator
 async def guide_command(ack, body, say, client, user_id: str) -> None:
     event_log(user_id, event="모코숲 가이드 조회")
     await ack()
@@ -30,11 +32,11 @@ async def guide_command(ack, body, say, client, user_id: str) -> None:
     )
 
 
+@exception_handler_decorator
 async def send_welcome_message(event, say, user_id: str):
     if event["channel"] == "C05K0RNQZA4":
         event_log(user_id, event="모코숲 채널 입장")
         try:
-            user_id = event["user"]
             user = user_content_service.get_user_not_valid(user_id)
             animal = ANIMAL_TYPE[user.animal_type]
 
@@ -60,5 +62,5 @@ async def send_welcome_message(event, say, user_id: str):
                 ],
             )
         except Exception as e:
-            logger.error(e)  # TODO: 디스코드 알림 보내기
-            pass
+            message = f"{user_id} 님이 모코숲 입장에 실패하였습니다. {str(e)}"
+            raise BotException(message)
