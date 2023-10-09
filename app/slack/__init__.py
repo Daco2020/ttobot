@@ -9,6 +9,8 @@ app = AsyncApp(token=settings.BOT_TOKEN)
 
 @app.middleware
 async def middleware(req, resp, next):
+    # TODO: 이벤트 로그 적용할 것
+    # TODO: 서비스 컨텍스트에 주입할 것
     await next()
 
 

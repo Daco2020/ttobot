@@ -35,21 +35,19 @@ class Content(BaseModel):
         """생성일시를 date 객체로 반환합니다."""
         return self.dt_.date()
 
-    def to_line_for_csv(self) -> str:
+    def to_list_for_csv(self) -> list[str]:
         """csv 파일에 쓰기 위한 한 줄을 반환합니다."""
-        return ",".join(
-            [
-                self.user_id,
-                self.username,
-                f'"{self.title}"',
-                f'"{self.content_url}"',
-                self.dt,
-                self.category,
-                self.description.replace(",", " ").replace("\n", " "),
-                self.type,
-                self.tags.replace(",", "#"),
-            ]
-        )
+        return [
+            self.user_id,
+            self.username,
+            self.title,
+            self.content_url,
+            self.dt,
+            self.category,
+            self.description,
+            self.type,
+            self.tags.replace(",", "#"),
+        ]
 
     def to_list_for_sheet(self) -> list[str]:
         """구글 시트에 쓰기 위한 리스트를 반환합니다."""
@@ -60,7 +58,7 @@ class Content(BaseModel):
             self.content_url,
             self.dt,
             self.category,
-            self.description.replace(",", " ").replace("\n", " "),
+            self.description,
             self.type,
             self.tags.replace(",", "#"),
         ]
@@ -167,25 +165,23 @@ class Bookmark(BaseModel):
     created_at: str = Field(default_factory=now_dt_to_str)
     updated_at: str = Field(default_factory=now_dt_to_str)
 
-    def to_line_for_csv(self) -> str:
-        """csv 파일에 쓰기 위한 한 줄을 반환합니다."""
-        return ",".join(
-            [
-                self.user_id,
-                self.content_id,
-                f'"{self.note}"',
-                self.status,
-                self.created_at,
-                self.updated_at,
-            ]
-        )
+    def to_list_for_csv(self) -> list[str]:
+        """csv 파일에 쓰기 위한 리스트를 반환합니다."""
+        return [
+            self.user_id,
+            self.content_id,
+            self.note,
+            self.status,
+            self.created_at,
+            self.updated_at,
+        ]
 
     def to_list_for_sheet(self) -> list[str]:
         """구글 시트에 쓰기 위한 리스트를 반환합니다."""
         return [
             self.user_id,
             self.content_id,
-            self.note.replace(",", " ").replace("\n", " "),
+            self.note,
             self.status,
             self.created_at,
             self.updated_at,

@@ -70,28 +70,31 @@ class SpreadSheetClient:
     def download_users(self) -> None:
         """유저 정보를 가져옵니다."""
         users = self._users_sheet.get_values("A:G")
-        with open("store/users.csv", "w") as f:
-            f.writelines([f"{','.join(user)}\n" for user in users])
+        with open("store/users.csv", "w", newline="", encoding="utf-8") as f:
+            writer = csv.writer(f, quoting=csv.QUOTE_ALL)
+            writer.writerows(users)
 
     def download_contents(self) -> None:
         """콘텐츠 정보를 가져옵니다."""
         contents = self._raw_data_sheet.get_values("A:I")
-        with open("store/contents.csv", "w") as f:
-            f.writelines([f"{content}" for content in self._parse(contents)])
+        with open("store/contents.csv", "w", newline="", encoding="utf-8") as f:
+            writer = csv.writer(f, quoting=csv.QUOTE_ALL)
+            writer.writerows(contents)
 
     def download_bookmarks(self) -> None:
         """북마크 정보를 가져옵니다."""
         bookmarks = self._bookmark_sheet.get_values("A:F")
-        with open("store/bookmark.csv", "w") as f:
-            f.writelines([f"{','.join(bookmark)}\n" for bookmark in bookmarks])
+        with open("store/bookmark.csv", "w", newline="", encoding="utf-8") as f:
+            writer = csv.writer(f, quoting=csv.QUOTE_ALL)
+            writer.writerows(bookmarks)
 
     def push_backup(self) -> None:
         """백업 시트에 contents.csv를 업로드합니다."""
-        with open("store/contents.csv", "r") as f:
+        with open("store/contents.csv") as f:
             reader = csv.reader(f)
             contents = list(reader)
         self._backup_sheet.clear()  # 기존 데이터를 지웁니다.
-        self._backup_sheet.append_rows(contents)  # 새로운 데이터를 추가합니다.
+        self._backup_sheet.append_rows(contents)  # 백업할 데이터를 업로드 합니다.
 
     def _parse(self, contents: list[list[str]]) -> list[str]:
         """
@@ -123,7 +126,7 @@ class SpreadSheetClient:
     def upload_logs(self) -> None:
         """로그 파일을 업로드합니다."""
         # TODO: 업로드 자동화 필요
-        with open("store/logs.csv", "r") as f:
+        with open("store/logs.csv") as f:
             reader = csv.reader(f)
             logs = list(reader)
         cursor = len(self._log_sheet.get_values("A:A")) + 1
