@@ -1,14 +1,17 @@
 from app.client import SpreadSheetClient
 from app.config import settings
-from app.exception_handler import exception_handler_decorator
 from app.services import user_content_service
 from app.store import sync_store
-from app.logging import event_log
 
 
-@exception_handler_decorator
+async def handle_mention(body, say, client):
+    """앱 멘션을 처리합니다."""
+    user = body["event"]["user"]
+    await say(f"{user} mentioned your app")
+
+
 async def get_deposit(ack, body, say, client, user_id: str) -> None:
-    event_log(user_id, event="예치금 조회")
+    """예치금을 조회합니다."""
     await ack()
 
     user = user_content_service.get_user_not_valid(body["user_id"])
@@ -31,9 +34,8 @@ async def get_deposit(ack, body, say, client, user_id: str) -> None:
     )
 
 
-@exception_handler_decorator
 async def history_command(ack, body, say, client, user_id: str) -> None:
-    event_log(user_id, event="제출내역 조회")
+    """제출 내역을 조회합니다."""
     await ack()
     submit_history = user_content_service.get_submit_history(body["user_id"])
 
@@ -63,11 +65,10 @@ async def history_command(ack, body, say, client, user_id: str) -> None:
     )
 
 
-@exception_handler_decorator
 async def admin_command(ack, body, say, client, user_id: str) -> None:
-    event_log(user_id, event="관리자 메뉴 조회")
-    # TODO: 추후 관리자 메뉴 추가
+    """관리자 메뉴를 조회합니다."""
     await ack()
+    # TODO: 추후 관리자 메뉴 추가
     try:
         user_content_service.validate_admin_user(body["user_id"])
         await client.chat_postMessage(channel=body["user_id"], text="store sync 완료")

@@ -2,7 +2,6 @@ import datetime
 import decimal
 import uuid
 import orjson
-import inspect
 
 from typing import Any
 from app.utils import now_dt_to_str
@@ -26,12 +25,18 @@ def default(obj: Any) -> str | list[Any]:
         return "This object cannot be serialized."
 
 
-def event_log(user_id: str, event: str) -> None:
+def event_log(
+    user_id: str | None,
+    event: str,
+    type: str,
+    description: str = "",
+) -> None:
     try:
         data = dict(
-            event=event,
             user_id=user_id,
-            caller=inspect.stack()[1].function,
+            event=event,
+            type=type,
+            description=description,
             timestamp=now_dt_to_str(),
         )
         logger.info(orjson.dumps(data, default=default).decode("utf-8"))

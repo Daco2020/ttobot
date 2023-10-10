@@ -493,7 +493,7 @@ class UserContentService:
             result = title.strip()
             return result
         except Exception as e:
-            logger.error(str(e))
+            logger.debug(str(e))
             return "title unknown."
 
     def _description_message(self, description: str) -> str:

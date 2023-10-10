@@ -1,13 +1,10 @@
 from app.exception import BotException
 from app.config import ANIMAL_TYPE
-from app.exception_handler import exception_handler_decorator
 from app.services import user_content_service
-from app.logging import event_log
 
 
-@exception_handler_decorator
 async def guide_command(ack, body, say, client, user_id: str) -> None:
-    event_log(user_id, event="모코숲 가이드 조회")
+    """모코숲 가이드를 조회합니다."""
     await ack()
 
     await client.views_open(
@@ -32,10 +29,9 @@ async def guide_command(ack, body, say, client, user_id: str) -> None:
     )
 
 
-@exception_handler_decorator
 async def send_welcome_message(event, say, user_id: str):
+    """모코숲 채널 입장 메시지를 보냅니다."""
     if event["channel"] == "C05K0RNQZA4":
-        event_log(user_id, event="모코숲 채널 입장")
         try:
             user = user_content_service.get_user_not_valid(user_id)
             animal = ANIMAL_TYPE[user.animal_type]
