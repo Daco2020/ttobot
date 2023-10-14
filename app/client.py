@@ -146,6 +146,7 @@ class SpreadSheetClient:
             logs = list(reader)
         cursor = len(self._log_sheet.get_values("A:A")) + 1
         self._log_sheet.update(f"A{cursor}", logs)
+        logger.info("Uploaded logs")
 
     def update_bookmark(self, bookmark: Bookmark) -> None:
         """북마크를 업데이트합니다."""

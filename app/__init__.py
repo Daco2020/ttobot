@@ -1,3 +1,4 @@
+from zoneinfo import ZoneInfo
 from app.client import SpreadSheetClient
 from fastapi import FastAPI, Request
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -29,7 +30,7 @@ if settings.ENV == "prod":
         schedule = BackgroundScheduler(daemon=True, timezone="Asia/Seoul")
         schedule.add_job(upload_contents, "interval", seconds=10, args=[client])
 
-        trigger = CronTrigger(hour=1, minute=0)
+        trigger = CronTrigger(hour=1, timezone=ZoneInfo("Asia/Seoul"))
         schedule.add_job(upload_logs, trigger=trigger, args=[client])
         schedule.start()
 
@@ -45,10 +46,10 @@ if settings.ENV == "prod":
 
     @app.on_event("shutdown")
     async def shutdown():
-        # # 서버 저장소 업로드
-        # client = SpreadSheetClient()
-        # client.upload()
-        ...
+        # 서버 저장소 업로드
+        client = SpreadSheetClient()
+        client.upload()
+        client.upload_logs()
 
 else:
 
