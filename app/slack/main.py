@@ -46,7 +46,6 @@ async def log_event_middleware(
             event=event,  # type: ignore
             type=type,
             description=description,
-            body=body,
         )
 
     await next()

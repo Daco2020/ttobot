@@ -23,6 +23,8 @@ content_upload_queue: list[list[str]] = []
 bookmark_upload_queue: list[list[str]] = []
 bookmark_update_queue: list[Bookmark] = []  # TODO: 추후 타입 수정 필요
 
+# TODO: 파일 시스템과 분리 필요
+
 
 class SpreadSheetClient:
     def __init__(self) -> None:
@@ -139,7 +141,6 @@ class SpreadSheetClient:
 
     def upload_logs(self) -> None:
         """로그 파일을 업로드합니다."""
-        # TODO: 업로드 자동화 필요
         with open("store/logs.csv") as f:
             reader = csv.reader(f)
             logs = list(reader)
