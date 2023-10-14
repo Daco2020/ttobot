@@ -1,6 +1,6 @@
-from app.exception import BotException
+from app.slack.exception import BotException
 from app.config import ANIMAL_TYPE
-from app.services import user_content_service
+from app.slack.services import SlackService
 
 
 async def guide_command(ack, body, say, client, user_id: str) -> None:
@@ -29,11 +29,11 @@ async def guide_command(ack, body, say, client, user_id: str) -> None:
     )
 
 
-async def send_welcome_message(event, say, user_id: str):
+async def send_welcome_message(event, say, user_id: str, service: SlackService):
     """모코숲 채널 입장 메시지를 보냅니다."""
     if event["channel"] == "C05K0RNQZA4":
         try:
-            user = user_content_service.get_user_not_valid(user_id)
+            user = service.get_user_not_valid(user_id)
             animal = ANIMAL_TYPE[user.animal_type]
 
             message = (

@@ -2,11 +2,12 @@ import csv
 from typing import Any
 import pandas as pd
 
-from app import models, client
+from app import client
+from app.slack import models
 from app.utils import now_dt_to_str
 
 
-class UserRepository:
+class SlackRepository:
     def __init__(self) -> None:
         ...
 

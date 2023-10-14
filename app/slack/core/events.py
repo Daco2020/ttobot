@@ -1,20 +1,22 @@
 from app.client import SpreadSheetClient
 from app.config import settings
-from app.services import user_content_service
+from app.slack.services import SlackService
 from app.store import sync_store
 
 
-async def handle_mention(body, say, client):
+async def handle_mention(body, say, client) -> None:
     """앱 멘션을 처리합니다."""
     user = body["event"]["user"]
     await say(f"{user} mentioned your app")
 
 
-async def get_deposit(ack, body, say, client, user_id: str) -> None:
+async def get_deposit(
+    ack, body, say, client, user_id: str, service: SlackService
+) -> None:
     """예치금을 조회합니다."""
     await ack()
 
-    user = user_content_service.get_user_not_valid(body["user_id"])
+    user = service.get_user_not_valid(body["user_id"])
 
     await client.views_open(
         trigger_id=body["trigger_id"],
@@ -34,12 +36,14 @@ async def get_deposit(ack, body, say, client, user_id: str) -> None:
     )
 
 
-async def history_command(ack, body, say, client, user_id: str) -> None:
+async def history_command(
+    ack, body, say, client, user_id: str, service: SlackService
+) -> None:
     """제출 내역을 조회합니다."""
     await ack()
-    submit_history = user_content_service.get_submit_history(body["user_id"])
+    submit_history = service.get_submit_history(body["user_id"])
 
-    user = user_content_service.get_user_not_valid(body["user_id"])
+    user = service.get_user_not_valid(body["user_id"])
     round, due_date = user.get_due_date()
     guide_message = f"\n*현재 회차는 {round}회차, 마감일은 {due_date} 이에요."
 
@@ -65,12 +69,14 @@ async def history_command(ack, body, say, client, user_id: str) -> None:
     )
 
 
-async def admin_command(ack, body, say, client, user_id: str) -> None:
+async def admin_command(
+    ack, body, say, client, user_id: str, service: SlackService
+) -> None:
     """관리자 메뉴를 조회합니다."""
     await ack()
     # TODO: 추후 관리자 메뉴 추가
     try:
-        user_content_service.validate_admin_user(body["user_id"])
+        service.validate_admin_user(body["user_id"])
         await client.chat_postMessage(channel=body["user_id"], text="store sync 완료")
         sheet_client = SpreadSheetClient()
         sheet_client.push_backup()

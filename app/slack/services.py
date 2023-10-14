@@ -1,20 +1,23 @@
 import re
 from typing import Any
-from app.exception import BotException
+from app.slack.exception import BotException
 
 from app.logging import logger
 from app.config import MAX_PASS_COUNT, URL_REGEX
-from app.repositories import UserRepository
-from app import client, models
+from app.slack.repositories import SlackRepository
+from app import client
 
 
 import requests
 from bs4 import BeautifulSoup
 
+from app.slack import models
 
-class UserContentService:
-    def __init__(self, user_repo: UserRepository) -> None:
+
+class SlackService:
+    def __init__(self, user_repo: SlackRepository, user: models.User) -> None:
         self._user_repo = user_repo
+        self._user = user
 
     def fetch_contents(
         self, keyword: str | None = None, name: str | None = None, category: str = "전체"
@@ -362,7 +365,7 @@ class UserContentService:
                 "type": "modal",
                 "callback_id": "submit_search",
                 "title": {"type": "plain_text", "text": "글 검색 🔍"},
-                "submit": {"type": "plain_text", "text": "찾기"},
+                "submit": {"type": "plain_text", "text": "검색"},
                 "blocks": [
                     {
                         "type": "section",
@@ -594,6 +597,3 @@ class UserContentService:
                 new_status=new_status,
             )
             raise BotException(f"수정한 북마크가 존재하지 않습니다. {data=}")
-
-
-user_content_service = UserContentService(user_repo=UserRepository())

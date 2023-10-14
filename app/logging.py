@@ -25,7 +25,7 @@ def default(obj: Any) -> str | list[Any]:
         return "This object cannot be serialized."
 
 
-def event_log(
+def log_event(
     user_id: str | None,
     event: str,
     type: str,

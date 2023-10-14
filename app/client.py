@@ -12,7 +12,7 @@ from app.config import (
 
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
-from app.models import Bookmark
+from app.slack.models import Bookmark
 
 from app.utils import now_dt
 

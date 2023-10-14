@@ -2,7 +2,7 @@ import csv
 import pytest
 
 from pydantic import ValidationError
-from app.models import Content, User, Bookmark
+from app.slack.models import Content, User, Bookmark
 
 
 def test_valid_content_loading() -> None:
