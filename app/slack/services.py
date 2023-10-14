@@ -19,6 +19,11 @@ class SlackService:
         self._user_repo = user_repo
         self._user = user
 
+    @property
+    def user(self) -> models.User:
+        """유저를 가져옵니다."""
+        return self._user
+
     def fetch_contents(
         self, keyword: str | None = None, name: str | None = None, category: str = "전체"
     ) -> list[models.Content]:
@@ -37,35 +42,15 @@ class SlackService:
 
         return contents
 
-    def get_user(self, user_id, channel_id) -> models.User:
-        user = self._user_repo.get_user(user_id)
-
-        # TODO: validate 분리
-        self._validate_user(channel_id, user)
-        return user  # type: ignore
-
-    def get_user_not_valid(self, user_id) -> models.User:
-        # TODO: 임시로 사용, 추후 제거
+    def get_other_user(self, user_id) -> models.User:
+        """다른 유저를 가져옵니다."""
         user = self._user_repo.get_user(user_id)
         return user  # type: ignore
 
-    def update_user(self, user: models.User, content: models.Content):
-        user.contents.append(content)
-        self._user_repo.update(user)
-
-    async def open_submit_modal(self, body, client, view_name: str) -> None:
-        try:
-            user = self.get_user(body["user_id"], body["channel_id"])
-        except ValueError as e:
-            await self._open_error_modal(client, body, view_name, str(e))
-            return None
-        await self._open_submit_modal(client, body, view_name, user)
-
-    async def create_submit_content(
-        self, ack, body, view, user: models.User
-    ) -> models.Content:
+    async def create_submit_content(self, ack, body, view) -> models.Content:
+        """제출 콘텐츠를 생성합니다."""
         content_url = self._get_content_url(view)
-        await self._validate_url(ack, content_url, user)
+        await self._validate_url(ack, content_url, self._user)
         content = models.Content(
             user_id=body["user"]["id"],
             username=body["user"]["username"],
@@ -76,32 +61,22 @@ class SlackService:
             tags=self._get_tags(view),
             type="submit",
         )
-        self.update_user(user, content)
+        self._user.contents.append(content)
+        self._user_repo.update(self._user)
         return content
 
-    async def open_pass_modal(self, body, client, view_name: str) -> None:
-        try:
-            user = self.get_user(body["user_id"], body["channel_id"])
-        except ValueError as e:
-            await self._open_error_modal(client, body, view_name, str(e))
-            return None
-        await self._open_pass_modal(client, body, view_name, user)
-
-    async def create_pass_content(
-        self, ack, body, view, user: models.User
-    ) -> models.Content:
-        await self._validate_pass(ack, user)
+    async def create_pass_content(self, ack, body, view) -> models.Content:
+        """패스 콘텐츠를 생성합니다."""
+        await self._validate_pass(ack, self._user)
         content = models.Content(
             user_id=body["user"]["id"],
             username=body["user"]["username"],
             description=self._get_description(view),
             type="pass",
         )
-        self.update_user(user, content)
+        self._user.contents.append(content)
+        self._user_repo.update(self._user)
         return content
-
-    async def open_search_modal(self, body, client) -> None:
-        await self._open_search_modal(client, body)
 
     def get_chat_message(self, content: models.Content, animal: dict[str, str]) -> str:
         if content.type == "submit":
@@ -115,19 +90,9 @@ class SlackService:
                 {self._description_message(content.description)}"
         return message
 
-    def get_submit_history(self, user_id: str) -> str:
-        user = self._user_repo.get_user(user_id)
-        if user is None:
-            return "사용자 정보가 없습니다. [글또봇질문]채널로 문의해주세요."
-        return self._history_message(user)
-
-    def validate_admin_user(self, user_id: str) -> None:
-        if user_id not in ["U02HPESDZT3", "U04KVHPMQQ6"]:
-            raise ValueError("관리자 계정이 아닙니다.")
-
-    def _history_message(self, user: models.User) -> str:
+    def get_submit_history(self) -> str:
         message = ""
-        for content in user.fetch_contents():
+        for content in self._user.fetch_contents():
             round = content.get_round()
             sumit_head = f"✅  {round}회차 제출"
             pass_head = f"▶️  {round}회차 패스"
@@ -139,6 +104,7 @@ class SlackService:
     async def _open_error_modal(
         self, client, body: dict[str, str], view_name: str, e: str
     ) -> None:
+        # TODO: 공통 모달로 변경 필요
         message = (
             f"{body.get('user_id')}({body.get('channel_id')}) 님의 {view_name} 가 실패하였습니다."
         )
@@ -164,14 +130,12 @@ class SlackService:
             },
         )
 
-    async def _open_submit_modal(
-        self, client, body, view_name: str, user: models.User
-    ) -> None:
+    async def open_submit_modal(self, body, client, view_name: str) -> None:
         try:
-            round, due_date = user.get_due_date()
+            round, due_date = self._user.get_due_date()
             guide_message = f"\n\n현재 회차는 {round}회차, 마감일은 {due_date} 이에요."
-            if user.is_submit:
-                guide_message += f"\n({user.name} 님은 이미 {round}회차 글을 제출하셨어요)"
+            if self._user.is_submit:
+                guide_message += f"\n({self._user.name} 님은 이미 {round}회차 글을 제출하셨어요)"
         except ValueError:
             guide_message = ""
         await client.views_open(
@@ -306,12 +270,10 @@ class SlackService:
             },
         )
 
-    async def _open_pass_modal(
-        self, client, body, view_name: str, user: models.User
-    ) -> None:
-        pass_count = user.pass_count
+    async def open_pass_modal(self, body, client, view_name: str) -> None:
+        pass_count = self._user.pass_count
         try:
-            round, due_date = user.get_due_date()
+            round, due_date = self._user.get_due_date()
             guide_message = f"\n- 현재 회차는 {round}회차, 마감일은 {due_date} 이에요."
         except ValueError:
             guide_message = ""
@@ -358,7 +320,7 @@ class SlackService:
             },
         )
 
-    async def _open_search_modal(self, client, body) -> dict[str, Any]:
+    async def open_search_modal(self, body, client) -> dict[str, Any]:
         return await client.views_open(
             trigger_id=body["trigger_id"],
             view={
@@ -512,6 +474,7 @@ class SlackService:
         return tag_message
 
     def _validate_user(self, channel_id, user: models.User | None) -> None:
+        # TODO: 글또 9기 규칙에 따라 변경할 것
         if not user:
             raise ValueError("사용자 정보가 등록되어 있지 않습니다.\n[글또봇질문] 채널로 문의해주세요.")
         if user.channel_id == "ALL":  # 관리자는 모든 채널에서 사용 가능

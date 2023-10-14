@@ -26,11 +26,10 @@ async def submit_view(
     channel_id = view["private_metadata"]
 
     try:
-        user = service.get_user(user_id, channel_id)
-        content = await service.create_submit_content(ack, body, view, user)
+        content = await service.create_submit_content(ack, body, view)
 
         # TODO: 모코숲 로직 추후 제거
-        animal = ANIMAL_TYPE[user.animal_type]
+        animal = ANIMAL_TYPE[service.user.animal_type]
 
         text = service.get_chat_message(content, animal)
         await client.chat_postMessage(
@@ -50,13 +49,13 @@ async def submit_view(
                             "type": "button",
                             "text": {"type": "plain_text", "text": "자기소개 보기"},
                             "action_id": "intro_modal",
-                            "value": user.user_id,
+                            "value": service.user.user_id,
                         },
                         {
                             "type": "button",
                             "text": {"type": "plain_text", "text": "이전 작성글 보기"},
                             "action_id": "contents_modal",
-                            "value": user.user_id,
+                            "value": service.user.user_id,
                         },
                         {
                             "type": "button",
@@ -69,7 +68,9 @@ async def submit_view(
             ],
         )
     except Exception as e:
-        message = f"{user.name}({user.channel_name}) 님의 제출이 실패하였습니다. {str(e)}"
+        message = (
+            f"{service.user.name}({service.user.channel_name}) 님의 제출이 실패하였습니다. {str(e)}"
+        )
         raise BotException(message)
 
 
@@ -79,10 +80,10 @@ async def open_intro_modal(
     """다른 유저의 자기소개 확인"""
     await ack()
 
-    target_user_id = body["actions"][0]["value"]
-    user = service.get_user_not_valid(target_user_id)
+    other_user_id = body["actions"][0]["value"]
+    other_user = service.get_other_user(other_user_id)
     # TODO: 모코숲 로직 추후 제거
-    animal = ANIMAL_TYPE[user.animal_type]
+    animal = ANIMAL_TYPE[other_user.animal_type]
 
     await client.views_open(
         trigger_id=body["trigger_id"],
@@ -90,15 +91,18 @@ async def open_intro_modal(
             "type": "modal",
             "title": {
                 "type": "plain_text",
-                # "text": f"{user.name}님의 소개",
+                # "text": f"{other_user.name}님의 소개",
                 # TODO: 모코숲 로직 추후 제거
-                "text": f"{animal['emoji']}{animal['name']} {user.name}님의 소개",
+                "text": f"{animal['emoji']}{animal['name']} {other_user.name}님의 소개",
             },
             "close": {"type": "plain_text", "text": "닫기"},
             "blocks": [
                 {
                     "type": "section",
-                    "text": {"type": "mrkdwn", "text": user.intro.replace("\\n", "\n")},
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": other_user.intro.replace("\\n", "\n"),
+                    },
                 }
             ],
         },
@@ -111,16 +115,16 @@ async def contents_modal(
     """다른 유저의 제출한 글 목록 확인"""
     await ack()
 
-    target_user_id = body["actions"][0]["value"]
-    user = service.get_user_not_valid(target_user_id)
+    other_user_id = body["actions"][0]["value"]
+    other_user = service.get_other_user(other_user_id)
 
     await client.views_open(
         trigger_id=body["trigger_id"],
         view={
             "type": "modal",
-            "title": {"type": "plain_text", "text": f"{user.name}님의 작성글"},
+            "title": {"type": "plain_text", "text": f"{other_user.name}님의 작성글"},
             "close": {"type": "plain_text", "text": "닫기"},
-            "blocks": _fetch_blocks(user.contents),
+            "blocks": _fetch_blocks(other_user.contents),
         },
     )
 
@@ -252,18 +256,19 @@ async def pass_view(
     channel_id = view["private_metadata"]
 
     try:
-        user = service.get_user(user_id, channel_id)
-        content = await service.create_pass_content(ack, body, view, user)
+        content = await service.create_pass_content(ack, body, view)
 
         # TODO: 모코숲 로직 추후 제거
-        animal = ANIMAL_TYPE[user.animal_type]
+        animal = ANIMAL_TYPE[service.user.animal_type]
 
         await client.chat_postMessage(
             channel=channel_id,
             text=service.get_chat_message(content, animal),
         )
     except Exception as e:
-        message = f"{user.name}({user.channel_name}) 님의 패스가 실패하였습니다. {str(e)}"
+        message = (
+            f"{service.user.name}({service.user.channel_name}) 님의 패스가 실패하였습니다. {str(e)}"
+        )
         raise BotException(message)
 
 

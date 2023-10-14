@@ -16,19 +16,17 @@ async def get_deposit(
     """예치금을 조회합니다."""
     await ack()
 
-    user = service.get_user_not_valid(body["user_id"])
-
     await client.views_open(
         trigger_id=body["trigger_id"],
         view={
             "type": "modal",
-            "title": {"type": "plain_text", "text": f"{user.name}님의 예치금 현황"},
+            "title": {"type": "plain_text", "text": f"{service.user.name}님의 예치금 현황"},
             "blocks": [
                 {
                     "type": "section",
                     "text": {
                         "type": "mrkdwn",
-                        "text": f"현재 남은 예치금은 {format(user.deposit, ',d')} 원 입니다.\n\n*<{settings.DEPOSIT_SHEETS_URL}|{'예치금 현황 자세히 확인하기'}>*",  # noqa E501
+                        "text": f"현재 남은 예치금은 {format(service.user.deposit, ',d')} 원 입니다.\n\n*<{settings.DEPOSIT_SHEETS_URL}|{'예치금 현황 자세히 확인하기'}>*",  # noqa E501
                     },
                 },
             ],
@@ -41,21 +39,19 @@ async def history_command(
 ) -> None:
     """제출 내역을 조회합니다."""
     await ack()
-    submit_history = service.get_submit_history(body["user_id"])
 
-    user = service.get_user_not_valid(body["user_id"])
-    round, due_date = user.get_due_date()
+    round, due_date = service.user.get_due_date()
     guide_message = f"\n*현재 회차는 {round}회차, 마감일은 {due_date} 이에요."
 
     await client.views_open(
         trigger_id=body["trigger_id"],
         view={
             "type": "modal",
-            "title": {"type": "plain_text", "text": f"{user.name}님의 제출 내역"},
+            "title": {"type": "plain_text", "text": f"{service.user.name}님의 제출 내역"},
             "blocks": [
                 {
                     "type": "section",
-                    "text": {"type": "mrkdwn", "text": submit_history},
+                    "text": {"type": "mrkdwn", "text": service.get_submit_history()},
                 },
                 {
                     "type": "divider",
@@ -76,7 +72,8 @@ async def admin_command(
     await ack()
     # TODO: 추후 관리자 메뉴 추가
     try:
-        service.validate_admin_user(body["user_id"])
+        if user_id not in ["U02HPESDZT3", "U04KVHPMQQ6"]:
+            raise ValueError("관리자 계정이 아닙니다.")
         await client.chat_postMessage(channel=body["user_id"], text="store sync 완료")
         sheet_client = SpreadSheetClient()
         sheet_client.push_backup()

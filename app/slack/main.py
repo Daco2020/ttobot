@@ -66,13 +66,13 @@ async def inject_middleware(
                         "type": "section",
                         "text": {
                             "type": "mrkdwn",
-                            "text": "사용자 정보가 등록되어 있지 않습니다.\n[0_글또봇질문] 채널로 문의해주세요.",
+                            "text": "🥲 사용자 정보가 등록되어 있지 않습니다.\n[0_글또봇질문] 채널로 문의해주세요.",
                         },
                     },
                 ],
             },
         )
-        message = f"사용자 정보가 등록되어 있지 않습니다. {user_id=}"
+        message = f"🥲 사용자 정보가 등록되어 있지 않습니다. {user_id=}"
         logger.error(message)
         await app.client.chat_postMessage(channel=settings.ADMIN_CHANNEL, text=message)
         return

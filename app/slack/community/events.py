@@ -29,16 +29,12 @@ async def guide_command(ack, body, say, client, user_id: str) -> None:
     )
 
 
-async def send_welcome_message(event, say, user_id: str, service: SlackService):
+async def send_welcome_message(event, say, service: SlackService):
     """모코숲 채널 입장 메시지를 보냅니다."""
     if event["channel"] == "C05K0RNQZA4":
         try:
-            user = service.get_user_not_valid(user_id)
-            animal = ANIMAL_TYPE[user.animal_type]
-
-            message = (
-                f"\n>>>{animal['emoji']}{animal['name']} <@{user_id}>님이 🌳모코숲🌳에 입장했습니다👏🏼"
-            )
+            animal = ANIMAL_TYPE[service.user.animal_type]
+            message = f"\n>>>{animal['emoji']}{animal['name']} <@{service.user.user_id}>님이 🌳모코숲🌳에 입장했습니다👏🏼"  # noqa E501
             await say(
                 channel=event["channel"],
                 blocks=[
@@ -52,11 +48,11 @@ async def send_welcome_message(event, say, user_id: str, service: SlackService):
                             "type": "button",
                             "text": {"type": "plain_text", "text": "소개 보기"},
                             "action_id": "intro_modal",
-                            "value": user.user_id,
+                            "value": service.user.user_id,
                         },
                     },
                 ],
             )
         except Exception as e:
-            message = f"{user_id} 님이 모코숲 입장에 실패하였습니다. {str(e)}"
+            message = f"{service.user.user_id} 님이 모코숲 입장에 실패하였습니다. {str(e)}"
             raise BotException(message)
