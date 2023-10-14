@@ -1,6 +1,6 @@
 import csv
 
-from app.logging import logger
+from app.logging import log_event, logger
 from app.config import (
     BACKUP_SHEET,
     BOOKMARK_SHEET,
@@ -13,8 +13,6 @@ from app.config import (
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 from app.slack.models import Bookmark
-
-from app.utils import now_dt
 
 
 credentials = ServiceAccountCredentials.from_json_keyfile_dict(
@@ -37,7 +35,6 @@ class SpreadSheetClient:
 
     def upload(self) -> None:
         """새로 추가된 queue 가 있다면 upload 합니다."""
-        # TODO: 이벤트 로그 적용할 것
         global content_upload_queue
         if content_upload_queue:
             try:
@@ -46,7 +43,13 @@ class SpreadSheetClient:
             except Exception as e:
                 logger.error(f"Failed to upload content: {str(e)}")
                 return None
-            logger.info(f"Successfully Uploaded content: {content_upload_queue}")
+            log_event(
+                actor="system",
+                event="uploaded_contents",
+                type="content",
+                description=f"{len(content_upload_queue)}개 콘텐츠 업로드",
+                body={"content_upload_queue": content_upload_queue},
+            )
             content_upload_queue = []
 
         global bookmark_upload_queue
@@ -57,14 +60,26 @@ class SpreadSheetClient:
             except Exception as e:
                 logger.error(f"Failed to upload bookmark: {str(e)}")
                 return None
-            logger.info(f"Successfully Uploaded bookmark {bookmark_upload_queue}")
+            log_event(
+                actor="system",
+                event="uploaded_bookmarks",
+                type="content",
+                description=f"{len(bookmark_upload_queue)}개 북마크 업로드",
+                body={"bookmark_upload_queue": bookmark_upload_queue},
+            )
             bookmark_upload_queue = []
 
         global bookmark_update_queue
         if bookmark_update_queue:
             for bookmark in bookmark_update_queue:
                 self.update_bookmark(bookmark)
-            logger.info(f"Successfully Updated bookmark {bookmark_update_queue}")
+            log_event(
+                actor="system",
+                event="updated_bookmarks",
+                type="content",
+                description=f"{len(bookmark_update_queue)}개 북마크 업데이트",
+                body={"bookmark_update_queue": bookmark_update_queue},
+            )
             bookmark_update_queue = []
 
     def download_users(self) -> None:
@@ -120,8 +135,7 @@ class SpreadSheetClient:
 
     def create_log_file(self) -> None:
         """로그 파일을 생성합니다."""
-        with open("store/logs.csv", "w") as f:
-            f.writelines(f"{now_dt()} - - 새로운 로깅을 시작합니다.\n")
+        open("store/logs.csv", "w").close()
 
     def upload_logs(self) -> None:
         """로그 파일을 업로드합니다."""

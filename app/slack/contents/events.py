@@ -61,7 +61,7 @@ async def submit_view(
                             "type": "button",
                             "text": {"type": "plain_text", "text": "북마크 추가📌"},
                             "action_id": "bookmark_modal",
-                            "value": content.unique_id,
+                            "value": content.content_id,
                         },
                     ],
                 },
@@ -336,7 +336,7 @@ def _fetch_blocks(contents: list[models.Content]) -> list[dict[str, Any]]:
                                     "text": "북마크 추가📌",
                                     "emoji": True,
                                 },
-                                "value": content.unique_id,
+                                "value": content.content_id,
                             },
                         ],
                     },
@@ -517,12 +517,14 @@ async def bookmark_command(
                 "text": f"총 {len(contents)} 개의 북마크가 있습니다.",
             },
             "submit": {"type": "plain_text", "text": "북마크 검색"},
-            "blocks": _fetch_bookmark_blocks(contents),
+            "blocks": _fetch_bookmark_blocks(contents, bookmarks),
         },
     )
 
 
-def _fetch_bookmark_blocks(contents: list[models.Content]) -> list[dict[str, Any]]:
+def _fetch_bookmark_blocks(
+    contents: list[models.Content], bookmarks: list[models.Bookmark]
+) -> list[dict[str, Any]]:
     blocks: list[dict[str, Any]] = []
     blocks.append(
         {
@@ -553,7 +555,7 @@ def _fetch_bookmark_blocks(contents: list[models.Content]) -> list[dict[str, Any
                                 "value": str(  # TODO: 일관된 형식으로 리팩터링 필요
                                     dict(
                                         action="remove_bookmark",
-                                        content_id=content.unique_id,
+                                        content_id=content.content_id,
                                     )
                                 ),
                             },
@@ -566,7 +568,7 @@ def _fetch_bookmark_blocks(contents: list[models.Content]) -> list[dict[str, Any
                                 "value": str(
                                     dict(
                                         action="view_note",
-                                        content_id=content.unique_id,
+                                        content_id=content.content_id,
                                     )
                                 ),
                             },
@@ -574,13 +576,18 @@ def _fetch_bookmark_blocks(contents: list[models.Content]) -> list[dict[str, Any
                     },
                 }
             )
-            tags = f"> 태그: {' '.join(content.tags.split('#'))}" if content.tags else " "
+
+            note = [
+                bookmark.note
+                for bookmark in bookmarks
+                if content.content_id == bookmark.content_id
+            ][0]
+
             blocks.append(
                 {
                     "type": "context",
                     "elements": [
-                        {"type": "mrkdwn", "text": f"> 카테고리: {content.category}"},
-                        {"type": "mrkdwn", "text": tags},
+                        {"type": "mrkdwn", "text": f"\n> 메모: {note}"},
                     ],
                 }
             )
@@ -604,7 +611,7 @@ async def bookmark_search_view(
                 "block_id": "description_section",
                 "text": {
                     "type": "mrkdwn",
-                    "text": "찾고 있는 북마크가 있나요?\n키워드를 입력하면 쉽게 찾을 수 있어요!",
+                    "text": "찾고 있는 북마크가 있나요?\n키워드로 연관된 글을 찾을 수 있어요!",
                 },
             },
             {
@@ -678,8 +685,14 @@ async def bookmark_submit_search_view(
     """북마크 검색 완료"""
     keyword = _get_keyword(body)
     bookmarks = service.fetch_bookmarks(user_id)
-    content_ids = [bookmark.content_id for bookmark in bookmarks]
-    contents = service.fetch_contents_by_ids(content_ids, keyword)
+
+    ids = [bookmark.content_id for bookmark in bookmarks if keyword in bookmark.note]
+    contents_with_keyword_in_notes = service.fetch_contents_by_ids(ids)
+
+    ids = [bookmark.content_id for bookmark in bookmarks]
+    contents_with_keyword = service.fetch_contents_by_ids(ids, keyword)
+
+    contents = list(set(contents_with_keyword_in_notes + contents_with_keyword))
 
     await ack(
         {
@@ -692,7 +705,7 @@ async def bookmark_submit_search_view(
                     "text": f"{len(contents)} 개의 북마크를 찾았습니다.",
                 },
                 "submit": {"type": "plain_text", "text": "북마크 검색"},
-                "blocks": _fetch_bookmark_blocks(contents),
+                "blocks": _fetch_bookmark_blocks(contents, bookmarks),
             },
         }
     )

@@ -41,7 +41,13 @@ async def log_event_middleware(
 
     if event != "message":  # 일반 메시지는 제외
         description = descriptions.get(str(event), "알 수 없는 이벤트")
-        log_event(user_id, event, type, description)  # type: ignore
+        log_event(
+            actor=user_id,
+            event=event,  # type: ignore
+            type=type,
+            description=description,
+            body=body,
+        )
 
     await next()
 

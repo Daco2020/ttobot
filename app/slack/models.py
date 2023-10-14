@@ -18,9 +18,17 @@ class Content(BaseModel):
     category: str = ""
     tags: str = ""
 
+    def __hash__(self) -> int:
+        return hash(self.content_id)
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, Content):
+            return NotImplemented
+        return self.content_id == other.content_id
+
     @property
-    def unique_id(self) -> str:
-        """유니크 아이디를 반환합니다."""
+    def content_id(self) -> str:
+        """컨텐츠 아이디를 반환합니다."""
         return f"{self.user_id}:{self.dt}"
 
     @property

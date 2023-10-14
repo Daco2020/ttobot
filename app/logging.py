@@ -4,13 +4,15 @@ import uuid
 import orjson
 
 from typing import Any
+
+from pydantic import BaseModel
 from app.utils import now_dt_to_str
 from loguru import logger
 
 logger.add("store/logs.csv", format="{time},{level},{message}")
 
 
-def default(obj: Any) -> str | list[Any]:
+def default(obj: Any) -> str | list[Any] | dict[str, Any]:
     if isinstance(obj, (decimal.Decimal, uuid.UUID)):
         return str(obj)
     elif isinstance(obj, set):
@@ -21,23 +23,27 @@ def default(obj: Any) -> str | list[Any]:
         return obj.isoformat()
     elif isinstance(obj, bytes):
         return obj.decode("utf-8")
+    elif isinstance(obj, BaseModel):
+        return obj.dict()
     else:
         return "This object cannot be serialized."
 
 
 def log_event(
-    user_id: str | None,
+    actor: str | None,
     event: str,
     type: str,
     description: str = "",
+    body: dict[str, Any] = {},
 ) -> None:
     try:
         data = dict(
-            user_id=user_id,
+            actor=actor,
             event=event,
             type=type,
             description=description,
             timestamp=now_dt_to_str(),
+            body=body,
         )
         logger.info(orjson.dumps(data, default=default).decode("utf-8"))
     except Exception as e:

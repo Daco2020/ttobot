@@ -19,15 +19,15 @@ if settings.ENV == "prod":
 
     @app.on_event("startup")
     async def startup():
-        # # 서버 저장소 동기화
-        # client = SpreadSheetClient()
+        # 서버 저장소 동기화
+        client = SpreadSheetClient()
         # sync_store(client)
         # client.create_log_file()
 
-        # # 업로드 스케줄러
-        # schedule = BackgroundScheduler(daemon=True, timezone="Asia/Seoul")
-        # schedule.add_job(scheduler, "interval", seconds=10, args=[client])
-        # schedule.start()
+        # 업로드 스케줄러
+        schedule = BackgroundScheduler(daemon=True, timezone="Asia/Seoul")
+        schedule.add_job(scheduler, "interval", seconds=10, args=[client])
+        schedule.start()
 
         # 슬랙 소켓 모드 실행
         await slack_handler.connect_async()

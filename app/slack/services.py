@@ -1,6 +1,5 @@
 import re
 from typing import Any
-from app.slack.exception import BotException
 
 from app.logging import logger
 from app.config import MAX_PASS_COUNT, URL_REGEX
@@ -105,10 +104,6 @@ class SlackService:
         self, client, body: dict[str, str], view_name: str, e: str
     ) -> None:
         # TODO: 공통 모달로 변경 필요
-        message = (
-            f"{body.get('user_id')}({body.get('channel_id')}) 님의 {view_name} 가 실패하였습니다."
-        )
-        logger.error(message + e)  # TODO: 슬랙 알림 보내기
         e = "예기치 못한 오류가 발생하였습니다.\n[글또봇질문] 채널로 문의해주세요." if "Content" in e else e
         await client.views_open(
             trigger_id=body["trigger_id"],
@@ -532,12 +527,12 @@ class SlackService:
     def fetch_contents_by_ids(
         self, content_ids: list[str], keyword: str = ""
     ) -> list[models.Content]:
-        """unique_id 를 확인하여 Contents 를 가져옵니다."""
+        """컨텐츠 아이디로 Contents 를 가져옵니다."""
         if keyword:
             contents = self._user_repo.fetch_contents_by_keyword(keyword)
         else:
             contents = self._user_repo.fetch_contents()
-        return [content for content in contents if content.unique_id in content_ids]
+        return [content for content in contents if content.content_id in content_ids]
 
     def update_bookmark(
         self,
@@ -552,11 +547,3 @@ class SlackService:
         bookmark = self._user_repo.get_bookmark(user_id, content_id, status=new_status)
         if bookmark:
             client.bookmark_update_queue.append(bookmark)
-        else:
-            data = dict(
-                user_id=user_id,
-                content_id=content_id,
-                new_note=new_note,
-                new_status=new_status,
-            )
-            raise BotException(f"수정한 북마크가 존재하지 않습니다. {data=}")
