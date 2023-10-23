@@ -3,7 +3,7 @@ from typing import Any
 import pandas as pd
 
 from app import client
-from app.slack import models
+from app import models
 from app.utils import now_dt_to_str
 
 

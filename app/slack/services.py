@@ -10,7 +10,7 @@ from app import client
 import requests
 from bs4 import BeautifulSoup
 
-from app.slack import models
+from app import models
 
 
 class SlackService:
