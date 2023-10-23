@@ -4,7 +4,7 @@ from fastapi import FastAPI, Request
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 from app.config import settings
-from app.store import sync_store
+from app.store import Store
 from app.slack import main
 from slack_bolt.adapter.socket_mode.aiohttp import AsyncSocketModeHandler
 
@@ -23,7 +23,8 @@ if settings.ENV == "prod":
     async def startup():
         # 서버 저장소 동기화
         client = SpreadSheetClient()
-        sync_store(client)
+        store = Store(client=client)
+        store.sync()
         client.create_log_file()
 
         # 업로드 스케줄러

@@ -1,7 +1,7 @@
 from app.client import SpreadSheetClient
 from app.config import settings
 from app.slack.services import SlackService
-from app.store import sync_store
+from app.store import Store
 
 
 async def handle_mention(body, say, client) -> None:
@@ -77,7 +77,8 @@ async def admin_command(
         await client.chat_postMessage(channel=body["user_id"], text="store sync 완료")
         sheet_client = SpreadSheetClient()
         sheet_client.push_backup()
-        sync_store(sheet_client)
+        store = Store(client=sheet_client)
+        store.sync()
         sheet_client.upload_logs()
         sheet_client.create_log_file()
     except ValueError as e:

@@ -23,6 +23,7 @@ class Settings(BaseSettings):
 settings = Settings()  # type: ignore
 
 
+# TODO: 사용하지 않는 상수 제거
 # sheet constants
 RAW_DATA_SHEET = "raw_data"
 USERS_SHEET = "users"

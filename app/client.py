@@ -6,7 +6,6 @@ from app.config import (
     BOOKMARK_SHEET,
     RAW_DATA_SHEET,
     LOG_SHEET,
-    USERS_SHEET,
     settings,
 )
 
@@ -30,10 +29,17 @@ class SpreadSheetClient:
     def __init__(self) -> None:
         self._doc = gc.open_by_url(settings.SPREAD_SHEETS_URL)
         self._raw_data_sheet = self._doc.worksheet(RAW_DATA_SHEET)
-        self._users_sheet = self._doc.worksheet(USERS_SHEET)
         self._log_sheet = self._doc.worksheet(LOG_SHEET)
         self._backup_sheet = self._doc.worksheet(BACKUP_SHEET)
         self._bookmark_sheet = self._doc.worksheet(BOOKMARK_SHEET)
+
+        self._sheets = {
+            "raw_data": self._doc.worksheet("raw_data"),
+            "users": self._doc.worksheet("users"),
+            "log": self._doc.worksheet("log"),
+            "backup": self._doc.worksheet("backup"),
+            "bookmark": self._doc.worksheet("bookmark"),
+        }
 
     def upload(self) -> None:
         """새로 추가된 queue 가 있다면 upload 합니다."""
@@ -84,26 +90,12 @@ class SpreadSheetClient:
             )
             bookmark_update_queue = []
 
-    def download_users(self) -> None:
-        """유저 정보를 가져옵니다."""
-        users = self._users_sheet.get_values("A:G")
-        with open("store/users.csv", "w", newline="", encoding="utf-8") as f:
-            writer = csv.writer(f, quoting=csv.QUOTE_ALL)
-            writer.writerows(users)
-
-    def download_contents(self) -> None:
-        """콘텐츠 정보를 가져옵니다."""
-        contents = self._raw_data_sheet.get_values("A:I")
-        with open("store/contents.csv", "w", newline="", encoding="utf-8") as f:
-            writer = csv.writer(f, quoting=csv.QUOTE_ALL)
-            writer.writerows(contents)
-
-    def download_bookmarks(self) -> None:
-        """북마크 정보를 가져옵니다."""
-        bookmarks = self._bookmark_sheet.get_values("A:F")
-        with open("store/bookmark.csv", "w", newline="", encoding="utf-8") as f:
-            writer = csv.writer(f, quoting=csv.QUOTE_ALL)
-            writer.writerows(bookmarks)
+    def get_values(self, sheet_name: str, column: str = "") -> list[list[str]]:
+        """스프레드 시트로 부터 값을 가져옵니다."""
+        if column:
+            return self._sheets[sheet_name].get_values(column)
+        else:
+            return self._sheets[sheet_name].get_all_values()
 
     def push_backup(self) -> None:
         """백업 시트에 contents.csv를 업로드합니다."""
@@ -113,27 +105,27 @@ class SpreadSheetClient:
         self._backup_sheet.clear()  # 기존 데이터를 지웁니다.
         self._backup_sheet.append_rows(contents)  # 백업할 데이터를 업로드 합니다.
 
-    def _parse(self, contents: list[list[str]]) -> list[str]:
-        """
-        가져온 콘텐츠를 csv 포멧에 맞게 가공합니다.
-        content[0]: user_id
-        content[1]: username
-        content[2]: title
-        content[3]: content_url
-        content[4]: dt
-        content[5]: categor
-        content[6]: description
-        content[7]: type
-        content[8]: tags
-        """
-        result = [",".join(contents[0]) + "\n"]
-        for content in contents[1:]:
-            content[2] = f'"{content[2]}"'
-            content[3] = f'"{content[3]}"'
-            content[6] = content[6].replace(",", "")
-            content[8] = content[8].replace(",", "#")
-            result.append(",".join(content).replace("\n", " ") + "\n")
-        return result
+    # def _parse(self, contents: list[list[str]]) -> list[str]:
+    #     """
+    #     가져온 콘텐츠를 csv 포멧에 맞게 가공합니다.
+    #     content[0]: user_id
+    #     content[1]: username
+    #     content[2]: title
+    #     content[3]: content_url
+    #     content[4]: dt
+    #     content[5]: categor
+    #     content[6]: description
+    #     content[7]: type
+    #     content[8]: tags
+    #     """
+    #     result = [",".join(contents[0]) + "\n"]
+    #     for content in contents[1:]:
+    #         content[2] = f'"{content[2]}"'
+    #         content[3] = f'"{content[3]}"'
+    #         content[6] = content[6].replace(",", "")
+    #         content[8] = content[8].replace(",", "#")
+    #         result.append(",".join(content).replace("\n", " ") + "\n")
+    #     return result
 
     def create_log_file(self) -> None:
         """로그 파일을 생성합니다."""
