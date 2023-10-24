@@ -1,13 +1,5 @@
-import csv
-
 from app.logging import log_event, logger
-from app.config import (
-    BACKUP_SHEET,
-    BOOKMARK_SHEET,
-    RAW_DATA_SHEET,
-    LOG_SHEET,
-    settings,
-)
+from app.config import settings
 
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
@@ -28,11 +20,6 @@ bookmark_update_queue: list[Bookmark] = []  # TODO: 추후 타입 수정 필요
 class SpreadSheetClient:
     def __init__(self) -> None:
         self._doc = gc.open_by_url(settings.SPREAD_SHEETS_URL)
-        self._raw_data_sheet = self._doc.worksheet(RAW_DATA_SHEET)
-        self._log_sheet = self._doc.worksheet(LOG_SHEET)
-        self._backup_sheet = self._doc.worksheet(BACKUP_SHEET)
-        self._bookmark_sheet = self._doc.worksheet(BOOKMARK_SHEET)
-
         self._sheets = {
             "raw_data": self._doc.worksheet("raw_data"),
             "users": self._doc.worksheet("users"),
@@ -45,12 +32,10 @@ class SpreadSheetClient:
         """새로 추가된 queue 가 있다면 upload 합니다."""
         global content_upload_queue
         if content_upload_queue:
-            try:
-                cursor = len(self._raw_data_sheet.get_values("A:A")) + 1
-                self._raw_data_sheet.update(f"A{cursor}", content_upload_queue)
-            except Exception as e:
-                logger.error(f"Failed to upload content: {str(e)}")
-                return None
+            cursor = self._get_cursor("raw_data")
+            for i, values in enumerate(content_upload_queue):
+                # 한번에 업로드 하면 종종 누락되는 경우가 있어 개별 업로드
+                self._sheets["raw_data"].update(f"A{cursor+i}", [values])
             log_event(
                 actor="system",
                 event="uploaded_contents",
@@ -62,12 +47,9 @@ class SpreadSheetClient:
 
         global bookmark_upload_queue
         if bookmark_upload_queue:
-            try:
-                cursor = len(self._bookmark_sheet.get_values("A:A")) + 1
-                self._bookmark_sheet.update(f"A{cursor}", bookmark_upload_queue)
-            except Exception as e:
-                logger.error(f"Failed to upload bookmark: {str(e)}")
-                return None
+            cursor = self._get_cursor("bookmark")
+            for i, values in enumerate(bookmark_upload_queue):
+                self._sheets["bookmark"].update(f"A{cursor+i}", [values])
             log_event(
                 actor="system",
                 event="uploaded_bookmarks",
@@ -97,13 +79,12 @@ class SpreadSheetClient:
         else:
             return self._sheets[sheet_name].get_all_values()
 
-    def push_backup(self) -> None:
-        """백업 시트에 contents.csv를 업로드합니다."""
-        with open("store/contents.csv") as f:
-            reader = csv.reader(f)
-            contents = list(reader)
-        self._backup_sheet.clear()  # 기존 데이터를 지웁니다.
-        self._backup_sheet.append_rows(contents)  # 백업할 데이터를 업로드 합니다.
+    def backup(self, values: list[list[str]]) -> None:
+        """백업 시트에 데이터를 업로드 합니다."""
+        # TODO: 추후 백업 시트를 자동 생성할 수 있도록 변경 필요
+        backup_sheet = self._sheets["backup"]
+        backup_sheet.clear()
+        backup_sheet.append_rows(values)
 
     # def _parse(self, contents: list[list[str]]) -> list[str]:
     #     """
@@ -131,18 +112,15 @@ class SpreadSheetClient:
         """로그 파일을 생성합니다."""
         open("store/logs.csv", "w").close()
 
-    def upload_logs(self) -> None:
-        """로그 파일을 업로드합니다."""
-        with open("store/logs.csv") as f:
-            reader = csv.reader(f)
-            logs = list(reader)
-        cursor = len(self._log_sheet.get_values("A:A")) + 1
-        self._log_sheet.update(f"A{cursor}", logs)
-        logger.info("Uploaded logs")
+    def upload_logs(self, sheet_name: str, values: list[list[str]]) -> None:
+        # TODO: upload 와 통합 필요
+        cursor = self._get_cursor(sheet_name)
+        self._sheets[sheet_name].update(f"A{cursor}", values)
+        logger.info(f"Uploaded {sheet_name}")
 
     def update_bookmark(self, bookmark: Bookmark) -> None:
         """북마크를 업데이트합니다."""
-        records = self._bookmark_sheet.get_all_records()
+        records = self._sheets["bookmark"].get_all_records()
         target_record = dict()
         row_number = 2  # +1은 enumerate이 0부터 시작하기 때문, +1은 헤더 행 때문
         for idx, record in enumerate(records):
@@ -159,4 +137,8 @@ class SpreadSheetClient:
         if not target_record:
             logger.error(f"시트에 해당 북마크가 존재하지 않습니다. {values}")
 
-        self._bookmark_sheet.update(f"A{row_number}:F{row_number}", [values])
+        self._sheets["bookmark"].update(f"A{row_number}:F{row_number}", [values])
+
+    def _get_cursor(self, sheet_name: str) -> int:
+        cursor = len(self._sheets[sheet_name].get_values("A:A")) + 1
+        return cursor

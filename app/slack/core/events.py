@@ -76,10 +76,10 @@ async def admin_command(
             raise ValueError("관리자 계정이 아닙니다.")
         await client.chat_postMessage(channel=body["user_id"], text="store sync 완료")
         sheet_client = SpreadSheetClient()
-        sheet_client.push_backup()
         store = Store(client=sheet_client)
+        store.upload("logs.csv")
+        store.backup("contents.csv")
+        store.initialize_logs()
         store.sync()
-        sheet_client.upload_logs()
-        sheet_client.create_log_file()
     except ValueError as e:
         await client.chat_postMessage(channel=body["user_id"], text=str(e))

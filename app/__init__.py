@@ -25,14 +25,14 @@ if settings.ENV == "prod":
         client = SpreadSheetClient()
         store = Store(client=client)
         store.sync()
-        client.create_log_file()
+        store.initialize_logs()
 
         # 업로드 스케줄러
         schedule = BackgroundScheduler(daemon=True, timezone="Asia/Seoul")
         schedule.add_job(upload_contents, "interval", seconds=10, args=[client])
 
         trigger = CronTrigger(hour=1, timezone=ZoneInfo("Asia/Seoul"))
-        schedule.add_job(upload_logs, trigger=trigger, args=[client])
+        schedule.add_job(upload_logs, trigger=trigger, args=[store])
         schedule.start()
 
         # 슬랙 소켓 모드 실행
@@ -41,16 +41,17 @@ if settings.ENV == "prod":
     def upload_contents(client: SpreadSheetClient) -> None:
         client.upload()
 
-    def upload_logs(client: SpreadSheetClient) -> None:
-        client.upload_logs()
-        client.create_log_file()
+    def upload_logs(store: Store) -> None:
+        store.upload("logs.csv")
+        store.initialize_logs()
 
     @app.on_event("shutdown")
     async def shutdown():
         # 서버 저장소 업로드
         client = SpreadSheetClient()
         client.upload()
-        client.upload_logs()
+        store = Store(client=client)
+        store.upload("logs.csv")
 
 else:
 
