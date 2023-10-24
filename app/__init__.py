@@ -22,14 +22,13 @@ if settings.ENV == "prod":
     @app.on_event("startup")
     async def startup():
         # 서버 저장소 동기화
-        client = SpreadSheetClient()
-        store = Store(client=client)
+        store = Store(client=SpreadSheetClient())
         store.sync()
         store.initialize_logs()
 
         # 업로드 스케줄러
         schedule = BackgroundScheduler(daemon=True, timezone="Asia/Seoul")
-        schedule.add_job(upload_contents, "interval", seconds=10, args=[client])
+        schedule.add_job(upload_contents, "interval", seconds=10, args=[store])
 
         trigger = CronTrigger(hour=1, timezone=ZoneInfo("Asia/Seoul"))
         schedule.add_job(upload_logs, trigger=trigger, args=[store])
@@ -38,20 +37,19 @@ if settings.ENV == "prod":
         # 슬랙 소켓 모드 실행
         await slack_handler.connect_async()
 
-    def upload_contents(client: SpreadSheetClient) -> None:
-        client.upload()
+    def upload_contents(store: Store) -> None:
+        store.upload_queue()
 
     def upload_logs(store: Store) -> None:
-        store.upload("logs.csv")
+        store.upload("logs")
         store.initialize_logs()
 
     @app.on_event("shutdown")
     async def shutdown():
         # 서버 저장소 업로드
-        client = SpreadSheetClient()
-        client.upload()
-        store = Store(client=client)
-        store.upload("logs.csv")
+        store = Store(client=SpreadSheetClient())
+        store.upload("logs")
+        store.upload_queue()
 
 else:
 

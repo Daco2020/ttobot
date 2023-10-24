@@ -77,8 +77,8 @@ async def admin_command(
         await client.chat_postMessage(channel=body["user_id"], text="store sync 완료")
         sheet_client = SpreadSheetClient()
         store = Store(client=sheet_client)
-        store.upload("logs.csv")
-        store.backup("contents.csv")
+        store.upload("logs")
+        store.backup("contents")
         store.initialize_logs()
         store.sync()
     except ValueError as e:
