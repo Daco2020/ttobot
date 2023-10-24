@@ -9,7 +9,14 @@ from pydantic import BaseModel
 from app.utils import now_dt_to_str
 from loguru import logger
 
-logger.add("store/logs.csv", format="{time},{level},{message}")
+
+def filter(record):
+    message = record["message"].replace('"', "'")
+    record["message"] = f'"{message}"'
+    return True
+
+
+logger.add("store/logs.csv", format="{time},{level},{message}", filter=filter)
 
 
 def default(obj: Any) -> str | list[Any] | dict[str, Any]:
