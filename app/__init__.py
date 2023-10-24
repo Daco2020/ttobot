@@ -4,7 +4,7 @@ from fastapi import FastAPI, Request
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 from app.config import settings
-from app.store import sync_store
+from app.store import Store
 from app.slack import main
 from slack_bolt.adapter.socket_mode.aiohttp import AsyncSocketModeHandler
 
@@ -22,34 +22,34 @@ if settings.ENV == "prod":
     @app.on_event("startup")
     async def startup():
         # 서버 저장소 동기화
-        client = SpreadSheetClient()
-        sync_store(client)
-        client.create_log_file()
+        store = Store(client=SpreadSheetClient())
+        store.sync()
+        store.initialize_logs()
 
         # 업로드 스케줄러
         schedule = BackgroundScheduler(daemon=True, timezone="Asia/Seoul")
-        schedule.add_job(upload_contents, "interval", seconds=10, args=[client])
+        schedule.add_job(upload_contents, "interval", seconds=10, args=[store])
 
         trigger = CronTrigger(hour=1, timezone=ZoneInfo("Asia/Seoul"))
-        schedule.add_job(upload_logs, trigger=trigger, args=[client])
+        schedule.add_job(upload_logs, trigger=trigger, args=[store])
         schedule.start()
 
         # 슬랙 소켓 모드 실행
         await slack_handler.connect_async()
 
-    def upload_contents(client: SpreadSheetClient) -> None:
-        client.upload()
+    def upload_contents(store: Store) -> None:
+        store.upload_queue()
 
-    def upload_logs(client: SpreadSheetClient) -> None:
-        client.upload_logs()
-        client.create_log_file()
+    def upload_logs(store: Store) -> None:
+        store.upload("logs")
+        store.initialize_logs()
 
     @app.on_event("shutdown")
     async def shutdown():
         # 서버 저장소 업로드
-        client = SpreadSheetClient()
-        client.upload()
-        client.upload_logs()
+        store = Store(client=SpreadSheetClient())
+        store.upload("logs")
+        store.upload_queue()
 
 else:
 

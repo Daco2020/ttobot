@@ -3,7 +3,7 @@ import re
 from typing import Any
 from app.slack.exception import BotException
 
-from app.slack import models
+from app import models
 from app.config import ANIMAL_TYPE, PASS_VIEW, SUBMIT_VIEW
 from app.slack.services import SlackService
 

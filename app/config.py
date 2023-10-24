@@ -23,17 +23,11 @@ class Settings(BaseSettings):
 settings = Settings()  # type: ignore
 
 
-# sheet constants
-RAW_DATA_SHEET = "raw_data"
-USERS_SHEET = "users"
-LOG_SHEET = "log"
-BACKUP_SHEET = "backup"
-BOOKMARK_SHEET = "bookmark"
+# TODO: 사용하지 않는 상수 제거
 
 # views constants
 SUBMIT_VIEW = "submit_view"
 PASS_VIEW = "pass_view"
-SEARCH_VIEW = "search_view"
 
 # constants
 URL_REGEX = r"((http|https):\/\/)?[a-zA-Z0-9.-]+(\.[a-zA-Z]{2,})"

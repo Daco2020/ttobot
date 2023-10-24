@@ -4,13 +4,13 @@ from typing import Any
 from app.logging import logger
 from app.config import MAX_PASS_COUNT, URL_REGEX
 from app.slack.repositories import SlackRepository
-from app import client
+from app import store
 
 
 import requests
 from bs4 import BeautifulSoup
 
-from app.slack import models
+from app import models
 
 
 class SlackService:
@@ -510,7 +510,7 @@ class SlackService:
         """북마크를 생성합니다."""
         bookmark = models.Bookmark(user_id=user_id, content_id=content_id, note=note)
         self._user_repo.create_bookmark(bookmark)
-        client.bookmark_upload_queue.append(bookmark.to_list_for_sheet())
+        store.bookmark_upload_queue.append(bookmark.to_list_for_sheet())
         return bookmark
 
     def get_bookmark(self, user_id: str, content_id: str) -> models.Bookmark | None:
@@ -546,4 +546,4 @@ class SlackService:
         self._user_repo.update_bookmark(content_id, new_note, new_status)
         bookmark = self._user_repo.get_bookmark(user_id, content_id, status=new_status)
         if bookmark:
-            client.bookmark_update_queue.append(bookmark)
+            store.bookmark_update_queue.append(bookmark)

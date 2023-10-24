@@ -2,8 +2,8 @@ import csv
 from typing import Any
 import pandas as pd
 
-from app import client
-from app.slack import models
+from app import store
+from app import models
 from app.utils import now_dt_to_str
 
 
@@ -48,7 +48,7 @@ class SlackRepository:
         """유저의 콘텐츠를 업데이트합니다."""
         if not user.contents:
             raise ValueError("업데이트 대상 content 가 없습니다.")
-        client.content_upload_queue.append(user.recent_content.to_list_for_sheet())
+        store.content_upload_queue.append(user.recent_content.to_list_for_sheet())
         with open("store/contents.csv", "a", newline="", encoding="utf-8") as f:
             writer = csv.writer(f, quoting=csv.QUOTE_ALL)
             writer.writerow(user.recent_content.to_list_for_csv())
