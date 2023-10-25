@@ -23,12 +23,6 @@ class Settings(BaseSettings):
 settings = Settings()  # type: ignore
 
 
-# TODO: 사용하지 않는 상수 제거
-
-# views constants
-SUBMIT_VIEW = "submit_view"
-PASS_VIEW = "pass_view"
-
 # constants
 URL_REGEX = r"((http|https):\/\/)?[a-zA-Z0-9.-]+(\.[a-zA-Z]{2,})"
 MAX_PASS_COUNT = 2
@@ -55,7 +49,7 @@ DUE_DATES = [  # TODO: 환경변수로 변경하기
     datetime.datetime(2023, 11, 5).date(),
 ]
 
-
+# TODO: 모코숲 로직 추후 제거
 ANIMAL_TYPE = dict(
     cat=dict(emoji="🐈", name="고양이", description="고양이는 여유롭게 일상을 즐겨요."),
     seaotter=dict(emoji="🦦", name="해달", description="해달은 기술과 도구에 관심이 많고 문제해결을 좋아해요."),

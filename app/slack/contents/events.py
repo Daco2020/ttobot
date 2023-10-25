@@ -4,7 +4,7 @@ from typing import Any
 from app.slack.exception import BotException
 
 from app import models
-from app.config import ANIMAL_TYPE, PASS_VIEW, SUBMIT_VIEW
+from app.config import ANIMAL_TYPE
 from app.slack.services import SlackService
 
 
@@ -14,7 +14,7 @@ async def submit_command(
     """글 제출 시작"""
     await ack()
 
-    await service.open_submit_modal(body, client, SUBMIT_VIEW)
+    await service.open_submit_modal(body, client, "submit_view")
 
 
 async def submit_view(
@@ -244,7 +244,7 @@ async def pass_command(
     """글 패스 시작"""
     await ack()
 
-    await service.open_pass_modal(body, client, PASS_VIEW)
+    await service.open_pass_modal(body, client, "pass_view")
 
 
 async def pass_view(

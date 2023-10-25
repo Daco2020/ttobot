@@ -1,5 +1,5 @@
 import traceback
-from app.config import PASS_VIEW, SUBMIT_VIEW, settings
+from app.config import settings
 from slack_bolt.async_app import AsyncApp
 from app.logging import log_event
 from loguru import logger
@@ -40,7 +40,7 @@ async def log_event_middleware(
         type = "unknown"
 
     if event != "message":  # 일반 메시지는 제외
-        description = descriptions.get(str(event), "알 수 없는 이벤트")
+        description = event_descriptions.get(str(event), "알 수 없는 이벤트")
         log_event(
             actor=user_id,
             event=event,  # type: ignore
@@ -52,7 +52,7 @@ async def log_event_middleware(
 
 
 @app.middleware
-async def inject_middleware(
+async def inject_service_middleware(
     req: BoltRequest, resp: BoltResponse, next: Callable
 ) -> None:
     """서비스 객체를 주입합니다."""
@@ -108,13 +108,13 @@ app.event("member_joined_channel")(community_events.send_welcome_message)
 
 # contents
 app.command("/제출")(contents_events.submit_command)
-app.view(SUBMIT_VIEW)(contents_events.submit_view)
+app.view("submit_view")(contents_events.submit_view)
 app.action("intro_modal")(contents_events.open_intro_modal)
 app.action("contents_modal")(contents_events.contents_modal)
 app.action("bookmark_modal")(contents_events.bookmark_modal)
 app.view("bookmark_view")(contents_events.bookmark_view)
 app.command("/패스")(contents_events.pass_command)
-app.view(PASS_VIEW)(contents_events.pass_view)
+app.view("pass_view")(contents_events.pass_view)
 app.command("/검색")(contents_events.search_command)
 app.view("submit_search")(contents_events.submit_search)
 app.view("back_to_search_view")(contents_events.back_to_search_view)
@@ -130,15 +130,15 @@ app.command("/제출내역")(core_events.history_command)
 app.command("/관리자")(core_events.admin_command)
 
 
-descriptions = {
+event_descriptions = {
     "/제출": "글 제출 시작",
-    SUBMIT_VIEW: "글 제출 완료",
+    "submit_view": "글 제출 완료",
     "intro_modal": "다른 유저의 자기소개 확인",
     "contents_modal": "다른 유저의 제출한 글 목록 확인",
     "bookmark_modal": "북마크 저장 시작",
     "bookmark_view": "북마크 저장 완료",
     "/패스": "글 패스 시작",
-    PASS_VIEW: "글 패스 완료",
+    "pass_view": "글 패스 완료",
     "/검색": "글 검색 시작",
     "submit_search": "글 검색 완료",
     "back_to_search_view": "글 검색 다시 시작",
