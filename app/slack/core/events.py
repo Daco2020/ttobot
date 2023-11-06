@@ -78,7 +78,7 @@ async def admin_command(
         sheet_client = SpreadSheetClient()
         store = Store(client=sheet_client)
         store.upload("logs")
-        store.backup("contents")
+        # store.backup("contents")
         store.initialize_logs()
         store.sync()
     except ValueError as e:
