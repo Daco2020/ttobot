@@ -153,6 +153,7 @@ class Content(StoreModel):
             self.description,
             self.type,
             self.tags,
+            self.curation_flag,
         ]
 
     def to_list_for_sheet(self) -> list[str]:
@@ -166,6 +167,7 @@ class Content(StoreModel):
             self.description,
             self.type,
             self.tags,
+            self.curation_flag,
         ]
 
     def get_round(self) -> int:
