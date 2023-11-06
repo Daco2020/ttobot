@@ -16,7 +16,7 @@ class SpreadSheetClient:
     def __init__(self) -> None:
         self._doc = gc.open_by_url(settings.SPREAD_SHEETS_URL)
         self._sheets = {
-            "raw_data": self._doc.worksheet("raw_data"),
+            "contents": self._doc.worksheet("contents"),
             "users": self._doc.worksheet("users"),
             "logs": self._doc.worksheet("logs"),
             "backup": self._doc.worksheet("backup"),

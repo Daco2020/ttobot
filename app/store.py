@@ -17,7 +17,7 @@ class Store:
         """데이터를 가져와 서버 저장소를 동기화합니다."""
         os.makedirs("store", exist_ok=True)
         self.write("users", values=self._client.get_values("users"))
-        self.write("contents", values=self._client.get_values("raw_data"))
+        self.write("contents", values=self._client.get_values("contents"))
         self.write("bookmark", values=self._client.get_values("bookmark"))
 
     def write(self, table_name: str, values: list[list[str]]) -> None:
@@ -39,7 +39,7 @@ class Store:
         """새로 추가된 queue 가 있다면 upload 합니다."""
         global content_upload_queue
         if content_upload_queue:
-            self._client.upload("raw_data", content_upload_queue)
+            self._client.upload("contents", content_upload_queue)
             log_event(
                 actor="system",
                 event="uploaded_contents",
