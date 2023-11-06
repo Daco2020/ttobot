@@ -47,6 +47,10 @@ DUE_DATES = [  # TODO: 환경변수로 변경하기
     datetime.datetime(2023, 10, 8).date(),
     datetime.datetime(2023, 10, 22).date(),
     datetime.datetime(2023, 11, 5).date(),
+    datetime.datetime(2023, 11, 12).date(),
+    datetime.datetime(2023, 11, 19).date(),
+    datetime.datetime(2023, 11, 26).date(),
+    datetime.datetime(2023, 12, 3).date(),
 ]
 
 # TODO: 모코숲 로직 추후 제거

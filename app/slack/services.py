@@ -57,8 +57,9 @@ class SlackService:
             content_url=content_url,
             category=self._get_category(view),
             description=self._get_description(view),
-            tags=self._get_tags(view),
             type="submit",
+            tags=self._get_tags(view),
+            curation_flag=self._get_curation_flag(view),
         )
         self._user.contents.append(content)
         self._user_repo.update(self._user)
@@ -147,7 +148,7 @@ class SlackService:
                         "block_id": "required_section",
                         "text": {
                             "type": "mrkdwn",
-                            "text": f"\n[글 링크]와 [카테고리]를 제출해주세요. 🥳{guide_message}",
+                            "text": guide_message,
                         },
                     },
                     {
@@ -220,10 +221,60 @@ class SlackService:
                                     "value": "기타",
                                 },
                             ],
-                            "action_id": "static_select-action",
+                            "action_id": "static_select-category",
+                        },
+                    },
+                    {
+                        "type": "input",
+                        "block_id": "curation",
+                        "label": {"type": "plain_text", "text": "큐레이션", "emoji": True},
+                        "element": {
+                            "type": "static_select",
+                            "placeholder": {
+                                "type": "plain_text",
+                                "text": "큐레이션 요청",
+                                "emoji": True,
+                            },
+                            "options": [
+                                {
+                                    "text": {
+                                        "type": "plain_text",
+                                        "text": "큐레이션 대상이 되고 싶어요!",
+                                        "emoji": True,
+                                    },
+                                    "value": "Y",  # str만 반환할 수 있음
+                                },
+                                {
+                                    "text": {
+                                        "type": "plain_text",
+                                        "text": "아직은 부끄러워요~",
+                                        "emoji": True,
+                                    },
+                                    "value": "N",
+                                },
+                            ],
+                            "action_id": "static_select-curation",
                         },
                     },
                     {"type": "divider"},
+                    {
+                        "type": "input",
+                        "block_id": "tag",
+                        "label": {
+                            "type": "plain_text",
+                            "text": "태그",
+                        },
+                        "optional": True,
+                        "element": {
+                            "type": "plain_text_input",
+                            "action_id": "dreamy_input",
+                            "placeholder": {
+                                "type": "plain_text",
+                                "text": "태그1,태그2,태그3, ... ",
+                            },
+                            "multiline": False,
+                        },
+                    },
                     {
                         "type": "input",
                         "block_id": "description",
@@ -241,24 +292,6 @@ class SlackService:
                             "type": "plain_text",
                             "text": "하고 싶은 말",
                             "emoji": True,
-                        },
-                    },
-                    {
-                        "type": "input",
-                        "block_id": "tag",
-                        "label": {
-                            "type": "plain_text",
-                            "text": "태그",
-                        },
-                        "optional": True,
-                        "element": {
-                            "type": "plain_text_input",
-                            "action_id": "dreamy_input",
-                            "placeholder": {
-                                "type": "plain_text",
-                                "text": "태그1,태그2,태그3, ... ",
-                            },
-                            "multiline": False,
                         },
                     },
                 ],
@@ -427,15 +460,21 @@ class SlackService:
         raw_tag: str = view["state"]["values"]["tag"]["dreamy_input"]["value"]
         if not raw_tag:
             return ""
-        deduplication_tags = list(dict.fromkeys(raw_tag.replace("#", "").split(",")))
+        deduplication_tags = list(dict.fromkeys(raw_tag.split(",")))
         tags = ",".join(tag.strip() for tag in deduplication_tags if tag)
         return tags
 
     def _get_category(self, view) -> str:
-        category: str = view["state"]["values"]["category"]["static_select-action"][
+        category: str = view["state"]["values"]["category"]["static_select-category"][
             "selected_option"
         ]["value"]
         return category
+
+    def _get_curation_flag(self, view) -> str:
+        curation_flag: str = view["state"]["values"]["curation"][
+            "static_select-curation"
+        ]["selected_option"]["value"]
+        return curation_flag
 
     def _get_content_url(self, view) -> str:
         # 슬랙 앱이 구 버전일 경우 일부 block 이 사라져 키에러가 발생할 수 있음

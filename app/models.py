@@ -115,6 +115,7 @@ class Content(StoreModel):
     title: str = ""
     category: str = ""
     tags: str = ""
+    curation_flag: str = "N"  # "Y", "N"
 
     def __hash__(self) -> int:
         return hash(self.content_id)
@@ -151,7 +152,7 @@ class Content(StoreModel):
             self.category,
             self.description,
             self.type,
-            self.tags.replace(",", "#"),
+            self.tags,
         ]
 
     def to_list_for_sheet(self) -> list[str]:
@@ -164,7 +165,7 @@ class Content(StoreModel):
             self.category,
             self.description,
             self.type,
-            self.tags.replace(",", "#"),
+            self.tags,
         ]
 
     def get_round(self) -> int:

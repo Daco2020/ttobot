@@ -342,7 +342,7 @@ def _fetch_blocks(contents: list[models.Content]) -> list[dict[str, Any]]:
                     },
                 }
             )
-            tags = f"> 태그: {' '.join(content.tags.split('#'))}" if content.tags else " "
+            tags = f"> 태그: {content.tags}" if content.tags else " "
             blocks.append(
                 {
                     "type": "context",
