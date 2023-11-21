@@ -7,7 +7,6 @@ from slack_bolt.request import BoltRequest
 from slack_bolt.response import BoltResponse
 from typing import Callable
 
-from app.slack.community import events as community_events
 from app.slack.contents import events as contents_events
 from app.slack.core import events as core_events
 from app.slack.repositories import SlackRepository
@@ -97,14 +96,13 @@ async def handle_error(error, body):
     )
 
 
-@app.event("message")
-async def handle_message_event(ack, body) -> None:
-    await ack()
+# @app.event("message")
+# async def handle_message_event(ack, body) -> None:
+#     await ack()
 
 
 # community
-app.command("/모코숲")(community_events.guide_command)
-app.event("member_joined_channel")(community_events.send_welcome_message)
+
 
 # contents
 app.command("/제출")(contents_events.submit_command)
@@ -146,8 +144,6 @@ event_descriptions = {
     "bookmark_search_view": "북마크 검색 시작",
     "bookmark_overflow_action": "북마크 메뉴 선택",
     "bookmark_submit_search_view": "북마크 검색 완료",
-    "/모코숲": "모코숲 가이드 조회",
-    "member_joined_channel": "모코숲 채널 입장",
     "app_mention": "앱 멘션",
     "/예치금": "예치금 조회",
     "/제출내역": "제출내역 조회",

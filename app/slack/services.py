@@ -78,15 +78,15 @@ class SlackService:
         self._user_repo.update(self._user)
         return content
 
-    def get_chat_message(self, content: models.Content, animal: dict[str, str]) -> str:
+    def get_chat_message(self, content: models.Content) -> str:
         if content.type == "submit":
-            message = f"\n>>>{animal['emoji']} *<@{content.user_id}>님 제출 완료.*\
+            message = f"\n>>>🎉 *<@{content.user_id}>님 제출 완료.*\
                 {self._description_message(content.description)}\
                 \ncategory : {content.category}\
                 {self._tag_message(content.tags)}\
                 \nlink : {content.content_url}"
         else:
-            message = f"\n>>>{animal['emoji']} *<@{content.user_id}>님 패스 완료.*\
+            message = f"\n>>>🙏🏼 *<@{content.user_id}>님 패스 완료.*\
                 {self._description_message(content.description)}"
         return message
 

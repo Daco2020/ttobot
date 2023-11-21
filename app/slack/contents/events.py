@@ -4,7 +4,6 @@ from typing import Any
 from app.slack.exception import BotException
 
 from app import models
-from app.config import ANIMAL_TYPE
 from app.slack.services import SlackService
 
 
@@ -28,10 +27,7 @@ async def submit_view(
     try:
         content = await service.create_submit_content(ack, body, view)
 
-        # TODO: 모코숲 로직 추후 제거
-        animal = ANIMAL_TYPE[service.user.animal_type]
-
-        text = service.get_chat_message(content, animal)
+        text = service.get_chat_message(content)
         await client.chat_postMessage(
             channel=channel_id,
             blocks=[
@@ -82,8 +78,6 @@ async def open_intro_modal(
 
     other_user_id = body["actions"][0]["value"]
     other_user = service.get_other_user(other_user_id)
-    # TODO: 모코숲 로직 추후 제거
-    animal = ANIMAL_TYPE[other_user.animal_type]
 
     await client.views_open(
         trigger_id=body["trigger_id"],
@@ -91,9 +85,7 @@ async def open_intro_modal(
             "type": "modal",
             "title": {
                 "type": "plain_text",
-                # "text": f"{other_user.name}님의 소개",
-                # TODO: 모코숲 로직 추후 제거
-                "text": f"{animal['emoji']}{animal['name']} {other_user.name}님의 소개",
+                "text": f"{other_user.name}님의 소개",
             },
             "close": {"type": "plain_text", "text": "닫기"},
             "blocks": [
@@ -258,12 +250,9 @@ async def pass_view(
     try:
         content = await service.create_pass_content(ack, body, view)
 
-        # TODO: 모코숲 로직 추후 제거
-        animal = ANIMAL_TYPE[service.user.animal_type]
-
         await client.chat_postMessage(
             channel=channel_id,
-            text=service.get_chat_message(content, animal),
+            text=service.get_chat_message(content),
         )
     except Exception as e:
         message = (

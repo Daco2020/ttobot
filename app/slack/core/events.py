@@ -72,8 +72,8 @@ async def admin_command(
     await ack()
     # TODO: 추후 관리자 메뉴 추가
     try:
-        if user_id not in ["U02HPESDZT3", "U04KVHPMQQ6"]:
-            raise ValueError("관리자 계정이 아닙니다.")
+        if user_id not in settings.ADMIN_IDS:
+            raise PermissionError("관리자 계정이 아닙니다.")
         await client.chat_postMessage(channel=body["user_id"], text="store sync 완료")
         sheet_client = SpreadSheetClient()
         store = Store(client=sheet_client)
