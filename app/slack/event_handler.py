@@ -93,7 +93,7 @@ async def handle_error(error, body):
     trace = traceback.format_exc()
     logger.debug(dict(body=body, error=trace))
     await app.client.chat_postMessage(
-        channel=settings.ADMIN_CHANNEL, text=f"{trace=} {'>'*100} {body=}"
+        channel=settings.ADMIN_CHANNEL, text=f"🕊️: {trace=} 👉 💌: {body=}"
     )
 
 

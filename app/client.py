@@ -30,10 +30,10 @@ class SpreadSheetClient:
         else:
             return self._sheets[sheet_name].get_all_values()
 
-    def backup(self, table_name: str, values: list[list[str]]) -> None:
+    def backup(self, values: list[list[str]]) -> None:
         """백업 시트에 데이터를 업로드 합니다."""
         # TODO: 추후 백업 시트를 자동 생성할 수 있도록 변경 필요
-        sheet = self._sheets[table_name]
+        sheet = self._sheets["backup"]
         sheet.clear()
         sheet.append_rows(values)
 
@@ -47,7 +47,7 @@ class SpreadSheetClient:
         records = sheet.get_all_records()
 
         target_record = dict()
-        row_number = 2  # +1은 enumerate이 0부터 시작하기 때문, +1은 헤더 행 때문
+        row_number = 2  # 1은 인덱스가 0부터 시작하기 때문이며 나머지 1은 시드 헤더 행이 있기 때문.
         for idx, record in enumerate(records):
             if (  # TODO: 추후 pk 를 추가하여 조건 바꾸기
                 obj.user_id == record["user_id"]  # type: ignore

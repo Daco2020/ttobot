@@ -5,11 +5,11 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 from app.config import settings
 from app.store import Store
-from app.slack import main
+from app.slack import event_handler
 from slack_bolt.adapter.socket_mode.aiohttp import AsyncSocketModeHandler
 
 app = FastAPI()
-slack_handler = AsyncSocketModeHandler(main.app, settings.APP_TOKEN)
+slack_handler = AsyncSocketModeHandler(event_handler.app, settings.APP_TOKEN)
 
 
 @app.post("/")
@@ -23,14 +23,14 @@ if settings.ENV == "prod":
     async def startup():
         # 서버 저장소 동기화
         store = Store(client=SpreadSheetClient())
-        store.sync()
+        store.pull()
         store.initialize_logs()
 
         # 업로드 스케줄러
         schedule = BackgroundScheduler(daemon=True, timezone="Asia/Seoul")
         schedule.add_job(upload_contents, "interval", seconds=10, args=[store])
 
-        trigger = CronTrigger(hour=1, timezone=ZoneInfo("Asia/Seoul"))
+        trigger = CronTrigger(minute=10, timezone=ZoneInfo("Asia/Seoul"))
         schedule.add_job(upload_logs, trigger=trigger, args=[store])
         schedule.start()
 
