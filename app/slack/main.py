@@ -45,6 +45,7 @@ async def log_event_middleware(
             event=event,  # type: ignore
             type=type,
             description=description,
+            body=body,
         )
 
     await next()
@@ -122,7 +123,7 @@ app.action("bookmark_overflow_action")(contents_events.open_overflow_action)
 app.view("bookmark_submit_search_view")(contents_events.bookmark_submit_search_view)
 
 # core
-app.event("app_mention")(core_events.handle_mention)
+# app.event("app_mention")(core_events.handle_mention)
 app.command("/예치금")(core_events.get_deposit)
 app.command("/제출내역")(core_events.history_command)
 app.command("/관리자")(core_events.admin_command)

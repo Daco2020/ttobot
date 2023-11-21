@@ -4,10 +4,11 @@ from app.slack.services import SlackService
 from app.store import Store
 
 
-async def handle_mention(body, say, client) -> None:
-    """앱 멘션을 처리합니다."""
-    user = body["event"]["user"]
-    await say(f"{user} mentioned your app")
+# async def handle_mention(body, say, client) -> None:
+#     """앱 멘션을 처리합니다."""
+#     # TODO: 추후 멘션에 대한 처리 추가
+#     user = body["event"]["user"]
+#     await say(f"{user} mentioned your app")
 
 
 async def get_deposit(
