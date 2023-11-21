@@ -5,7 +5,7 @@ from app.logging import log_event
 from loguru import logger
 from slack_bolt.request import BoltRequest
 from slack_bolt.response import BoltResponse
-from typing import Callable
+from typing import Callable, cast
 
 from app.slack.contents import events as contents_events
 from app.slack.core import events as core_events
@@ -20,7 +20,6 @@ async def log_event_middleware(
     req: BoltRequest, resp: BoltResponse, next: Callable
 ) -> None:
     """이벤트를 로그로 남깁니다."""
-    user_id = req.context.get("user_id")
     body = req.body
     if body.get("command"):
         event = body.get("command")
@@ -38,16 +37,17 @@ async def log_event_middleware(
         event = "unknown"
         type = "unknown"
 
-    if event != "message":  # 일반 메시지는 제외
+    if event != "message":  # 일반 메시지는 로그를 수집하지 않는다.
         description = event_descriptions.get(str(event), "알 수 없는 이벤트")
         log_event(
-            actor=user_id,
+            actor=req.context.user_id,
             event=event,  # type: ignore
             type=type,
             description=description,
             body=body,
         )
 
+    req.context["event"] = event
     await next()
 
 
@@ -56,34 +56,38 @@ async def inject_service_middleware(
     req: BoltRequest, resp: BoltResponse, next: Callable
 ) -> None:
     """서비스 객체를 주입합니다."""
-    user_id = req.context.get("user_id")
-    user_repo = SlackRepository()
-    user = user_repo.get_user(user_id)  # type: ignore
-    if not user:
-        await app.client.views_open(
-            trigger_id=req.body["trigger_id"],
-            view={
-                "type": "modal",
-                "title": {"type": "plain_text", "text": "또봇"},
-                "close": {"type": "plain_text", "text": "닫기"},
-                "blocks": [
-                    {
-                        "type": "section",
-                        "text": {
-                            "type": "mrkdwn",
-                            "text": "🥲 사용자 정보가 등록되어 있지 않습니다.\n[0_글또봇질문] 채널로 문의해주세요.",
-                        },
-                    },
-                ],
-            },
-        )
-        message = f"🥲 사용자 정보가 등록되어 있지 않습니다. {user_id=}"
-        logger.error(message)
-        await app.client.chat_postMessage(channel=settings.ADMIN_CHANNEL, text=message)
+    if req.context.get("event") in ["app_mention", "message"]:
+        await next()
         return
 
-    req.context["service"] = SlackService(user_repo=SlackRepository(), user=user)
-    await next()
+    user_repo = SlackRepository()
+    user = user_repo.get_user(cast(str, req.context.user_id))
+    if user:
+        req.context["service"] = SlackService(user_repo=user_repo, user=user)
+        await next()
+        return
+
+    # 등록된 사용자 정보가 없으면 안내 모달을 띄운다.
+    await app.client.views_open(
+        trigger_id=req.body["trigger_id"],
+        view={
+            "type": "modal",
+            "title": {"type": "plain_text", "text": "또봇"},
+            "close": {"type": "plain_text", "text": "닫기"},
+            "blocks": [
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": "🥲 사용자 정보가 등록되어 있지 않습니다.\n[0_글또봇질문] 채널로 문의해주세요.",
+                    },
+                },
+            ],
+        },
+    )
+    message = f"🥲 사용자 정보가 등록되어 있지 않습니다. {req.context.user_id=}"
+    logger.error(message)
+    await app.client.chat_postMessage(channel=settings.ADMIN_CHANNEL, text=message)
 
 
 @app.error
@@ -97,12 +101,10 @@ async def handle_error(error, body):
     )
 
 
-# @app.event("message")
-# async def handle_message_event(ack, body) -> None:
-#     await ack()
-
-
 # community
+@app.event("message")
+async def handle_message_event(ack, body) -> None:
+    await ack()
 
 
 # contents
@@ -123,7 +125,8 @@ app.action("bookmark_overflow_action")(contents_events.open_overflow_action)
 app.view("bookmark_submit_search_view")(contents_events.bookmark_submit_search_view)
 
 # core
-# app.event("app_mention")(core_events.handle_mention)
+# TODO: 도움말 명령어 추가
+app.event("app_mention")(core_events.handle_mention)
 app.command("/예치금")(core_events.get_deposit)
 app.command("/제출내역")(core_events.history_command)
 app.command("/관리자")(core_events.admin_command)

@@ -4,11 +4,10 @@ from app.slack.services import SlackService
 from app.store import Store
 
 
-# async def handle_mention(body, say, client) -> None:
-#     """앱 멘션을 처리합니다."""
-#     # TODO: 추후 멘션에 대한 처리 추가
-#     user = body["event"]["user"]
-#     await say(f"{user} mentioned your app")
+async def handle_mention(ack, body, say, client) -> None:
+    """앱 멘션을 처리합니다."""
+    # TODO: 추후 멘션에 대한 처리 추가
+    await ack()
 
 
 async def get_deposit(
@@ -75,7 +74,7 @@ async def admin_command(
     try:
         if user_id not in settings.ADMIN_IDS:
             raise PermissionError("관리자 계정이 아닙니다.")
-        await client.chat_postMessage(channel=body["user_id"], text="store sync 완료")
+        await client.chat_postMessage(channel=body["user_id"], text="store pull 완료")
         sheet_client = SpreadSheetClient()
         store = Store(client=sheet_client)
         store.upload("logs")
