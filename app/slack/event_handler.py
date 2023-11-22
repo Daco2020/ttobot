@@ -67,27 +67,16 @@ async def inject_service_middleware(
         await next()
         return
 
-    # 등록된 사용자 정보가 없으면 안내 모달을 띄운다.
-    await app.client.views_open(
-        trigger_id=req.body["trigger_id"],
-        view={
-            "type": "modal",
-            "title": {"type": "plain_text", "text": "또봇"},
-            "close": {"type": "plain_text", "text": "닫기"},
-            "blocks": [
-                {
-                    "type": "section",
-                    "text": {
-                        "type": "mrkdwn",
-                        "text": "🥲 사용자 정보가 등록되어 있지 않습니다.\n[0_글또봇질문] 채널로 문의해주세요.",
-                    },
-                },
-            ],
-        },
+    # 사용자 정보가 없으면 안내 문구를 전송하고 관리자에게 알립니다.
+    await app.client.chat_postEphemeral(
+        channel=cast(str, req.context.channel_id),
+        user=cast(str, req.context.user_id),
+        text=f"🥲 아직 사용자 정보가 없어요...\
+            \n👉🏼 <#{settings.SUPPORT_CHANNEL}> 채널로 요청해주시면 빠르게 도와드릴게요!",
     )
-    message = f"🥲 사용자 정보가 등록되어 있지 않습니다. {req.context.user_id=}"
-    logger.error(message)
+    message = f"🥲 사용자 정보를 추가해주세요. 👉🏼 {req.context.user_id=}"
     await app.client.chat_postMessage(channel=settings.ADMIN_CHANNEL, text=message)
+    logger.error(message)
 
 
 @app.error
@@ -97,7 +86,7 @@ async def handle_error(error, body):
     trace = traceback.format_exc()
     logger.debug(dict(body=body, error=trace))
     await app.client.chat_postMessage(
-        channel=settings.ADMIN_CHANNEL, text=f"🕊️: {trace=} 👉 💌: {body=}"
+        channel=settings.ADMIN_CHANNEL, text=f"🕊️: {trace=} 👉🏼 💌: {body=}"
     )
 
 

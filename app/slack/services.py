@@ -105,7 +105,7 @@ class SlackService:
     async def open_error_modal(
         self, body: dict[str, str], client, view_name: str, message: str
     ) -> None:
-        message = (
+        message = (  # TODO: 코어 채널 링크 전달하기.
             "예기치 못한 오류가 발생했어요.\n[글또봇질문] 채널로 문의해주세요."
             if "Content" in message
             else message

@@ -17,6 +17,8 @@ class Settings(BaseSettings):
     ADMIN_CHANNEL: str
     ADMIN_IDS: list[str]
 
+    SUPPORT_CHANNEL: str
+
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"
