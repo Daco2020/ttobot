@@ -73,7 +73,7 @@ async def admin_command(
     # TODO: 추후 관리자 메뉴 추가
     try:
         if user_id not in settings.ADMIN_IDS:
-            raise PermissionError("관리자 계정이 아닙니다.")
+            raise PermissionError("관리자 계정만 사용할 수 있습니다.")
         await client.chat_postMessage(channel=body["user_id"], text="store pull 완료")
         sheet_client = SpreadSheetClient()
         store = Store(client=sheet_client)

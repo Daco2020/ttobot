@@ -13,19 +13,11 @@ async def submit_command(
     """글 제출 시작"""
     await ack()
 
-    try:
-        await service.open_submit_modal(
-            body=body,
-            client=client,
-            view_name="submit_view",
-        )
-    except BotException as e:
-        await service.open_error_modal(
-            body=body,
-            client=client,
-            view_name="submit_view",
-            message=e.message,
-        )
+    await service.open_submit_modal(
+        body=body,
+        client=client,
+        view_name="submit_view",
+    )
 
 
 async def submit_view(
@@ -75,9 +67,11 @@ async def submit_view(
                 },
             ],
         )
+    except ValueError as e:
+        raise e
     except Exception as e:
         message = (
-            f"{service.user.name}({service.user.channel_name}) 님의 제출이 실패하였습니다. {str(e)}"
+            f"{service.user.name}({service.user.channel_name}) 님의 제출이 실패했어요. {str(e)}"
         )
         raise BotException(message)
 
@@ -248,19 +242,11 @@ async def pass_command(
     """글 패스 시작"""
     await ack()
 
-    try:
-        await service.open_pass_modal(
-            body=body,
-            client=client,
-            view_name="pass_view",
-        )
-    except BotException as e:
-        await service.open_error_modal(
-            body=body,
-            client=client,
-            view_name="pass_view",
-            message=e.message,
-        )
+    await service.open_pass_modal(
+        body=body,
+        client=client,
+        view_name="pass_view",
+    )
 
 
 async def pass_view(

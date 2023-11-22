@@ -102,34 +102,6 @@ class SlackService:
             message += f"{content.content_url}"
         return message or "제출 내역이 없어요."
 
-    async def open_error_modal(
-        self, body: dict[str, str], client, view_name: str, message: str
-    ) -> None:
-        message = (  # TODO: 코어 채널 링크 전달하기.
-            "예기치 못한 오류가 발생했어요.\n[글또봇질문] 채널로 문의해주세요."
-            if "Content" in message
-            else message
-        )
-        await client.views_open(
-            trigger_id=body["trigger_id"],
-            view={
-                "type": "modal",
-                "private_metadata": body["channel_id"],
-                "callback_id": view_name,
-                "title": {"type": "plain_text", "text": "또봇"},
-                "close": {"type": "plain_text", "text": "닫기"},
-                "blocks": [
-                    {
-                        "type": "section",
-                        "text": {
-                            "type": "plain_text",
-                            "text": message,
-                        },
-                    }
-                ],
-            },
-        )
-
     async def open_submit_modal(self, body, client, view_name: str) -> None:
         """제출 모달을 띄웁니다."""
         self._check_channel(body["channel_id"])
@@ -523,8 +495,7 @@ class SlackService:
             return
         if self._user.channel_id != channel_id:
             raise BotException(
-                f"{self._user.name} 님의 코어 채널은 [{self._user.channel_name}] 이에요.\
-                             \n코어 채널에서 다시 시도해주세요."
+                f"{self._user.name} 님의 코어 채널 [{self._user.channel_name}] 에서 다시 시도해주세요."
             )
 
     async def _validate_url(self, ack, content_url: str, user: models.User) -> None:
@@ -532,24 +503,24 @@ class SlackService:
             block_id = "content_url"
             message = "링크는 url 형식이어야 해요."
             await ack(response_action="errors", errors={block_id: message})
-            raise BotException(message)
+            raise ValueError(message)
         if content_url in user.content_urls:
             block_id = "content_url"
             message = "이미 제출한 url 이에요."
             await ack(response_action="errors", errors={block_id: message})
-            raise BotException(message)
+            raise ValueError(message)
 
     async def _validate_pass(self, ack, user: models.User) -> None:
         if user.pass_count >= MAX_PASS_COUNT:
             block_id = "description"
             message = "사용할 수 있는 pass 가 없어요."
             await ack(response_action="errors", errors={block_id: message})
-            raise BotException(message)
+            raise ValueError(message)
         if user.is_prev_pass:
             block_id = "description"
             message = "연속으로 pass 를 사용할 수 없어요."
             await ack(response_action="errors", errors={block_id: message})
-            raise BotException(message)
+            raise ValueError(message)
 
     def create_bookmark(
         self, user_id: str, content_id: str, note: str = ""

@@ -72,7 +72,7 @@ async def inject_service_middleware(
         channel=cast(str, req.context.channel_id),
         user=cast(str, req.context.user_id),
         text=f"🥲 아직 사용자 정보가 없어요...\
-            \n👉🏼 <#{settings.SUPPORT_CHANNEL}> 채널로 요청해주시면 빠르게 도와드릴게요!",
+            \n👉🏼 <#{settings.SUPPORT_CHANNEL}> 채널로 문의해주시면 도와드릴게요!",
     )
     message = f"🥲 사용자 정보를 추가해주세요. 👉🏼 {req.context.user_id=}"
     await app.client.chat_postMessage(channel=settings.ADMIN_CHANNEL, text=message)
@@ -86,7 +86,18 @@ async def handle_error(error, body):
     trace = traceback.format_exc()
     logger.debug(dict(body=body, error=trace))
     await app.client.chat_postMessage(
-        channel=settings.ADMIN_CHANNEL, text=f"🕊️: {trace=} 👉🏼 💌: {body=}"
+        channel=settings.ADMIN_CHANNEL, text=f"🫢: {error=} 🕊️: {trace=} 👉🏼 💌: {body=}"
+    )
+
+    # 단순 값 에러는 무시합니다.
+    if isinstance(error, ValueError):
+        return
+
+    await app.client.chat_postEphemeral(
+        channel=body["channel_id"],
+        user=body["user_id"],
+        text=f"🥲 {str(error)}\
+            \n👉🏼 문제가 해결되지 않는다면 <#{settings.SUPPORT_CHANNEL}> 채널로 문의해주세요!",
     )
 
 
