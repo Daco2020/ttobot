@@ -658,7 +658,7 @@ async def open_overflow_action(
         service.update_bookmark(
             user_id, value["content_id"], new_status=models.BookmarkStatusEnum.DELETED
         )
-        text = "북마크를 취소하였습니다."
+        text = "북마크를 취소했어요."
     elif value["action"] == "view_note":
         title = "북마크 메모✏️"
         bookmark = service.get_bookmark(user_id, value["content_id"])
@@ -707,7 +707,7 @@ async def bookmark_submit_search_view(
                 "callback_id": "bookmark_search_view",
                 "title": {
                     "type": "plain_text",
-                    "text": f"{len(contents)} 개의 북마크를 찾았습니다.",
+                    "text": f"{len(contents)} 개의 북마크를 찾았어요.",
                 },
                 "submit": {"type": "plain_text", "text": "북마크 검색"},
                 "blocks": _fetch_bookmark_blocks(contents, bookmarks),

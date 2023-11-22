@@ -69,7 +69,7 @@ class User(BaseModel):
             if now_date <= due_date:
                 round = i + 1
                 return round, due_date
-        raise BotException("글또 활동 기간이 아닙니다.")
+        raise BotException("글또 활동 기간이 아니에요.")
 
     @property
     def is_submit(self) -> bool:
@@ -175,7 +175,7 @@ class Content(StoreModel):
         for i, due_date in enumerate(DUE_DATES):
             if self.date <= due_date:
                 return i + 1
-        raise BotException("글또 활동 기간이 아닙니다.")
+        raise BotException("글또 활동 기간이 아니에요.")
 
 
 class BookmarkStatusEnum(str, Enum):
