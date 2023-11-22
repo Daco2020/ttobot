@@ -3,6 +3,7 @@ from typing import Any
 
 from app.logging import logger
 from app.config import MAX_PASS_COUNT, URL_REGEX
+from app.slack.exception import BotException
 from app.slack.repositories import SlackRepository
 from app import store
 
@@ -99,13 +100,16 @@ class SlackService:
             message += f"\n{sumit_head if content.type == 'submit' else pass_head}  |  "
             message += f"{content.dt}  |  "
             message += f"{content.content_url}"
-        return message or "제출 내역이 없습니다."
+        return message or "제출 내역이 없어요."
 
-    async def _open_error_modal(
-        self, client, body: dict[str, str], view_name: str, e: str
+    async def open_error_modal(
+        self, body: dict[str, str], client, view_name: str, message: str
     ) -> None:
-        # TODO: 공통 모달로 변경 필요
-        e = "예기치 못한 오류가 발생하였습니다.\n[글또봇질문] 채널로 문의해주세요." if "Content" in e else e
+        message = (
+            "예기치 못한 오류가 발생했어요.\n[글또봇질문] 채널로 문의해주세요."
+            if "Content" in message
+            else message
+        )
         await client.views_open(
             trigger_id=body["trigger_id"],
             view={
@@ -119,7 +123,7 @@ class SlackService:
                         "type": "section",
                         "text": {
                             "type": "plain_text",
-                            "text": f"🥲 \n{e}",
+                            "text": message,
                         },
                     }
                 ],
@@ -127,12 +131,16 @@ class SlackService:
         )
 
     async def open_submit_modal(self, body, client, view_name: str) -> None:
+        """제출 모달을 띄웁니다."""
+        self._check_channel(body["channel_id"])
+
         try:
             round, due_date = self._user.get_due_date()
             guide_message = f"\n\n현재 회차는 {round}회차, 마감일은 {due_date} 이에요."
+            guide_message += f"\n({self._user.name} 님은 아직 {round}회차 글을 제출하지 않았어요)"
             if self._user.is_submit:
-                guide_message += f"\n({self._user.name} 님은 이미 {round}회차 글을 제출하셨어요)"
-        except ValueError:
+                guide_message += f"\n({self._user.name} 님은 이미 {round}회차 글을 제출했어요)"
+        except BotException:
             guide_message = ""
         await client.views_open(
             trigger_id=body["trigger_id"],
@@ -168,7 +176,7 @@ class SlackService:
                             "type": "static_select",
                             "placeholder": {
                                 "type": "plain_text",
-                                "text": "카테고리 선택",
+                                "text": "글의 카테고리를 선택해주세요.",
                                 "emoji": True,
                             },
                             "options": [
@@ -232,7 +240,7 @@ class SlackService:
                             "type": "static_select",
                             "placeholder": {
                                 "type": "plain_text",
-                                "text": "큐레이션 요청",
+                                "text": "글을 큐레이션 대상에 포함할까요?",
                                 "emoji": True,
                             },
                             "options": [
@@ -299,11 +307,14 @@ class SlackService:
         )
 
     async def open_pass_modal(self, body, client, view_name: str) -> None:
+        """패스 모달을 띄웁니다."""
+        self._check_channel(body["channel_id"])
+
         pass_count = self._user.pass_count
         try:
             round, due_date = self._user.get_due_date()
             guide_message = f"\n- 현재 회차는 {round}회차, 마감일은 {due_date} 이에요."
-        except ValueError:
+        except BotException:
             guide_message = ""
         await client.views_open(
             trigger_id=body["trigger_id"],
@@ -507,41 +518,38 @@ class SlackService:
         )
         return tag_message
 
-    def _validate_user(self, channel_id, user: models.User | None) -> None:
-        # TODO: 글또 9기 규칙에 따라 변경할 것
-        if not user:
-            raise ValueError("사용자 정보가 등록되어 있지 않습니다.\n[글또봇질문] 채널로 문의해주세요.")
-        if user.channel_id == "ALL":  # 관리자는 모든 채널에서 사용 가능
+    def _check_channel(self, channel_id) -> None:
+        if self._user.channel_id == "ALL":
             return
-        if user.channel_id != channel_id:
-            raise ValueError(
-                f"{user.name} 님의 코어 채널은 [{user.channel_name}] 입니다.\
+        if self._user.channel_id != channel_id:
+            raise BotException(
+                f"{self._user.name} 님의 코어 채널은 [{self._user.channel_name}] 이에요.\
                              \n코어 채널에서 다시 시도해주세요."
             )
 
     async def _validate_url(self, ack, content_url: str, user: models.User) -> None:
         if not re.match(URL_REGEX, content_url):
             block_id = "content_url"
-            message = "링크는 url 형식이어야 합니다."
+            message = "링크는 url 형식이어야 해요."
             await ack(response_action="errors", errors={block_id: message})
-            raise ValueError(message)
+            raise BotException(message)
         if content_url in user.content_urls:
             block_id = "content_url"
-            message = "이미 제출한 url 입니다."
+            message = "이미 제출한 url 이에요."
             await ack(response_action="errors", errors={block_id: message})
-            raise ValueError(message)
+            raise BotException(message)
 
     async def _validate_pass(self, ack, user: models.User) -> None:
         if user.pass_count >= MAX_PASS_COUNT:
             block_id = "description"
-            message = "사용할 수 있는 pass 가 없습니다."
+            message = "사용할 수 있는 pass 가 없어요."
             await ack(response_action="errors", errors={block_id: message})
-            raise ValueError(message)
+            raise BotException(message)
         if user.is_prev_pass:
             block_id = "description"
-            message = "연속으로 pass 를 사용할 수 없습니다."
+            message = "연속으로 pass 를 사용할 수 없어요."
             await ack(response_action="errors", errors={block_id: message})
-            raise ValueError(message)
+            raise BotException(message)
 
     def create_bookmark(
         self, user_id: str, content_id: str, note: str = ""

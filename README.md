@@ -1,75 +1,42 @@
-# Slack Bot `또봇`
+# `또봇`
 
-### 슬랙 명령어
 
-<br>
-
+### 글 제출 명령어
 ```
 /제출
 ```
-글을 제출합니다.
 
 <br>
 
+### 글 패스 명령어
 ```
 /패스
 ```
-글을 패스합니다.
 
 <br>
 
+### 글 제출내역 조회 명령어
 ```
 /제출내역
 ```
-이전 제출내역을 개인 DM으로 전달받습니다.(개발중)
-
-<br><br>
-
-### 제출 시연영상
-
-https://user-images.githubusercontent.com/76890895/215305463-a8147367-2e73-4525-bf1c-715f7b6d12f5.mp4
 
 <br>
 
-### 패스 시연영상
-
-https://user-images.githubusercontent.com/76890895/215305465-4f3ac655-e11f-4a25-a000-6ab91ce15951.mp4
-
-
-<br><br>
-
-# 개발환경
-
-- Python 3.10.4
-- FastAPI
-- Slack bolt
-- gspread
-
-<br>
-
-### FastAPI 서버 실행
+### 글 검색 명령어
 ```
-make run-server
+/검색
 ```
 
 <br>
 
-### 패키지 설치
+### 북마크 조회 명령어
 ```
-make install
+/북마크
 ```
 
 <br>
 
-### 패키지 문서화
+### 예치금 조회 명령어
 ```
-make freeze
-```
-
-
-<br>
-
-### 정적타입 검사
-```
-make type-check
+/예치금
 ```
