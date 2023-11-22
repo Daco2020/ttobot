@@ -343,7 +343,7 @@ class SlackService:
                     {
                         "type": "section",
                         "block_id": "description_section",
-                        "text": {"type": "mrkdwn", "text": "조건에 맞는 글을 검색합니다."},
+                        "text": {"type": "mrkdwn", "text": "원하는 조건의 글을 검색할 수 있어요."},
                     },
                     {
                         "type": "input",

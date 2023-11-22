@@ -6,6 +6,7 @@ from zoneinfo import ZoneInfo
 from pydantic import BaseModel, Field
 import datetime
 from app.config import DUE_DATES
+from app.slack.exception import BotException
 
 from app.utils import now_dt, now_dt_to_str
 
@@ -68,7 +69,7 @@ class User(BaseModel):
             if now_date <= due_date:
                 round = i + 1
                 return round, due_date
-        raise ValueError("글또 활동 기간이 아닙니다.")
+        raise BotException("글또 활동 기간이 아닙니다.")
 
     @property
     def is_submit(self) -> bool:
@@ -174,7 +175,7 @@ class Content(StoreModel):
         for i, due_date in enumerate(DUE_DATES):
             if self.date <= due_date:
                 return i + 1
-        raise ValueError("글또 활동 기간이 아닙니다.")
+        raise BotException("글또 활동 기간이 아닙니다.")
 
 
 class BookmarkStatusEnum(str, Enum):

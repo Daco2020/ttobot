@@ -161,7 +161,7 @@ def get_bookmark_view(
             "blocks": [
                 {
                     "type": "section",
-                    "text": {"type": "mrkdwn", "text": "\n이미 북마크한 글입니다. 😉"},
+                    "text": {"type": "mrkdwn", "text": "\n이미 북마크한 글이에요. 😉"},
                 }
             ],
         }
@@ -179,7 +179,7 @@ def get_bookmark_view(
                     "block_id": "required_section",
                     "text": {
                         "type": "mrkdwn",
-                        "text": "\n북마크한 글은 `/북마크` 명령어로 다시 확인할 수 있습니다.",
+                        "text": "\n북마크한 글은 `/북마크` 명령어로 확인할 수 있어요.",
                     },
                 },
                 {
@@ -228,7 +228,7 @@ async def bookmark_view(
                 "blocks": [
                     {
                         "type": "section",
-                        "text": {"type": "mrkdwn", "text": "\n북마크를 추가했습니다.😉"},
+                        "text": {"type": "mrkdwn", "text": "\n북마크를 추가했어요. 😉"},
                     }
                 ],
             },
@@ -266,7 +266,7 @@ async def pass_view(
         )
     except Exception as e:
         message = (
-            f"{service.user.name}({service.user.channel_name}) 님의 패스가 실패하였습니다. {str(e)}"
+            f"{service.user.name}({service.user.channel_name}) 님의 패스가 실패했어요. {str(e)}"
         )
         raise BotException(message)
 
@@ -298,7 +298,7 @@ async def submit_search(
                 "callback_id": "back_to_search_view",
                 "title": {
                     "type": "plain_text",
-                    "text": f"총 {len(contents)} 개의 글이 있습니다. 🔍",
+                    "text": f"총 {len(contents)} 개의 글이 있어요. 🔍",
                 },
                 "submit": {"type": "plain_text", "text": "다시 찾기"},
                 "blocks": _fetch_blocks(contents),
@@ -312,7 +312,10 @@ def _fetch_blocks(contents: list[models.Content]) -> list[dict[str, Any]]:
     blocks.append(
         {
             "type": "section",
-            "text": {"type": "plain_text", "text": "결과는 최대 20개까지만 표시합니다."},
+            "text": {
+                "type": "plain_text",
+                "text": "결과는 최대 20개까지만 표시해요.",
+            },  # TODO: 프론트 링크 붙이기
         },
     )
     for content in contents:
@@ -369,7 +372,7 @@ async def back_to_search_view(
             {
                 "type": "section",
                 "block_id": "description_section",
-                "text": {"type": "mrkdwn", "text": "조건에 맞는 글을 검색합니다."},
+                "text": {"type": "mrkdwn", "text": "원하는 조건의 글을 검색할 수 있어요."},
             },
             {
                 "type": "input",
@@ -513,7 +516,7 @@ async def bookmark_command(
             "callback_id": "bookmark_search_view",
             "title": {
                 "type": "plain_text",
-                "text": f"총 {len(contents)} 개의 북마크가 있습니다.",
+                "text": f"총 {len(contents)} 개의 북마크가 있어요.",
             },
             "submit": {"type": "plain_text", "text": "북마크 검색"},
             "blocks": _fetch_bookmark_blocks(contents, bookmarks),
@@ -528,7 +531,10 @@ def _fetch_bookmark_blocks(
     blocks.append(
         {
             "type": "section",
-            "text": {"type": "plain_text", "text": "결과는 최대 20개까지만 표시합니다."},
+            "text": {
+                "type": "plain_text",
+                "text": "결과는 최대 20개까지만 표시해요.",
+            },  # TODO: 프론트 링크 붙이기
         },
     )
     for content in contents:
@@ -656,7 +662,7 @@ async def open_overflow_action(
     elif value["action"] == "view_note":
         title = "북마크 메모✏️"
         bookmark = service.get_bookmark(user_id, value["content_id"])
-        text = bookmark.note if bookmark and bookmark.note else "메모가 없습니다."
+        text = bookmark.note if bookmark and bookmark.note else "메모가 없어요."
 
     await client.views_update(
         view_id=body["view"]["id"],

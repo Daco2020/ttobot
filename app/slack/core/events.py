@@ -26,7 +26,7 @@ async def get_deposit(
                     "type": "section",
                     "text": {
                         "type": "mrkdwn",
-                        "text": f"현재 남은 예치금은 {format(service.user.deposit, ',d')} 원 입니다.\n\n*<{settings.DEPOSIT_SHEETS_URL}|{'예치금 현황 자세히 확인하기'}>*",  # noqa E501
+                        "text": f"현재 남은 예치금은 {format(service.user.deposit, ',d')} 원 이에요.\n\n*<{settings.DEPOSIT_SHEETS_URL}|{'예치금 현황 자세히 확인하기'}>*",  # noqa E501
                     },
                 },
             ],
@@ -71,9 +71,10 @@ async def admin_command(
     """관리자 메뉴를 조회합니다."""
     await ack()
     # TODO: 추후 관리자 메뉴 추가
+
+    if user_id not in settings.ADMIN_IDS:
+        raise PermissionError("관리자만 호출할 수 있어요. 히힛 :)")
     try:
-        if user_id not in settings.ADMIN_IDS:
-            raise PermissionError("관리자 계정만 사용할 수 있습니다.")
         await client.chat_postMessage(channel=body["user_id"], text="store pull 완료")
         sheet_client = SpreadSheetClient()
         store = Store(client=sheet_client)
@@ -81,5 +82,5 @@ async def admin_command(
         store.backup("contents")
         store.initialize_logs()
         store.pull()
-    except ValueError as e:
+    except Exception as e:
         await client.chat_postMessage(channel=body["user_id"], text=str(e))

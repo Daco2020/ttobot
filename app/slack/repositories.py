@@ -4,6 +4,7 @@ import pandas as pd
 
 from app import store
 from app import models
+from app.slack.exception import BotException
 from app.utils import now_dt_to_str
 
 
@@ -47,7 +48,7 @@ class SlackRepository:
     def update(self, user: models.User) -> None:
         """유저의 콘텐츠를 업데이트합니다."""
         if not user.contents:
-            raise ValueError("업데이트 대상 content 가 없습니다.")
+            raise BotException("업데이트 대상 content 가 없습니다.")
         store.content_upload_queue.append(user.recent_content.to_list_for_sheet())
         with open("store/contents.csv", "a", newline="", encoding="utf-8") as f:
             writer = csv.writer(f, quoting=csv.QUOTE_ALL)
