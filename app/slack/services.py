@@ -98,9 +98,13 @@ class SlackService:
             round = content.get_round()
             sumit_head = f"✅  {round}회차 제출"
             pass_head = f"▶️  {round}회차 패스"
-            message += f"\n{sumit_head if content.type == 'submit' else pass_head}  |  "
-            message += f"{content.dt}  |  "
-            message += f"{content.content_url}"
+            if content.type == "submit":
+                message += f"\n{sumit_head}  |  "
+                message += f"{content.dt}  |  "
+                message += f"*<{content.content_url}|{re.sub('<|>', '', content.title)}>*"  # noqa E501
+            else:
+                message += f"\n{pass_head}  |  "
+                message += f"{content.dt}  |  "
         return message or "제출 내역이 없어요."
 
     async def open_submit_modal(self, body, client, view_name: str) -> None:
