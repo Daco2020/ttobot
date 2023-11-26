@@ -540,8 +540,8 @@ class SlackService:
             message = "이미 제출한 url 이에요."
             await ack(response_action="errors", errors={block_id: message})
             raise ValueError(message)
-        if "notion" in content_url:
-            # 글 제목을 입력한 경우 통과
+        if "notion" in content_url or "oopy.io" in content_url:
+            # 글 제목을 입력한 경우 통과.
             if (
                 view["state"]["values"]
                 .get("notion_title", {})
