@@ -51,11 +51,11 @@ class SlackService:
     async def create_submit_content(self, ack, body, view) -> models.Content:
         """제출 콘텐츠를 생성합니다."""
         content_url = self._get_content_url(view)
-        await self._validate_url(ack, content_url, self._user)
+        await self._validate_url(view, ack, content_url, self._user)
         content = models.Content(
             user_id=body["user"]["id"],
             username=body["user"]["username"],
-            title=self._get_title(content_url),
+            title=self._get_title(view, content_url),
             content_url=content_url,
             category=self._get_category(view),
             description=self._get_description(view),
@@ -83,10 +83,11 @@ class SlackService:
     def get_chat_message(self, content: models.Content) -> str:
         if content.type == "submit":
             message = f"\n>>>🎉 *<@{content.user_id}>님 제출 완료.*\
+                \n제목: {content.title}\
                 {self._description_message(content.description)}\
-                \ncategory : {content.category}\
+                \n카테고리 : {content.category}\
                 {self._tag_message(content.tags)}\
-                \nlink : {content.content_url}"
+                \n링크 : {content.content_url}"
         else:
             message = f"\n>>>🙏🏼 *<@{content.user_id}>님 패스 완료.*\
                 {self._description_message(content.description)}"
@@ -277,6 +278,24 @@ class SlackService:
                             "type": "plain_text",
                             "text": "하고 싶은 말",
                             "emoji": True,
+                        },
+                    },
+                    {
+                        "type": "input",
+                        "block_id": "notion_title",
+                        "label": {
+                            "type": "plain_text",
+                            "text": "글 제목(직접 입력)",
+                        },
+                        "optional": True,
+                        "element": {
+                            "type": "plain_text_input",
+                            "action_id": "title_input",
+                            "placeholder": {
+                                "type": "plain_text",
+                                "text": "노션으로 작성한 글은 `글 제목`이 필수입니다.",
+                            },
+                            "multiline": False,
                         },
                     },
                 ],
@@ -471,7 +490,12 @@ class SlackService:
         ]["value"]
         return content_url
 
-    def _get_title(self, url: str) -> str:
+    def _get_title(self, view, url: str) -> str:
+        # 노션은 title 태그가 없어서 직접 수동으로 받아 처리
+        if view["state"]["values"].get("notion_title"):
+            title: str = view["state"]["values"]["notion_title"]["title_input"]["value"]
+            if title:
+                return title
         try:
             response = requests.get(url)
             soup = BeautifulSoup(response.text, "html.parser")
@@ -489,7 +513,7 @@ class SlackService:
 
     def _tag_message(self, tag: str) -> str:
         tag_message = (
-            "\ntag : " + " ".join([f"`{t.strip()}`" for t in tag.split(",")])
+            "\n태그 : " + " ".join([f"`{t.strip()}`" for t in tag.split(",")])
             if tag
             else ""
         )
@@ -503,7 +527,9 @@ class SlackService:
                 f"{self._user.name} 님의 코어 채널 [{self._user.channel_name}] 에서 다시 시도해주세요."
             )
 
-    async def _validate_url(self, ack, content_url: str, user: models.User) -> None:
+    async def _validate_url(
+        self, view, ack, content_url: str, user: models.User
+    ) -> None:
         if not re.match(URL_REGEX, content_url):
             block_id = "content_url"
             message = "링크는 url 형식이어야 해요."
@@ -512,6 +538,19 @@ class SlackService:
         if content_url in user.content_urls:
             block_id = "content_url"
             message = "이미 제출한 url 이에요."
+            await ack(response_action="errors", errors={block_id: message})
+            raise ValueError(message)
+        if "notion" in content_url:
+            # 글 제목을 입력한 경우 통과
+            if (
+                view["state"]["values"]
+                .get("notion_title", {})
+                .get("title_input", {})
+                .get("value")
+            ):
+                return
+            block_id = "content_url"
+            message = "노션 페이지는 하단의 `글 제목`을 필수로 입력해주세요."
             await ack(response_action="errors", errors={block_id: message})
             raise ValueError(message)
 
