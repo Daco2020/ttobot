@@ -95,14 +95,17 @@ async def handle_error(error, body):
     logger.error(f'"{str(error)}"')
     trace = traceback.format_exc()
     logger.debug(dict(body=body, error=trace))
+
+    # 단순 값 에러는 무시합니다.
+    if isinstance(error, ValueError):
+        raise error
+
+    # 관리자에게 에러를 알립니다.
     await app.client.chat_postMessage(
         channel=settings.ADMIN_CHANNEL, text=f"🫢: {error=} 🕊️: {trace=} 👉🏼 💌: {body=}"
     )
 
-    # 단순 값 에러는 무시합니다.
-    if isinstance(error, ValueError):
-        return
-
+    # 사용자에게 에러를 알립니다.
     await app.client.chat_postEphemeral(
         channel=body["channel_id"],
         user=body["user_id"],
