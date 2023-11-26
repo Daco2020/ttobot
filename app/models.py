@@ -5,7 +5,7 @@ from enum import Enum
 from zoneinfo import ZoneInfo
 from pydantic import BaseModel, Field
 import datetime
-from app.config import DUE_DATES
+from app.constants import DUE_DATES
 from app.slack.exception import BotException
 
 from app.utils import now_dt, now_dt_to_str
