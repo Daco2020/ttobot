@@ -79,7 +79,12 @@ async def inject_service_middleware(
         text=f"🥲 아직 사용자 정보가 없어요...\
             \n👉🏼 <#{settings.SUPPORT_CHANNEL}> 채널로 문의해주시면 도와드릴게요!",
     )
-    message = f"🥲 사용자 정보를 추가해주세요. 👉🏼 {event=} {user_id=} {channel_id=}"
+    message = (
+        "🥲 사용자 정보를 추가해주세요. 👉🏼 "
+        f"event: `{event}` "
+        f"channel: <#{channel_id}> "
+        f"user_id: {user_id}"
+    )
     await app.client.chat_postMessage(channel=settings.ADMIN_CHANNEL, text=message)
     logger.error(message)
 
