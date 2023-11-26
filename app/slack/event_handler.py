@@ -37,7 +37,7 @@ async def log_event_middleware(
         event = "unknown"
         type = "unknown"
 
-    if event != "message":  # 일반 메시지는 로그를 수집하지 않는다.
+    if event not in ["message", "member_joined_channel"]:
         description = event_descriptions.get(str(event), "알 수 없는 이벤트")
         log_event(
             actor=req.context.user_id,
@@ -56,13 +56,17 @@ async def inject_service_middleware(
     req: BoltRequest, resp: BoltResponse, next: Callable
 ) -> None:
     """서비스 객체를 주입합니다."""
-    if req.context.get("event") in ["app_mention", "message"]:
+    event = req.context.get("event")
+    user_id = req.context.user_id
+    channel_id = req.context.channel_id
+
+    if event in ["app_mention", "message", "member_joined_channel"]:
         # 앱 멘션과 일반 메시지는 서비스 객체를 주입하지 않는다.
         await next()
         return
 
     user_repo = SlackRepository()
-    user = user_repo.get_user(cast(str, req.context.user_id))
+    user = user_repo.get_user(cast(str, user_id))
     if user:
         req.context["service"] = SlackService(user_repo=user_repo, user=user)
         await next()
@@ -70,12 +74,12 @@ async def inject_service_middleware(
 
     # 사용자 정보가 없으면 안내 문구를 전송하고 관리자에게 알립니다.
     await app.client.chat_postEphemeral(
-        channel=cast(str, req.context.channel_id),
-        user=cast(str, req.context.user_id),
+        channel=cast(str, channel_id),
+        user=cast(str, user_id),
         text=f"🥲 아직 사용자 정보가 없어요...\
             \n👉🏼 <#{settings.SUPPORT_CHANNEL}> 채널로 문의해주시면 도와드릴게요!",
     )
-    message = f"🥲 사용자 정보를 추가해주세요. 👉🏼 {req.context.user_id=}"
+    message = f"🥲 사용자 정보를 추가해주세요. 👉🏼 {event=} {user_id=} {channel_id=}"
     await app.client.chat_postMessage(channel=settings.ADMIN_CHANNEL, text=message)
     logger.error(message)
 
@@ -104,7 +108,12 @@ async def handle_error(error, body):
 
 # community
 @app.event("message")
-async def handle_message_event(ack, body) -> None:
+async def handle_message(ack, body) -> None:
+    await ack()
+
+
+@app.event("member_joined_channel")
+async def handle_member_joined_channel(ack, body) -> None:
     await ack()
 
 
@@ -126,7 +135,7 @@ app.action("bookmark_overflow_action")(contents_events.open_overflow_action)
 app.view("bookmark_submit_search_view")(contents_events.bookmark_submit_search_view)
 
 # core
-app.event("app_mention")(core_events.handle_mention)
+app.event("app_mention")(core_events.handle_app_mention)
 app.command("/예치금")(core_events.get_deposit)
 app.command("/제출내역")(core_events.history_command)
 app.command("/관리자")(core_events.admin_command)
