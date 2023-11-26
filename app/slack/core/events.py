@@ -31,7 +31,9 @@ async def get_deposit(
                     "type": "section",
                     "text": {
                         "type": "mrkdwn",
-                        "text": f"현재 남은 예치금은 {format(service.user.deposit, ',d')} 원 이에요.\n\n*<{settings.DEPOSIT_SHEETS_URL}|{'예치금 현황 자세히 확인하기'}>*",  # noqa E501
+                        # TODO: 추후 예치금 현황 자세히 확인하기 링크 추가
+                        # "text": f"현재 남은 예치금은 {format(service.user.deposit, ',d')} 원 이에요.\n\n*<{settings.DEPOSIT_SHEETS_URL}|{'예치금 현황 자세히 확인하기'}>*",  # noqa E501
+                        "text": f"현재 남은 예치금은 {format(service.user.deposit, ',d')} 원 이에요.",  # noqa E501
                     },
                 },
             ],
