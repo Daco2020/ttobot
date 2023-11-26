@@ -1,12 +1,17 @@
 from app.client import SpreadSheetClient
 from app.config import settings
+from app.constants import HELP_TEXT
 from app.slack.services import SlackService
 from app.store import Store
 
 
 async def handle_mention(ack, body, say, client) -> None:
-    """앱 멘션을 처리합니다."""
-    # TODO: 추후 멘션에 대한 처리 추가
+    """앱 멘션 호출 시 도움말 메시지를 전송합니다."""
+    await client.chat_postEphemeral(
+        channel=body["event"]["channel"],
+        user=body["event"]["user"],
+        text=HELP_TEXT,
+    )
     await ack()
 
 

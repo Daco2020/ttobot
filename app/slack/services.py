@@ -1,8 +1,9 @@
 import re
 from typing import Any
+from app.constants import URL_REGEX
 
 from app.logging import logger
-from app.config import MAX_PASS_COUNT, URL_REGEX
+from app.constants import MAX_PASS_COUNT
 from app.slack.exception import BotException
 from app.slack.repositories import SlackRepository
 from app import store

@@ -57,6 +57,7 @@ async def inject_service_middleware(
 ) -> None:
     """서비스 객체를 주입합니다."""
     if req.context.get("event") in ["app_mention", "message"]:
+        # 앱 멘션과 일반 메시지는 서비스 객체를 주입하지 않는다.
         await next()
         return
 
@@ -125,7 +126,6 @@ app.action("bookmark_overflow_action")(contents_events.open_overflow_action)
 app.view("bookmark_submit_search_view")(contents_events.bookmark_submit_search_view)
 
 # core
-# TODO: 도움말 명령어 추가
 app.event("app_mention")(core_events.handle_mention)
 app.command("/예치금")(core_events.get_deposit)
 app.command("/제출내역")(core_events.history_command)
