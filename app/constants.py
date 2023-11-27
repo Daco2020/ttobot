@@ -52,6 +52,5 @@ HELP_TEXT = f"""
 ---
 
 이 외에 궁금한 사항이 있다면 <#{settings.SUPPORT_CHANNEL}> 채널로 문의해주시면 도와드릴게요!
-또봇 코드가 궁금하다면 👉🏼 [깃허브](https://github.com/Daco2020/ttobot)를 참고해주세요.
-
+또봇 코드가 궁금하다면 👉🏼 *<https://github.com/Daco2020/ttobot|깃허브>* 를 참고해주세요.
 """
