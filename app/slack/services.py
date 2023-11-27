@@ -83,11 +83,10 @@ class SlackService:
     def get_chat_message(self, content: models.Content) -> str:
         if content.type == "submit":
             message = f"\n>>>🎉 *<@{content.user_id}>님 제출 완료.*\
-                \n제목: {content.title}\
                 {self._description_message(content.description)}\
+                \n링크 : *<{content.content_url}|{re.sub('<|>', '', content.title if content.title != 'title unknown.' else content.content_url)}>*\
                 \n카테고리 : {content.category}\
-                {self._tag_message(content.tags)}\
-                \n링크 : {content.content_url}"
+                {self._tag_message(content.tags)}"  # noqa E501
         else:
             message = f"\n>>>🙏🏼 *<@{content.user_id}>님 패스 완료.*\
                 {self._description_message(content.description)}"
