@@ -5,7 +5,7 @@ from app.logging import log_event
 from loguru import logger
 from slack_bolt.request import BoltRequest
 from slack_bolt.response import BoltResponse
-from slack.errors import SlackApiError
+from slack_sdk.errors import SlackApiError
 
 from typing import Callable, cast
 

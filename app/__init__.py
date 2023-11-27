@@ -1,3 +1,4 @@
+from typing import Any
 from zoneinfo import ZoneInfo
 from app.client import SpreadSheetClient
 from fastapi import FastAPI, Request
@@ -12,9 +13,9 @@ app = FastAPI()
 slack_handler = AsyncSocketModeHandler(event_handler.app, settings.APP_TOKEN)
 
 
-@app.post("/")
-async def health(request: Request) -> bool:
-    return True
+@app.get("/")
+async def health(request: Request) -> dict[str, Any]:
+    return {"health": True}
 
 
 if settings.ENV == "prod":

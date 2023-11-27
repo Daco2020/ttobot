@@ -3,7 +3,7 @@ from app.config import settings
 from app.constants import HELP_TEXT
 from app.slack.services import SlackService
 from app.store import Store
-from slack.errors import SlackApiError
+from slack_sdk.errors import SlackApiError
 
 
 async def handle_app_mention(ack, body, say, client) -> None:
