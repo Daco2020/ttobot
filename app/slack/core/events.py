@@ -3,16 +3,18 @@ from app.config import settings
 from app.constants import HELP_TEXT
 from app.slack.services import SlackService
 from app.store import Store
+from slack.errors import SlackApiError
 
 
 async def handle_app_mention(ack, body, say, client) -> None:
     """앱 멘션 호출 시 도움말 메시지를 전송합니다."""
+    await ack()
+
     await client.chat_postEphemeral(
         channel=body["event"]["channel"],
         user=body["event"]["user"],
         text=HELP_TEXT,
     )
-    await ack()
 
 
 async def get_deposit(
@@ -91,3 +93,25 @@ async def admin_command(
         store.pull()
     except Exception as e:
         await client.chat_postMessage(channel=body["user_id"], text=str(e))
+
+
+async def help_command(
+    ack, body, say, client, user_id: str, channel_id: str, service: SlackService
+) -> None:
+    """도움말을 조회합니다."""
+    await ack()
+
+    try:
+        await client.chat_postEphemeral(
+            channel=channel_id,
+            user=user_id,
+            text=HELP_TEXT,
+        )
+    except SlackApiError as e:
+        if e.response.get("error") == "channel_not_found":
+            # 채널을 찾을 수 없는 경우 개인에게 메시지를 전송합니다.
+            await client.chat_postEphemeral(
+                channel=user_id,
+                user=user_id,
+                text=HELP_TEXT,
+            )

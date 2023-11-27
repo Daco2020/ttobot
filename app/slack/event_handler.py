@@ -147,6 +147,7 @@ app.event("app_mention")(core_events.handle_app_mention)
 app.command("/예치금")(core_events.get_deposit)
 app.command("/제출내역")(core_events.history_command)
 app.command("/관리자")(core_events.admin_command)
+app.command("/도움말")(core_events.help_command)
 
 
 event_descriptions = {
