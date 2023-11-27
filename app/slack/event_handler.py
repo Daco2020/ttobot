@@ -5,6 +5,8 @@ from app.logging import log_event
 from loguru import logger
 from slack_bolt.request import BoltRequest
 from slack_bolt.response import BoltResponse
+from slack.errors import SlackApiError
+
 from typing import Callable, cast
 
 from app.slack.contents import events as contents_events
@@ -106,12 +108,23 @@ async def handle_error(error, body):
     )
 
     # 사용자에게 에러를 알립니다.
-    await app.client.chat_postEphemeral(
-        channel=body["channel_id"],
-        user=body["user_id"],
-        text=f"🥲 {str(error)}\
-            \n👉🏼 문제가 해결되지 않는다면 <#{settings.SUPPORT_CHANNEL}> 채널로 문의해주세요!",
-    )
+    text = f"🥲 {str(error)}\n👉🏼 문제가 해결되지 않는다면 <#{settings.SUPPORT_CHANNEL}> 채널로 문의해주세요!"
+    try:
+        await app.client.chat_postEphemeral(
+            channel=body["channel_id"],
+            user=body["user_id"],
+            text=text,
+        )
+    except SlackApiError as e:
+        if e.response.get("error") == "channel_not_found":
+            # 채널을 찾을 수 없는 경우 개인에게 메시지를 전송합니다.
+            await app.client.chat_postEphemeral(
+                channel=body["user_id"],
+                user=body["user_id"],
+                text=text,
+            )
+        else:
+            raise e
 
 
 # community
