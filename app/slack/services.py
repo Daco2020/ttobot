@@ -523,7 +523,7 @@ class SlackService:
             return
         if self._user.channel_id != channel_id:
             raise BotException(
-                f"{self._user.name} 님의 코어 채널 [{self._user.channel_name}] 에서 다시 시도해주세요."
+                f"{self._user.name} 님의 코어 채널 <#{self._user.channel_id}> 에서 다시 시도해주세요."
             )
 
     async def _validate_url(
