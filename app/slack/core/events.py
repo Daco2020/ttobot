@@ -3,18 +3,11 @@ from app.config import settings
 from app.constants import HELP_TEXT
 from app.slack.services import SlackService
 from app.store import Store
-from slack_sdk.errors import SlackApiError
 
 
 async def handle_app_mention(ack, body, say, client) -> None:
     """앱 멘션 호출 시 도움말 메시지를 전송합니다."""
     await ack()
-
-    await client.chat_postEphemeral(
-        channel=body["event"]["channel"],
-        user=body["event"]["user"],
-        text=HELP_TEXT,
-    )
 
 
 async def get_deposit(
@@ -82,7 +75,7 @@ async def admin_command(
     # TODO: 추후 관리자 메뉴 추가
 
     if user_id not in settings.ADMIN_IDS:
-        raise PermissionError("관리자만 호출할 수 있어요. 히힛 :)")
+        raise PermissionError("`/관리자` 명령어는 관리자만 호출할 수 있어요. 🤭")
     try:
         await client.chat_postMessage(channel=body["user_id"], text="store pull 완료")
         sheet_client = SpreadSheetClient()
@@ -101,17 +94,9 @@ async def help_command(
     """도움말을 조회합니다."""
     await ack()
 
-    try:
-        await client.chat_postEphemeral(
-            channel=channel_id,
-            user=user_id,
-            text=HELP_TEXT,
-        )
-    except SlackApiError as e:
-        if e.response.get("error") == "channel_not_found":
-            # 채널을 찾을 수 없는 경우 개인에게 메시지를 전송합니다.
-            await client.chat_postEphemeral(
-                channel=user_id,
-                user=user_id,
-                text=HELP_TEXT,
-            )
+    # 또봇이 추가된 채널만 전송할 수 있기 때문에 개인 디엠으로 보내도록 통일.
+    await client.chat_postEphemeral(
+        channel=user_id,
+        user=user_id,
+        text=HELP_TEXT,
+    )

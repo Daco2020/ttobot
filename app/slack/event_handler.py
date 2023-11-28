@@ -1,3 +1,4 @@
+import re
 import traceback
 from app.config import settings
 from slack_bolt.async_app import AsyncApp
@@ -5,7 +6,6 @@ from app.logging import log_event
 from loguru import logger
 from slack_bolt.request import BoltRequest
 from slack_bolt.response import BoltResponse
-from slack_sdk.errors import SlackApiError
 
 from typing import Callable, cast
 
@@ -102,29 +102,34 @@ async def handle_error(error, body):
     if isinstance(error, ValueError):
         raise error
 
+    # 사용자에게 에러를 알립니다.
+    if re.search(r"[\u3131-\uD79D]", str(error)):
+        # 한글로 핸들링하는 메시지만 사용자에게 전송합니다.
+        message = str(error)
+    else:
+        message = "예기치 못한 오류가 발생했어요."
+    await app.client.views_open(
+        trigger_id=body["trigger_id"],
+        view={
+            "type": "modal",
+            "private_metadata": body["channel_id"],
+            "title": {"type": "plain_text", "text": "잠깐!"},
+            "blocks": [
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": f"🥲 {message}\n\n👉🏼 문제가 해결되지 않는다면 <#{settings.SUPPORT_CHANNEL}> 채널로 문의해주세요! ",  # noqa E501
+                    },
+                }
+            ],
+        },
+    )
+
     # 관리자에게 에러를 알립니다.
     await app.client.chat_postMessage(
         channel=settings.ADMIN_CHANNEL, text=f"🫢: {error=} 🕊️: {trace=} 👉🏼 💌: {body=}"
     )
-
-    # 사용자에게 에러를 알립니다.
-    text = f"🥲 {str(error)}\n👉🏼 문제가 해결되지 않는다면 <#{settings.SUPPORT_CHANNEL}> 채널로 문의해주세요!"
-    try:
-        await app.client.chat_postEphemeral(
-            channel=body["channel_id"],
-            user=body["user_id"],
-            text=text,
-        )
-    except SlackApiError as e:
-        if e.response.get("error") == "channel_not_found":
-            # 채널을 찾을 수 없는 경우 개인에게 메시지를 전송합니다.
-            await app.client.chat_postEphemeral(
-                channel=body["user_id"],
-                user=body["user_id"],
-                text=text,
-            )
-        else:
-            raise e
 
 
 # community
