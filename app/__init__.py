@@ -6,7 +6,7 @@ from apscheduler.triggers.interval import IntervalTrigger
 from app.config import settings
 from app.store import Store
 from app.slack import event_handler
-from app.router import router as v1_router
+from app.api import router as v1_router
 from slack_bolt.adapter.socket_mode.aiohttp import AsyncSocketModeHandler
 
 app = FastAPI()
