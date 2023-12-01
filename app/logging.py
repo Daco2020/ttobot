@@ -6,11 +6,12 @@ import orjson
 from typing import Any
 
 from pydantic import BaseModel
-from app.utils import now_dt_to_str
+from app.utils import tz_now, tz_now_to_str
 from loguru import logger
 
 
 def filter(record):
+    record["time"] = tz_now().strftime("%Y-%m-%d %H:%M:%S.%f%z")
     message = record["message"].replace('"', "'")
     record["message"] = f'"{message}"'
     return True
@@ -49,7 +50,7 @@ def log_event(
             event=event,
             type=type,
             description=description,
-            timestamp=now_dt_to_str(),
+            timestamp=tz_now_to_str(),
             body=body,
         )
         logger.info(orjson.dumps(data, default=default).decode("utf-8"))

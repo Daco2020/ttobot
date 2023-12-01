@@ -5,7 +5,7 @@ import pandas as pd
 from app import store
 from app import models
 from app.slack.exception import BotException
-from app.utils import now_dt_to_str
+from app.utils import tz_now_to_str
 
 
 class SlackRepository:
@@ -140,6 +140,6 @@ class SlackRepository:
         if new_status:
             df.loc[df["content_id"] == content_id, "status"] = new_status
         if new_note or new_status:
-            df.loc[df["content_id"] == content_id, "updated_at"] = now_dt_to_str()
+            df.loc[df["content_id"] == content_id, "updated_at"] = tz_now_to_str()
 
         df.to_csv("store/bookmark.csv", index=False)

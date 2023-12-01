@@ -8,7 +8,7 @@ import datetime
 from app.constants import DUE_DATES
 from app.slack.exception import BotException
 
-from app.utils import now_dt, now_dt_to_str
+from app.utils import tz_now, tz_now_to_str
 
 
 class User(BaseModel):
@@ -40,7 +40,7 @@ class User(BaseModel):
 
     def _is_prev_pass(self, recent_content: Content) -> bool:
         """전전회차 마감일 초과, 현재 날짜 이하 사이에 pass 했는지 여부를 반환합니다."""
-        now_date = now_dt().date()
+        now_date = tz_now().date()
         second_latest_due_date = DUE_DATES[-2]
         for i, due_date in enumerate(DUE_DATES):
             if now_date <= due_date:
@@ -64,7 +64,7 @@ class User(BaseModel):
 
     def get_due_date(self) -> tuple[int, datetime.date]:
         """현재 회차와 마감일을 반환합니다."""
-        now_date = now_dt().date()
+        now_date = tz_now().date()
         for i, due_date in enumerate(DUE_DATES):
             if now_date <= due_date:
                 round = i + 1
@@ -82,7 +82,7 @@ class User(BaseModel):
         if recent_content.type != "submit":
             return False
 
-        now_date = now_dt().date()
+        now_date = tz_now().date()
         latest_due_date = DUE_DATES[-2]
         for i, due_date in enumerate(DUE_DATES):
             if now_date <= due_date:
@@ -106,7 +106,7 @@ class StoreModel(BaseModel):
 
 
 class Content(StoreModel):
-    dt: str = Field(default_factory=now_dt_to_str)
+    dt: str = Field(default_factory=tz_now_to_str)
     user_id: str
     username: str
     description: str = ""
@@ -188,8 +188,8 @@ class Bookmark(StoreModel):
     content_id: str  # user_id:dt 형식의 유니크 키
     note: str = ""
     status: BookmarkStatusEnum = BookmarkStatusEnum.ACTIVE
-    created_at: str = Field(default_factory=now_dt_to_str)
-    updated_at: str = Field(default_factory=now_dt_to_str)
+    created_at: str = Field(default_factory=tz_now_to_str)
+    updated_at: str = Field(default_factory=tz_now_to_str)
 
     def to_list_for_csv(self) -> list[str]:
         return [
