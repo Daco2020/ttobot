@@ -135,6 +135,18 @@ async def handle_error(error, body):
 # community
 @app.event("message")
 async def handle_message(ack, body) -> None:
+    user_id = body.get("event", {}).get("user")
+    channel_id = body.get("event", {}).get("channel")
+    is_thread = bool(body.get("event", {}).get("thread_ts"))
+
+    if channel_id == settings.SUPPORT_CHANNEL and is_thread is False:
+        # 사용자가 문의사항을 남기면 관리자에게 알립니다.
+        if user := SlackRepository().get_user(cast(str, user_id)):
+            message = f"👋🏼 <#{user.channel_id}>채널의 {user.name}님이 <#{channel_id}>을 남겼어요."
+            await app.client.chat_postMessage(
+                channel=settings.ADMIN_CHANNEL, text=message
+            )
+
     await ack()
 
 
