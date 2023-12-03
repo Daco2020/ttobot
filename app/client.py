@@ -1,7 +1,7 @@
 from app.logging import logger
 from app.config import settings
 
-from gspread import authorize
+from gspread import authorize, Spreadsheet, Worksheet
 from oauth2client.service_account import ServiceAccountCredentials
 from app.models import StoreModel
 
@@ -13,15 +13,23 @@ gc = authorize(credentials)
 
 
 class SpreadSheetClient:
-    def __init__(self) -> None:
-        self._doc = gc.open_by_url(settings.SPREAD_SHEETS_URL)
-        self._sheets = {
-            "contents": self._doc.worksheet("contents"),
-            "users": self._doc.worksheet("users"),
-            "logs": self._doc.worksheet("logs"),
-            "backup": self._doc.worksheet("backup"),
-            "bookmark": self._doc.worksheet("bookmark"),
-        }
+    def __init__(
+        self,
+        doc: Spreadsheet = gc.open_by_url(settings.SPREAD_SHEETS_URL),
+        sheets: dict[str, Worksheet] | None = None,
+    ) -> None:
+        self._doc = doc
+        self._sheets = (
+            {
+                "contents": self._doc.worksheet("contents"),
+                "users": self._doc.worksheet("users"),
+                "logs": self._doc.worksheet("logs"),
+                "backup": self._doc.worksheet("backup"),
+                "bookmark": self._doc.worksheet("bookmark"),
+            }
+            if not sheets
+            else sheets
+        )
 
     def get_values(self, sheet_name: str, column: str = "") -> list[list[str]]:
         """스프레드 시트로 부터 값을 가져옵니다."""
@@ -63,3 +71,7 @@ class SpreadSheetClient:
             logger.error(f"시트에 해당 값이 존재하지 않습니다. {values}")
 
         sheet.update(f"A{row_number}:F{row_number}", [values])
+
+    def clear(self, sheet_name: str) -> None:
+        """해당 시트의 모든 데이터를 삭제합니다."""
+        self._sheets[sheet_name].clear()
