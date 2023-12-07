@@ -67,7 +67,7 @@ class User(BaseModel):
         now_date = tz_now().date()
         for i, due_date in enumerate(DUE_DATES):
             if now_date <= due_date:
-                round = i + 1
+                round = i
                 return round, due_date
         raise BotException("글또 활동 기간이 아니에요.")
 
@@ -83,11 +83,12 @@ class User(BaseModel):
             return False
 
         now_date = tz_now().date()
-        latest_due_date = DUE_DATES[-2]
         for i, due_date in enumerate(DUE_DATES):
-            if now_date <= due_date:
-                latest_due_date = DUE_DATES[i - 1]
+            if now_date <= due_date:  # 현재 날짜가 보다 같거나 크면 현재 마감일이다.
+                latest_due_date = DUE_DATES[i - 1]  # 현재 마감일의 직전 마감일을 구한다.
                 break
+
+        # 최근 제출한 콘텐츠의 날짜가 직전 마감일 초과, 현재 날짜 이하 라면 제출했다고 판단한다.
         return latest_due_date < recent_content.date <= now_date
 
 

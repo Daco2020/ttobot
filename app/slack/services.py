@@ -111,13 +111,13 @@ class SlackService:
     async def open_submit_modal(self, body, client, view_name: str) -> None:
         """제출 모달을 띄웁니다."""
         self._check_channel(body["channel_id"])
-
         try:
             round, due_date = self._user.get_due_date()
             guide_message = f"\n\n현재 회차는 {round}회차, 마감일은 {due_date} 이에요."
-            guide_message += f"\n({self._user.name} 님은 아직 {round}회차 글을 제출하지 않았어요)"
             if self._user.is_submit:
                 guide_message += f"\n({self._user.name} 님은 이미 {round}회차 글을 제출했어요)"
+            else:
+                guide_message += f"\n({self._user.name} 님은 아직 {round}회차 글을 제출하지 않았어요)"
         except BotException:
             guide_message = ""
         await client.views_open(
@@ -307,11 +307,13 @@ class SlackService:
         self._check_channel(body["channel_id"])
 
         pass_count = self._user.pass_count
-        try:
-            round, due_date = self._user.get_due_date()
-            guide_message = f"\n- 현재 회차는 {round}회차, 마감일은 {due_date} 이에요."
-        except BotException:
-            guide_message = ""
+        round, due_date = self._user.get_due_date()
+
+        if self._user.is_submit:
+            raise BotException(
+                f"{self._user.name} 님은 이미 {round}회차(마감일: {due_date}) 글을 제출했어요. 제출내역을 확인해주세요."  # noqa E501
+            )
+
         await client.views_open(
             trigger_id=body["trigger_id"],
             view={
@@ -327,7 +329,8 @@ class SlackService:
                         "text": {
                             "type": "mrkdwn",
                             "text": f"패스 하려면 아래 '패스' 버튼을 눌러주세요.\
-                            \n\n아래 유의사항을 확인해주세요.{guide_message}\
+                            \n\n아래 유의사항을 확인해주세요.\
+                            \n- 현재 회차는 {round}회차, 마감일은 {due_date} 이에요.\
                             \n- 패스는 연속으로 사용할 수 없어요.\
                             \n- 남은 패스는 {MAX_PASS_COUNT - pass_count}번 이에요.",
                         },

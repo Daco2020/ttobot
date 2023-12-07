@@ -4,7 +4,8 @@ from app.config import settings
 
 URL_REGEX = r"((http|https):\/\/)?[a-zA-Z0-9.-]+(\.[a-zA-Z]{2,})"
 MAX_PASS_COUNT = 2
-DUE_DATES = [
+DUE_DATES = [  # 글또 시작일 을 포함한 오름차순 마감일 리스트
+    datetime.datetime(2023, 11, 26).date(),  # 0회차 - 글또 9기 시작
     datetime.datetime(2023, 12, 10).date(),  # 1회차
     datetime.datetime(2023, 12, 24).date(),  # 2회차
     datetime.datetime(2024, 1, 7).date(),  # 3회차
