@@ -310,10 +310,12 @@ class SlackService:
         round, due_date = self._user.get_due_date()
 
         if self._user.is_submit:
-            raise BotException(
-                f"{self._user.name} 님은 이미 {round}회차(마감일: {due_date}) 글을 제출했어요. 제출내역을 확인해주세요."  # noqa E501
+            await client.chat_postEphemeral(
+                channel=body["channel_id"],
+                user=self._user.user_id,
+                text=f"🤗 {self._user.name} 님은 이미 {round}회차(마감일: {due_date}) 글을 제출했어요. 제출내역을 확인해주세요.",  # noqa E501
             )
-
+            return
         await client.views_open(
             trigger_id=body["trigger_id"],
             view={
