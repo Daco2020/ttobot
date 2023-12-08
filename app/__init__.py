@@ -3,7 +3,7 @@ from zoneinfo import ZoneInfo
 from app.client import SpreadSheetClient
 from fastapi import FastAPI, Request
 from apscheduler.schedulers.background import BackgroundScheduler
-from apscheduler.triggers.cron import CronTrigger
+from apscheduler.triggers.interval import IntervalTrigger
 from app.config import settings
 from app.store import Store
 from app.slack import event_handler
@@ -31,7 +31,7 @@ if settings.ENV == "prod":
         schedule = BackgroundScheduler(daemon=True, timezone="Asia/Seoul")
         schedule.add_job(upload_contents, "interval", seconds=10, args=[store])
 
-        trigger = CronTrigger(minute=10, timezone=ZoneInfo("Asia/Seoul"))
+        trigger = IntervalTrigger(minute=10, timezone=ZoneInfo("Asia/Seoul"))
         schedule.add_job(upload_logs, trigger=trigger, args=[store])
         schedule.start()
 
