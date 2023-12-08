@@ -31,7 +31,7 @@ if settings.ENV == "prod":
         schedule = BackgroundScheduler(daemon=True, timezone="Asia/Seoul")
         schedule.add_job(upload_contents, "interval", seconds=10, args=[store])
 
-        trigger = IntervalTrigger(minute=10, timezone=ZoneInfo("Asia/Seoul"))
+        trigger = IntervalTrigger(minutes=10, timezone=ZoneInfo("Asia/Seoul"))
         schedule.add_job(upload_logs, trigger=trigger, args=[store])
         schedule.start()
 
