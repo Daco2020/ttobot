@@ -77,15 +77,20 @@ async def admin_command(
     if user_id not in settings.ADMIN_IDS:
         raise PermissionError("`/관리자` 명령어는 관리자만 호출할 수 있어요. 🤭")
     try:
-        await client.chat_postMessage(channel=body["user_id"], text="store pull 완료")
+        await client.chat_postMessage(
+            channel=settings.ADMIN_CHANNEL, text="store pull 시작"
+        )
         sheet_client = SpreadSheetClient()
         store = Store(client=sheet_client)
         store.upload("logs")
         store.backup("contents")
         store.initialize_logs()
         store.pull()
+        await client.chat_postMessage(
+            channel=settings.ADMIN_CHANNEL, text="store pull 완료"
+        )
     except Exception as e:
-        await client.chat_postMessage(channel=body["user_id"], text=str(e))
+        await client.chat_postMessage(channel=settings.ADMIN_CHANNEL, text=str(e))
 
 
 async def help_command(
