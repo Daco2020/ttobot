@@ -92,6 +92,12 @@ class SlackRepository:
                     return user["user_id"]
         return None
 
+    def fetch_user_ids_by_name(self, name: str) -> list[str]:
+        """이름으로 user_ids를 가져옵니다."""
+        with open("store/users.csv") as f:
+            reader = csv.DictReader(f)
+            return [user["user_id"] for user in reader if name in user["name"]]
+
     def create_bookmark(self, bookmark: models.Bookmark) -> None:
         """북마크를 생성합니다."""
         with open("store/bookmark.csv", "a", newline="", encoding="utf-8") as f:

@@ -35,8 +35,8 @@ class SlackService:
             contents = self._user_repo.fetch_contents()
 
         if name:
-            user_id = self._user_repo.get_user_id_by_name(name)
-            contents = [content for content in contents if content.user_id == user_id]
+            user_ids = self._user_repo.fetch_user_ids_by_name(name)
+            contents = [content for content in contents if content.user_id in user_ids]
 
         if category != "전체":
             contents = [content for content in contents if content.category == category]
