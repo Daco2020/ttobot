@@ -161,6 +161,14 @@ class SlackService:
                                 {
                                     "text": {
                                         "type": "plain_text",
+                                        "text": "유데미 후기",
+                                        "emoji": True,
+                                    },
+                                    "value": "유데미 후기",
+                                },
+                                {
+                                    "text": {
+                                        "type": "plain_text",
                                         "text": "프로젝트",
                                         "emoji": True,
                                     },
@@ -448,6 +456,10 @@ class SlackService:
                                 {
                                     "text": {"type": "plain_text", "text": "일상 & 생각"},
                                     "value": "일상 & 생각",
+                                },
+                                {
+                                    "text": {"type": "plain_text", "text": "유데미 후기"},
+                                    "value": "유데미 후기",
                                 },
                                 {
                                     "text": {"type": "plain_text", "text": "기타"},
