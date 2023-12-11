@@ -714,3 +714,10 @@ async def bookmark_submit_search_view(
             },
         }
     )
+
+
+async def update_user_view(
+    ack, body, say, client, user_id: str, service: SlackService
+) -> None:
+    """북마크 검색 완료"""
+    ...

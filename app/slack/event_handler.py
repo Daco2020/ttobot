@@ -171,6 +171,8 @@ app.command("/북마크")(contents_events.bookmark_command)
 app.view("bookmark_search_view")(contents_events.bookmark_search_view)
 app.action("bookmark_overflow_action")(contents_events.open_overflow_action)
 app.view("bookmark_submit_search_view")(contents_events.bookmark_submit_search_view)
+# TODO: 추후 도메인 분리
+app.view("update_user_view")(contents_events.update_user_view)
 
 # core
 app.event("app_mention")(core_events.handle_app_mention)

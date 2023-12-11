@@ -47,6 +47,7 @@ class SlackRepository:
 
     def update(self, user: models.User) -> None:
         """유저의 콘텐츠를 업데이트합니다."""
+        # TODO: upload 로 이름 변경 필요
         if not user.contents:
             raise BotException("업데이트 대상 content 가 없어요.")
         store.content_upload_queue.append(user.recent_content.to_list_for_sheet())
@@ -149,3 +150,16 @@ class SlackRepository:
             df.loc[df["content_id"] == content_id, "updated_at"] = tz_now_to_str()
 
         df.to_csv("store/bookmark.csv", index=False)
+
+    def update_user(
+        self,
+        user_id: str,
+        new_intro: str,
+    ) -> None:
+        """유저 정보를 업데이트합니다."""
+        df = pd.read_csv("store/users.csv")
+        df.loc[df["user_id"] == user_id, "intro"] = new_intro
+        df.to_csv("store/users.csv", index=False)
+
+        if user := self._get_user(user_id):
+            store.user_update_queue.append(user.to_list_for_sheet())
