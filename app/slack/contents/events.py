@@ -85,6 +85,14 @@ async def open_intro_modal(
     other_user_id = body["actions"][0]["value"]
     other_user = service.get_other_user(other_user_id)
 
+    if user_id == other_user_id:
+        edit_intro_button = {
+            "submit": {"type": "plain_text", "text": "자기소개 수정"},
+            "callback_id": "edit_intro_view",
+        }
+    else:
+        edit_intro_button = {}
+
     await client.views_open(
         trigger_id=body["trigger_id"],
         view={
@@ -93,17 +101,104 @@ async def open_intro_modal(
                 "type": "plain_text",
                 "text": f"{other_user.name}님의 소개",
             },
+            **edit_intro_button,
             "close": {"type": "plain_text", "text": "닫기"},
             "blocks": [
                 {
                     "type": "section",
                     "text": {
                         "type": "mrkdwn",
-                        "text": other_user.intro.replace("\\n", "\n"),
+                        "text": other_user.intro.replace("\\n", "\n")
+                        or "자기소개가 비어있어요. 😢",
                     },
-                }
+                },
             ],
         },
+    )
+
+
+async def edit_intro_view(
+    ack, body, client, view, say, user_id: str, service: SlackService
+) -> None:
+    """자기소개 수정 시작"""
+    await ack(
+        {
+            "response_action": "update",
+            "view": {
+                "type": "modal",
+                "callback_id": "submit_intro_view",
+                "title": {"type": "plain_text", "text": "자기소개 수정"},
+                "submit": {"type": "plain_text", "text": "자기소개 제출"},
+                "close": {"type": "plain_text", "text": "닫기"},
+                "blocks": [
+                    {
+                        "type": "section",
+                        "block_id": "required_section",
+                        "text": {"type": "mrkdwn", "text": "자신만의 개성있는 소개문구를 남겨주세요. 😉"},
+                    },
+                    {
+                        "type": "input",
+                        "block_id": "description",
+                        "optional": True,
+                        "element": {
+                            "type": "plain_text_input",
+                            "action_id": "edit_intro",
+                            "multiline": True,
+                            "max_length": 2000,
+                            "placeholder": {
+                                "type": "plain_text",
+                                "text": f"{service.user.intro[:100]} ... ",
+                            },
+                        },
+                        "label": {
+                            "type": "plain_text",
+                            "text": "자기소개 내용",
+                            "emoji": True,
+                        },
+                    },
+                ],
+            },
+        }
+    )
+
+
+async def submit_intro_view(
+    ack, body, client, view, say, user_id: str, service: SlackService
+) -> None:
+    """자기소개 수정 완료"""
+    new_intro = view["state"]["values"]["description"]["edit_intro"]["value"] or ""
+    service.update_user(user_id, new_intro=new_intro)
+    await ack(
+        {
+            "response_action": "update",
+            "view": {
+                "type": "modal",
+                "callback_id": "submit_intro_view",
+                "title": {"type": "plain_text", "text": "자기소개 수정 완료"},
+                "close": {"type": "plain_text", "text": "닫기"},
+                "blocks": [
+                    {
+                        "type": "image",
+                        "image_url": "https://media1.giphy.com/media/g9582DNuQppxC/giphy.gif",  # noqa E501
+                        "alt_text": "success",
+                    },
+                    {
+                        "type": "rich_text",
+                        "elements": [
+                            {
+                                "type": "rich_text_section",
+                                "elements": [
+                                    {
+                                        "type": "text",
+                                        "text": "자기소개 수정이 완료되었습니다. 👏🏼👏🏼👏🏼\n다시 [자기소개 보기] 버튼을 통해 확인해보세요!",  # noqa E501
+                                    }
+                                ],
+                            }
+                        ],
+                    },
+                ],
+            },
+        }
     )
 
 

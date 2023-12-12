@@ -7,6 +7,7 @@ from app.models import Bookmark
 content_upload_queue: list[list[str]] = []
 bookmark_upload_queue: list[list[str]] = []
 bookmark_update_queue: list[Bookmark] = []  # TODO: 추후 타입 수정 필요
+user_update_queue: list[list[str]] = []
 
 
 class Store:
@@ -73,6 +74,19 @@ class Store:
                 body={"bookmark_update_queue": bookmark_update_queue},
             )
             bookmark_update_queue = []
+
+        global user_update_queue
+        if user_update_queue:
+            for values in user_update_queue:
+                self._client.update_user(sheet_name="users", values=values)
+            log_event(
+                actor="system",
+                event="updated_user_introduction",
+                type="user",
+                description=f"{len(user_update_queue)}개 유저 자기소개 업데이트",
+                body={"user_update_queue": user_update_queue},
+            )
+            user_update_queue = []
 
     def backup(self, table_name: str) -> None:
         values = self.read(table_name)

@@ -627,3 +627,13 @@ class SlackService:
         bookmark = self._user_repo.get_bookmark(user_id, content_id, status=new_status)
         if bookmark:
             store.bookmark_update_queue.append(bookmark)
+
+    def update_user(
+        self,
+        user_id: str,
+        new_intro: str,
+    ) -> None:
+        """사용자의 자기소개를 수정합니다."""
+        if self._user.user_id != user_id:
+            raise BotException("본인의 자기소개만 수정할 수 있습니다.")
+        self._user_repo.update_user(user_id, new_intro)

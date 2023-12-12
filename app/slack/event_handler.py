@@ -112,7 +112,6 @@ async def handle_error(error, body):
         trigger_id=body["trigger_id"],
         view={
             "type": "modal",
-            "private_metadata": body["channel_id"],
             "title": {"type": "plain_text", "text": "잠깐!"},
             "blocks": [
                 {
@@ -159,6 +158,8 @@ async def handle_member_joined_channel(ack, body) -> None:
 app.command("/제출")(contents_events.submit_command)
 app.view("submit_view")(contents_events.submit_view)
 app.action("intro_modal")(contents_events.open_intro_modal)
+app.view("edit_intro_view")(contents_events.edit_intro_view)
+app.view("submit_intro_view")(contents_events.submit_intro_view)
 app.action("contents_modal")(contents_events.contents_modal)
 app.action("bookmark_modal")(contents_events.bookmark_modal)
 app.view("bookmark_view")(contents_events.bookmark_view)
@@ -184,6 +185,8 @@ event_descriptions = {
     "/제출": "글 제출 시작",
     "submit_view": "글 제출 완료",
     "intro_modal": "다른 유저의 자기소개 확인",
+    "edit_intro_view": "자기소개 수정 시작",
+    "submit_intro_view": "자기소개 수정 완료",
     "contents_modal": "다른 유저의 제출한 글 목록 확인",
     "bookmark_modal": "북마크 저장 시작",
     "bookmark_view": "북마크 저장 완료",

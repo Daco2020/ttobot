@@ -91,6 +91,15 @@ class User(BaseModel):
         # 최근 제출한 콘텐츠의 날짜가 직전 마감일 초과, 현재 날짜 이하 라면 제출했다고 판단한다.
         return latest_due_date < recent_content.date <= now_date
 
+    def to_list_for_sheet(self) -> list[str]:
+        return [
+            self.user_id,
+            self.name,
+            self.channel_name,
+            self.channel_id,
+            self.intro,
+        ]
+
 
 class StoreModel(BaseModel):
     ...
