@@ -94,8 +94,8 @@ class User(BaseModel):
     def to_list_for_sheet(self) -> list[str]:
         return [
             self.user_id,
-            self.name,
             self.channel_name,
+            self.name,
             self.channel_id,
             self.intro,
         ]
