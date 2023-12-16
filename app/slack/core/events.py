@@ -16,6 +16,19 @@ async def get_deposit(
     """예치금을 조회합니다."""
     await ack()
 
+    if not service.user.deposit:
+        text = "현재 예치금 확인 중이에요."
+    else:
+        deposit_link = (
+            f"\n\n*<{settings.DEPOSIT_SHEETS_URL}|{'예치금 현황 자세히 확인하기'}>*"
+            if settings.DEPOSIT_SHEETS_URL
+            else ""
+        )
+        text = (
+            f"현재 남은 예치금은 {format(int(service.user.deposit), ',d')} 원 이에요."
+            + deposit_link
+        )
+
     await client.views_open(
         trigger_id=body["trigger_id"],
         view={
@@ -26,9 +39,7 @@ async def get_deposit(
                     "type": "section",
                     "text": {
                         "type": "mrkdwn",
-                        # TODO: 추후 예치금 현황 자세히 확인하기 링크 추가
-                        # "text": f"현재 남은 예치금은 {format(service.user.deposit, ',d')} 원 이에요.\n\n*<{settings.DEPOSIT_SHEETS_URL}|{'예치금 현황 자세히 확인하기'}>*",  # noqa E501
-                        "text": f"현재는 예치금 확인 중입니다.",  # noqa E501
+                        "text": text,
                     },
                 },
             ],

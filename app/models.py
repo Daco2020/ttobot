@@ -17,7 +17,7 @@ class User(BaseModel):
     channel_name: str
     channel_id: str
     intro: str
-    deposit: int
+    deposit: str = ""
     contents: list[Content] = []
 
     @property
