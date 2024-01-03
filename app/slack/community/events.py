@@ -12,9 +12,6 @@ MessageTrigger = namedtuple(
 async def handle_message_trigger(
     client: AsyncWebClient,
     event: dict[str, Any],
-    user_id: str,
-    channel_id: str,
-    thread_ts: str | None,
 ) -> None:
     message_triggers = [
         MessageTrigger(
@@ -31,10 +28,19 @@ async def handle_message_trigger(
         ),
     ]
     for trigger in message_triggers:
-        if channel_id == trigger.channel_id and trigger.trigger_word in event["text"]:
+        files = event.get("files")
+
+        ts = event["ts"]
+        channel_id = event["channel"]
+        message = event["text"]
+        user_id = event["user"]
+        if files:
+            file_urls = [file.get("url_private") for file in files]
+
+        if channel_id == trigger.channel_id and trigger.trigger_word in message:
             await client.reactions_add(
                 channel=channel_id,
-                timestamp=event["ts"],
+                timestamp=ts,
                 name="four_leaf_clover",
             )
             break

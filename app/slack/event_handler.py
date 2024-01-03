@@ -150,9 +150,7 @@ async def handle_message(ack, body, client: AsyncWebClient) -> None:
             message = f"👋🏼 <#{user.channel_id}>채널의 {user.name}님이 <#{channel_id}>을 남겼어요."
             await client.chat_postMessage(channel=settings.ADMIN_CHANNEL, text=message)
 
-    await community_events.handle_message_trigger(
-        client, event, user_id, channel_id, thread_ts
-    )
+    await community_events.handle_message_trigger(client, event)
     await ack()
 
 
