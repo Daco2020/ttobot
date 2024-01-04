@@ -135,6 +135,10 @@ async def handle_error(error, body):
 
 
 # community
+app.command("/메시지기록")(community_events.trigger_command)
+app.view("trigger_view")(community_events.trigger_view)
+
+
 @app.event("message")
 async def handle_message(ack, body, client: AsyncWebClient) -> None:
     await ack()

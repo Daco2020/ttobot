@@ -163,3 +163,12 @@ class SlackRepository:
 
         if user := self._get_user(user_id):
             store.user_update_queue.append(user.to_list_for_sheet())
+
+    def create_trigger_message(
+        self,
+        trigger_message: models.TriggerMessage,
+    ) -> None:
+        """트리거 메시지를 생성합니다."""
+        with open("store/trigger_message.csv", "a", newline="", encoding="utf-8") as f:
+            writer = csv.writer(f, quoting=csv.QUOTE_ALL)
+            writer.writerow(trigger_message.to_list_for_csv())

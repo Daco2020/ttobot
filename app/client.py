@@ -26,6 +26,7 @@ class SpreadSheetClient:
                 "logs": self._doc.worksheet("logs"),
                 "backup": self._doc.worksheet("backup"),
                 "bookmark": self._doc.worksheet("bookmark"),
+                "trigger_message": self._doc.worksheet("trigger_message"),
             }
             if not sheets
             else sheets

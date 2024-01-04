@@ -637,3 +637,19 @@ class SlackService:
         if self._user.user_id != user_id:
             raise BotException("본인의 자기소개만 수정할 수 있습니다.")
         self._user_repo.update_user(user_id, new_intro)
+
+    def create_trigger_message(
+        self,
+        user_id: str,
+        channel_id: str,
+        trigger_word: str,
+    ) -> models.TriggerMessage:
+        """트리거 메시지를 생성합니다."""
+        trigger_message = models.TriggerMessage(
+            user_id=user_id,
+            channel_id=channel_id,
+            trigger_word=trigger_word,
+        )
+        self._user_repo.create_trigger_message(trigger_message)
+        store.trigger_message_upload_queue.append(trigger_message.to_list_for_sheet())
+        return trigger_message

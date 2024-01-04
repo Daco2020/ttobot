@@ -220,3 +220,26 @@ class Bookmark(StoreModel):
             self.created_at,
             self.updated_at,
         ]
+
+
+class TriggerMessage(StoreModel):
+    user_id: str
+    channel_id: str
+    trigger_word: str
+    created_at: str = Field(default_factory=tz_now_to_str)
+
+    def to_list_for_csv(self) -> list[str]:
+        return [
+            self.user_id,
+            self.channel_id,
+            self.trigger_word,
+            self.created_at,
+        ]
+
+    def to_list_for_sheet(self) -> list[str]:
+        return [
+            self.user_id,
+            self.channel_id,
+            self.trigger_word,
+            self.created_at,
+        ]
