@@ -25,8 +25,7 @@ async def trigger_command(
                     "block_id": "description_section",
                     "text": {
                         "type": "mrkdwn",
-                        "text": f"메시지 트리거를 등록하면 <#{body['channel_id']}> \
-                        에서 트리거가 포함된 메시지를 저장할 수 있어요. 😉",
+                        "text": f"메시지 트리거를 등록하면 <#{body['channel_id']}> 에서 트리거가 포함된 메시지를 저장할 수 있어요. 😉",
                     },
                 },
                 {
@@ -77,8 +76,7 @@ async def trigger_view(
     elif " " in trigger_word:
         error_message = "트리거 단어는 공백을 사용할 수 없어요."
     elif is_similar_word:
-        error_message = f"이미 유사한 트리거 단어가 존재해요. {','.join(existing_trigger_words)} \
-            과(와) 구별되는 트리거 단어를 입력해주세요."
+        error_message = f"이미 유사한 트리거 단어가 존재해요. {','.join(existing_trigger_words)} 과(와) 구별되는 트리거 단어를 입력해주세요."
 
     if error_message:
         await ack(
@@ -124,8 +122,7 @@ async def handle_trigger_message(
         channel_id, trigger.trigger_word, user_id
     )
 
-    response_message = f"<@{user_id}>님의 {len(archive_messages)}번째 \
-        `{trigger.trigger_word}` 메시지를 저장했어요. 😉"
+    response_message = f"<@{user_id}>님의 {len(archive_messages)}번째 `{trigger.trigger_word}` 메시지를 저장했어요. 😉"
     await client.chat_postMessage(
         channel=channel_id,
         thread_ts=ts,
