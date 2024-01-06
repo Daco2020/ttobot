@@ -8,6 +8,8 @@ content_upload_queue: list[list[str]] = []
 bookmark_upload_queue: list[list[str]] = []
 bookmark_update_queue: list[Bookmark] = []  # TODO: 추후 타입 수정 필요
 user_update_queue: list[list[str]] = []
+trigger_message_upload_queue: list[list[str]] = []
+archive_message_upload_queue: list[list[str]] = []
 
 
 class Store:
@@ -20,6 +22,8 @@ class Store:
         self.write("users", values=self._client.get_values("users"))
         self.write("contents", values=self._client.get_values("contents"))
         self.write("bookmark", values=self._client.get_values("bookmark"))
+        self.write("trigger_message", values=self._client.get_values("trigger_message"))
+        self.write("archive_message", values=self._client.get_values("archive_message"))
 
     def write(self, table_name: str, values: list[list[str]]) -> None:
         with open(f"store/{table_name}.csv", "w", newline="", encoding="utf-8") as f:
@@ -87,6 +91,30 @@ class Store:
                 body={"user_update_queue": user_update_queue},
             )
             user_update_queue = []
+
+        global trigger_message_upload_queue
+        if trigger_message_upload_queue:
+            self._client.upload("trigger_message", trigger_message_upload_queue)
+            log_event(
+                actor="system",
+                event="uploaded_trigger_message",
+                type="community",
+                description=f"{len(trigger_message_upload_queue)}개 트리거 메시지 업로드",
+                body={"trigger_message_upload_queue": trigger_message_upload_queue},
+            )
+            trigger_message_upload_queue = []
+
+        global archive_message_upload_queue
+        if archive_message_upload_queue:
+            self._client.upload("archive_message", archive_message_upload_queue)
+            log_event(
+                actor="system",
+                event="uploaded_archive_message",
+                type="community",
+                description=f"{len(archive_message_upload_queue)}개 아카이브 메시지 업로드",
+                body={"archive_message_upload_queue": archive_message_upload_queue},
+            )
+            archive_message_upload_queue = []
 
     def backup(self, table_name: str) -> None:
         values = self.read(table_name)

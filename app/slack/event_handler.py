@@ -2,6 +2,8 @@ import re
 import traceback
 from app.config import settings
 from slack_bolt.async_app import AsyncApp
+from slack_sdk.web.async_client import AsyncWebClient
+
 from app.logging import log_event
 from loguru import logger
 from slack_bolt.request import BoltRequest
@@ -11,6 +13,7 @@ from typing import Callable, cast
 
 from app.slack.contents import events as contents_events
 from app.slack.core import events as core_events
+from app.slack.community import events as community_events
 from app.slack.repositories import SlackRepository
 from app.slack.services import SlackService
 
@@ -62,8 +65,8 @@ async def inject_service_middleware(
     user_id = req.context.user_id
     channel_id = req.context.channel_id
 
-    if event in ["app_mention", "message", "member_joined_channel"]:
-        # 앱 멘션과 일반 메시지는 서비스 객체를 주입하지 않는다.
+    if event in ["app_mention", "member_joined_channel"]:
+        # 앱 멘션과 채널 입장은 서비스 객체를 주입하지 않는다.
         await next()
         return
 
@@ -132,20 +135,28 @@ async def handle_error(error, body):
 
 
 # community
-@app.event("message")
-async def handle_message(ack, body) -> None:
-    user_id = body.get("event", {}).get("user")
-    channel_id = body.get("event", {}).get("channel")
-    is_thread = bool(body.get("event", {}).get("thread_ts"))
+app.command("/메시지트리거등록")(community_events.trigger_command)
+app.view("trigger_view")(community_events.trigger_view)
 
-    if channel_id == settings.SUPPORT_CHANNEL and is_thread is False:
+
+@app.event("message")
+async def handle_message(
+    ack, body, client: AsyncWebClient, service: SlackService
+) -> None:
+    await ack()
+
+    event = body.get("event", {})
+    user_id = event.get("user")
+    channel_id = event.get("channel")
+    thread_ts = event.get("thread_ts")
+
+    if channel_id == settings.SUPPORT_CHANNEL and not thread_ts:
         # 사용자가 문의사항을 남기면 관리자에게 알립니다.
         if user := SlackRepository().get_user(cast(str, user_id)):
             message = f"👋🏼 <#{user.channel_id}>채널의 {user.name}님이 <#{channel_id}>을 남겼어요."
-            await app.client.chat_postMessage(
-                channel=settings.ADMIN_CHANNEL, text=message
-            )
+            await client.chat_postMessage(channel=settings.ADMIN_CHANNEL, text=message)
 
+    await community_events.handle_trigger_message(client, event, service)
     await ack()
 
 
@@ -204,4 +215,6 @@ event_descriptions = {
     "/제출내역": "제출내역 조회",
     "/관리자": "관리자 메뉴 조회",
     "/도움말": "도움말 조회",
+    "/메시지트리거등록": "메시지 트리거 등록 시작",
+    "/trigger_view": "메시지 트리거 등록 완료",
 }
