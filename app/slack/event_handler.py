@@ -65,8 +65,8 @@ async def inject_service_middleware(
     user_id = req.context.user_id
     channel_id = req.context.channel_id
 
-    if event in ["app_mention", "message", "member_joined_channel"]:
-        # 앱 멘션과 일반 메시지는 서비스 객체를 주입하지 않는다.
+    if event in ["app_mention", "member_joined_channel"]:
+        # 앱 멘션과 채널 입장은 서비스 객체를 주입하지 않는다.
         await next()
         return
 
@@ -135,12 +135,14 @@ async def handle_error(error, body):
 
 
 # community
-app.command("/메시지기록")(community_events.trigger_command)
+app.command("/메시지트리거등록")(community_events.trigger_command)
 app.view("trigger_view")(community_events.trigger_view)
 
 
 @app.event("message")
-async def handle_message(ack, body, client: AsyncWebClient) -> None:
+async def handle_message(
+    ack, body, client: AsyncWebClient, service: SlackService
+) -> None:
     await ack()
 
     event = body.get("event", {})
@@ -154,7 +156,7 @@ async def handle_message(ack, body, client: AsyncWebClient) -> None:
             message = f"👋🏼 <#{user.channel_id}>채널의 {user.name}님이 <#{channel_id}>을 남겼어요."
             await client.chat_postMessage(channel=settings.ADMIN_CHANNEL, text=message)
 
-    await community_events.handle_message_trigger(client, event)
+    await community_events.handle_trigger_message(client, event, service)
     await ack()
 
 
@@ -213,4 +215,6 @@ event_descriptions = {
     "/제출내역": "제출내역 조회",
     "/관리자": "관리자 메뉴 조회",
     "/도움말": "도움말 조회",
+    "/메시지트리거등록": "트리거 단어 등록 시작",
+    "/trigger_view": "트리거 단어 등록 완료",
 }

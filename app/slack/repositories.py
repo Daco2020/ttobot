@@ -172,3 +172,29 @@ class SlackRepository:
         with open("store/trigger_message.csv", "a", newline="", encoding="utf-8") as f:
             writer = csv.writer(f, quoting=csv.QUOTE_ALL)
             writer.writerow(trigger_message.to_list_for_csv())
+
+    def fetch_trigger_messages(self) -> list[models.TriggerMessage]:
+        """트리거 메시지를 조회합니다."""
+        with open("store/trigger_message.csv") as f:
+            reader = csv.DictReader(f)
+            return [models.TriggerMessage(**row) for row in reader]
+
+    def create_archive_message(
+        self,
+        archive_message: models.ArchiveMessage,
+    ) -> None:
+        """아카이브 메시지를 생성합니다."""
+        with open("store/archive_message.csv", "a", newline="", encoding="utf-8") as f:
+            writer = csv.writer(f, quoting=csv.QUOTE_ALL)
+            writer.writerow(archive_message.to_list_for_csv())
+
+    def fetch_archive_messages(
+        self,
+        channel_id: str,
+        trigger_word: str,
+        user_id: str,
+    ):
+        """아카이브 메시지를 조회합니다."""
+        with open("store/archive_message.csv") as f:
+            reader = csv.DictReader(f)
+            return [models.ArchiveMessage(**row) for row in reader]

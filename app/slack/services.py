@@ -653,3 +653,54 @@ class SlackService:
         self._user_repo.create_trigger_message(trigger_message)
         store.trigger_message_upload_queue.append(trigger_message.to_list_for_sheet())
         return trigger_message
+
+    def fetch_trigger_messages(
+        self, channel_id: str | None = None
+    ) -> list[models.TriggerMessage]:
+        """트리거 메시지를 가져옵니다."""
+        triggers = self._user_repo.fetch_trigger_messages()
+
+        if not channel_id:
+            return triggers
+
+        return [tirgger for tirgger in triggers if tirgger.channel_id == channel_id]
+
+    def get_trigger_message(
+        self, channel_id: str, message: str
+    ) -> models.TriggerMessage | None:
+        """채널과 단어가 일치하는 트리거를 조회합니다."""
+        triggers = self._user_repo.fetch_trigger_messages()
+
+        for tirgger in triggers:
+            if channel_id == tirgger.channel_id and tirgger.trigger_word in message:
+                return tirgger
+
+        return None
+
+    def create_archive_message(
+        self,
+        ts: str,
+        channel_id: str,
+        message: str,
+        user_id: str,
+        trigger_word: str,
+        file_urls: list[str],
+    ) -> models.ArchiveMessage:
+        """아카이브 메시지를 생성합니다."""
+        archive_message = models.ArchiveMessage(
+            ts=ts,
+            channel_id=channel_id,
+            message=message,
+            user_id=user_id,
+            trigger_word=trigger_word,
+            file_urls=",".join(file_urls),
+        )
+        self._user_repo.create_archive_message(archive_message)
+        store.archive_message_upload_queue.append(archive_message.to_list_for_sheet())
+        return archive_message
+
+    def fetch_archive_messages(
+        self, channel_id: str, trigger_word: str, user_id: str
+    ) -> list[models.ArchiveMessage]:
+        """아카이브 메시지를 가져옵니다."""
+        return self._user_repo.fetch_archive_messages(channel_id, trigger_word, user_id)

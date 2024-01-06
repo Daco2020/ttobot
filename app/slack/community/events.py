@@ -1,4 +1,3 @@
-from collections import namedtuple
 from slack_sdk.web.async_client import AsyncWebClient
 
 from typing import Any
@@ -18,21 +17,21 @@ async def trigger_command(
             "type": "modal",
             "private_metadata": body["channel_id"],
             "callback_id": "trigger_view",
-            "title": {"type": "plain_text", "text": "트리거 설정"},
-            "submit": {"type": "plain_text", "text": "트리거 등록"},
+            "title": {"type": "plain_text", "text": "메시지 트리거 등록"},
+            "submit": {"type": "plain_text", "text": "등록"},
             "blocks": [
                 {
                     "type": "section",
                     "block_id": "description_section",
                     "text": {
                         "type": "mrkdwn",
-                        "text": "트리거 단어를 등록하면 특정 메시지를 따로 저장할 수 있어요.",
+                        "text": f"메시지 트리거를 등록하면 <#{body['channel_id']}> \
+                        에서 트리거가 포함된 메시지를 저장할 수 있어요. 😉",
                     },
                 },
                 {
                     "type": "input",
                     "block_id": "trigger_word",
-                    "optional": True,
                     "element": {
                         "type": "plain_text_input",
                         "action_id": "trigger_word",
@@ -44,28 +43,8 @@ async def trigger_command(
                     },
                     "label": {
                         "type": "plain_text",
-                        "text": "'$'으로 시작하는 트리거 단어를 입력해주세요. 예) '$기록'",
+                        "text": "'$'으로 시작하는 트리거 단어를 입력해주세요. \n예) $회고, $기록, $메모, ...",
                         "emoji": True,
-                    },
-                },
-                {
-                    "type": "section",
-                    "text": {
-                        "type": "mrkdwn",
-                        "text": "트리거를 적용할 채널을 선택해주세요.",
-                    },
-                    "accessory": {
-                        "type": "conversations_select",
-                        "placeholder": {
-                            "type": "plain_text",
-                            "text": "채널 선택",
-                            "emoji": True,
-                        },
-                        "filter": {
-                            "include": ["public"],
-                            "exclude_bot_users": True,
-                        },
-                        "action_id": "trigger_view_channel_select",
                     },
                 },
             ],
@@ -83,49 +62,72 @@ async def trigger_view(
     channel_id = view["private_metadata"]
     trigger_word = view["state"]["values"]["trigger_word"]["trigger_word"]["value"]
 
-    if trigger_word and "$" != trigger_word[0]:
+    triggers = service.fetch_trigger_messages(channel_id)
+    existing_trigger_words = [trigger.trigger_word for trigger in triggers]
+
+    is_similar_word = [
+        each for each in existing_trigger_words if each in trigger_word
+    ] or trigger_word in ",".join(existing_trigger_words)
+
+    error_message = ""
+    if trigger_word[0] != "$":
+        error_message = "트리거 단어는 $으로 시작해주세요."
+    elif len(trigger_word) <= 1:
+        error_message = "트리거 단어는 두글자 이상으로 만들어주세요."
+    elif " " in trigger_word:
+        error_message = "트리거 단어는 공백을 사용할 수 없어요."
+    elif is_similar_word:
+        error_message = f"이미 유사한 트리거 단어가 존재해요. {','.join(existing_trigger_words)} \
+            과(와) 구별되는 트리거 단어를 입력해주세요."
+
+    if error_message:
         await ack(
             response_action="errors",
-            errors={
-                "trigger_word": "트리거 단어는 #으로 시작해야 합니다.",
-            },
+            errors={"trigger_word": error_message},
         )
-        raise ValueError("트리거 단어는 #으로 시작해야 합니다.")
+        raise ValueError(error_message)
 
     service.create_trigger_message(user_id, channel_id, trigger_word)
 
 
-TriggerMessage = namedtuple("TriggerMessage", ["channel_id", "trigger_word"])
-
-
-async def handle_message_trigger(
+async def handle_trigger_message(
     client: AsyncWebClient,
     event: dict[str, Any],
+    service: SlackService,
 ) -> None:
-    message_triggers = [
-        TriggerMessage(
-            channel_id="C05JDJF16MA",
-            trigger_word="#감사",
-        ),
-        TriggerMessage(
-            channel_id="C05JDJF16MA",
-            trigger_word="#회고",
-        ),
-    ]
-    for trigger in message_triggers:
-        files = event.get("files")
+    ts = event["ts"]
+    channel_id = event["channel"]
+    message = event["text"]
+    user_id = event["user"]
+    files = event.get("files")
+    file_urls = [file.get("url_private") for file in files] if files else []
 
-        ts = event["ts"]
-        channel_id = event["channel"]
-        message = event["text"]
-        user_id = event["user"]
-        if files:
-            file_urls = [file.get("url_private") for file in files]
+    trigger = service.get_trigger_message(channel_id, message)
+    if not trigger:
+        return None
 
-        if channel_id == trigger.channel_id and trigger.trigger_word in message:
-            await client.reactions_add(
-                channel=channel_id,
-                timestamp=ts,
-                name="four_leaf_clover",
-            )
-            break
+    service.create_archive_message(
+        ts=ts,
+        channel_id=channel_id,
+        message=message,
+        user_id=user_id,
+        trigger_word=trigger.trigger_word,
+        file_urls=file_urls,
+    )
+    await client.reactions_add(
+        channel=channel_id,
+        timestamp=ts,
+        name="bookmark",
+    )
+
+    archive_messages = service.fetch_archive_messages(
+        channel_id, trigger.trigger_word, user_id
+    )
+
+    response_message = f"<@{user_id}>님의 {len(archive_messages)}번째 \
+        `{trigger.trigger_word}` 메시지를 저장했어요. 😉"
+    await client.chat_postMessage(
+        channel=channel_id,
+        thread_ts=ts,
+        text=response_message,
+    )
