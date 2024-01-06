@@ -197,4 +197,10 @@ class SlackRepository:
         """아카이브 메시지를 조회합니다."""
         with open("store/archive_message.csv") as f:
             reader = csv.DictReader(f)
-            return [models.ArchiveMessage(**row) for row in reader]
+            return [
+                models.ArchiveMessage(**row)
+                for row in reader
+                if row["channel_id"] == channel_id
+                and row["trigger_word"] == trigger_word
+                and row["user_id"] == user_id
+            ]
