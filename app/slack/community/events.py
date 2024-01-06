@@ -8,7 +8,7 @@ from app.slack.services import SlackService
 async def trigger_command(
     ack, body, say, client: AsyncWebClient, user_id: str, service: SlackService
 ) -> None:
-    """트리거 설정"""
+    """메시지 트리거 등록"""
     await ack()
 
     await client.views_open(
@@ -54,7 +54,7 @@ async def trigger_command(
 async def trigger_view(
     ack, body, client, view, say, user_id: str, service: SlackService
 ) -> None:
-    """트리거 메시지 생성"""
+    """메시지 트리거 생성"""
     await ack()
 
     user_id = body["user"]["id"]
