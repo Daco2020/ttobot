@@ -3,6 +3,8 @@ from slack_sdk.web.async_client import AsyncWebClient
 from typing import Any
 
 from app.slack.services import SlackService
+import csv
+import re
 
 
 async def trigger_command(
@@ -104,6 +106,16 @@ async def handle_trigger_message(
     if not trigger:
         return None
 
+    # user_id를 name으로 변경
+    with open("store/users.csv") as f:
+        reader = csv.DictReader(f)
+        user_dict = {row["user_id"]: row["name"] for row in reader}
+
+    user_ids = re.findall("<@([A-Z0-9]+)>", message)
+    for user_id in user_ids:
+        name = user_dict.get(user_id, user_id)
+        message = message.replace(f"<@{user_id}>", name)
+
     service.create_archive_message(
         ts=ts,
         channel_id=channel_id,
@@ -115,7 +127,7 @@ async def handle_trigger_message(
     await client.reactions_add(
         channel=channel_id,
         timestamp=ts,
-        name="bookmark",
+        name="round_pushpin",
     )
 
     archive_messages = service.fetch_archive_messages(
