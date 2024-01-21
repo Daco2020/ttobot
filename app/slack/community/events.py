@@ -11,7 +11,7 @@ import re
 async def trigger_command(
     ack, body, say, client: AsyncWebClient, user_id: str, service: SlackService
 ) -> None:
-    """메시지 트리거 등록"""
+    """키워드 감지 등록"""
     await ack()
 
     await client.views_open(
@@ -20,7 +20,7 @@ async def trigger_command(
             "type": "modal",
             "private_metadata": body["channel_id"],
             "callback_id": "trigger_view",
-            "title": {"type": "plain_text", "text": "메시지 트리거 등록"},
+            "title": {"type": "plain_text", "text": "키워드 감지 등록"},
             "submit": {"type": "plain_text", "text": "등록"},
             "blocks": [
                 {
@@ -28,7 +28,7 @@ async def trigger_command(
                     "block_id": "description_section",
                     "text": {
                         "type": "mrkdwn",
-                        "text": f"메시지 트리거를 등록하면 <#{body['channel_id']}> 에서 트리거가 포함된 메시지를 저장할 수 있어요. 😉",
+                        "text": f"키워드 감지를 등록하면 <#{body['channel_id']}> 에서 키워드가 포함된 메시지를 저장할 수 있어요. 😉",  # noqa E501
                     },
                 },
                 {
@@ -45,7 +45,7 @@ async def trigger_command(
                     },
                     "label": {
                         "type": "plain_text",
-                        "text": "'$'으로 시작하는 트리거 단어를 입력해주세요. \n예) $회고, $기록, $메모, ...",
+                        "text": "'$'으로 시작하는 키워드를 입력해주세요. \n예) $회고, $기록, $메모, ...",
                         "emoji": True,
                     },
                 },
@@ -57,7 +57,7 @@ async def trigger_command(
 async def trigger_view(
     ack, body, client, view, say, user_id: str, service: SlackService
 ) -> None:
-    """메시지 트리거 생성"""
+    """키워드 감지 생성"""
     await ack()
 
     user_id = body["user"]["id"]
@@ -73,13 +73,13 @@ async def trigger_view(
 
     error_message = ""
     if trigger_word[0] != "$":
-        error_message = "트리거 단어는 $으로 시작해주세요."
+        error_message = "키워드는 $으로 시작해주세요."
     elif len(trigger_word) <= 1:
-        error_message = "트리거 단어는 두글자 이상으로 만들어주세요."
+        error_message = "키워드는 두글자 이상으로 만들어주세요."
     elif " " in trigger_word:
-        error_message = "트리거 단어는 공백을 사용할 수 없어요."
+        error_message = "키워드는 공백을 사용할 수 없어요."
     elif is_similar_word:
-        error_message = f"이미 유사한 트리거 단어가 존재해요. {','.join(existing_trigger_words)} 과(와) 구별되는 트리거 단어를 입력해주세요."
+        error_message = f"이미 유사한 키워드가 존재해요. {','.join(existing_trigger_words)} 과(와) 구별되는 키워드를 입력해주세요."  # noqa E501
 
     if error_message:
         await ack(
@@ -96,20 +96,19 @@ async def handle_trigger_message(
     event: dict[str, Any],
     service: SlackService,
 ) -> None:
+    channel_id = event["channel"]
+    is_messgae_changed = False
+
     if event.get("subtype") == "message_changed":
-        message = event["message"]["text"]  # 수정된 메시지
-        ts = event["message"]["ts"]
-        channel_id = event["channel"]
-        user_id = event["message"]["user"]
-        files = event["message"].get("files")
-        file_urls = [file.get("url_private") for file in files] if files else []
-    else:
-        message = event["text"]  # 새로운 메시지
-        ts = event["ts"]
-        channel_id = event["channel"]
-        user_id = event["user"]
-        files = event.get("files")
-        file_urls = [file.get("url_private") for file in files] if files else []
+        #  메시지 수정 이벤트는 event["message"] 안에 있습니다.
+        is_messgae_changed = True
+        event = event["message"]
+
+    message = event["text"]
+    ts = event["ts"]
+    user_id = event["user"]
+    files = event.get("files")
+    file_urls = [file.get("url_private") for file in files] if files else []
 
     trigger = service.get_trigger_message(channel_id, message)
     if not trigger:
@@ -117,15 +116,24 @@ async def handle_trigger_message(
 
     message = convert_user_id_to_name(message)
 
-    # TODO: update_archive_message 추가하기
-    service.create_archive_message(
-        ts=ts,
-        channel_id=channel_id,
-        message=message,
-        user_id=user_id,
-        trigger_word=trigger.trigger_word,
-        file_urls=file_urls,
-    )
+    if is_messgae_changed:
+        is_created = service.update_archive_message(
+            ts=ts,
+            channel_id=channel_id,
+            message=message,
+            user_id=user_id,
+            trigger_word=trigger.trigger_word,
+            file_urls=file_urls,
+        )
+    else:
+        service.create_archive_message(
+            ts=ts,
+            channel_id=channel_id,
+            message=message,
+            user_id=user_id,
+            trigger_word=trigger.trigger_word,
+            file_urls=file_urls,
+        )
     try:
         await client.reactions_add(
             channel=channel_id,
@@ -141,7 +149,13 @@ async def handle_trigger_message(
         channel_id, trigger.trigger_word, user_id
     )
 
-    response_message = f"<@{user_id}>님의 {len(archive_messages)}번째 `{trigger.trigger_word}` 메시지를 저장했어요. 😉"
+    if not is_messgae_changed or is_created:
+        # 새로운 메시지 or 키워드를 추가한 메시지
+        response_message = f"<@{user_id}>님의 {len(archive_messages)}번째 `{trigger.trigger_word}` 메시지를 저장했어요. 😉"  # noqa E501
+    else:
+        # 수정한 메시지
+        response_message = f"<@{user_id}>님의 `{trigger.trigger_word}` 메시지를 수정했어요. 😉"
+
     await client.chat_postMessage(
         channel=channel_id,
         thread_ts=ts,

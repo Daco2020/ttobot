@@ -149,7 +149,7 @@ class SlackRepository:
         if new_note or new_status:
             df.loc[df["content_id"] == content_id, "updated_at"] = tz_now_to_str()
 
-        df.to_csv("store/bookmark.csv", index=False)
+        df.to_csv("store/bookmark.csv", index=False, quoting=csv.QUOTE_ALL)
 
     def update_user(
         self,
@@ -159,7 +159,7 @@ class SlackRepository:
         """유저 정보를 업데이트합니다."""
         df = pd.read_csv("store/users.csv")
         df.loc[df["user_id"] == user_id, "intro"] = new_intro
-        df.to_csv("store/users.csv", index=False)
+        df.to_csv("store/users.csv", index=False, quoting=csv.QUOTE_ALL)
 
         if user := self._get_user(user_id):
             store.user_update_queue.append(user.to_list_for_sheet())
@@ -168,13 +168,13 @@ class SlackRepository:
         self,
         trigger_message: models.TriggerMessage,
     ) -> None:
-        """트리거 메시지를 생성합니다."""
+        """키워드 메시지를 생성합니다."""
         with open("store/trigger_message.csv", "a", newline="", encoding="utf-8") as f:
             writer = csv.writer(f, quoting=csv.QUOTE_ALL)
             writer.writerow(trigger_message.to_list_for_csv())
 
     def fetch_trigger_messages(self) -> list[models.TriggerMessage]:
-        """트리거 메시지를 조회합니다."""
+        """키워드 메시지를 조회합니다."""
         with open("store/trigger_message.csv") as f:
             reader = csv.DictReader(f)
             return [models.TriggerMessage(**row) for row in reader]
@@ -204,3 +204,25 @@ class SlackRepository:
                 and row["trigger_word"] == trigger_word
                 and row["user_id"] == user_id
             ]
+
+    def update_archive_message(
+        self,
+        ts: str,
+        new_message: str,
+    ) -> None:
+        """아카이브 메시지를 업데이트합니다."""
+        df = pd.read_csv("store/archive_message.csv")
+        df.loc[df["ts"] == float(ts), "message"] = new_message
+        df.to_csv("store/archive_message.csv", index=False, quoting=csv.QUOTE_ALL)
+
+    def get_archive_message(
+        self,
+        ts: str,
+    ) -> models.ArchiveMessage | None:
+        """아카이브 메시지를 조회합니다."""
+        with open("store/archive_message.csv") as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                if row["ts"] == ts:
+                    return models.ArchiveMessage(**row)
+            return None

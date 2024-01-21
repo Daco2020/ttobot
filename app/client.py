@@ -47,6 +47,10 @@ class SpreadSheetClient:
         sheet.clear()
         sheet.append_rows(values)
 
+    def clear(self, sheet_name: str) -> None:
+        """해당 시트의 모든 데이터를 삭제합니다."""
+        self._sheets[sheet_name].clear()
+
     def upload(self, sheet_name: str, values: list[list[str]]) -> None:
         sheet = self._sheets[sheet_name]
         sheet.append_rows(values)
@@ -93,6 +97,21 @@ class SpreadSheetClient:
 
         sheet.update(f"A{row_number}:E{row_number}", [values])
 
-    def clear(self, sheet_name: str) -> None:
-        """해당 시트의 모든 데이터를 삭제합니다."""
-        self._sheets[sheet_name].clear()
+    def update_archive_message(self, sheet_name: str, values: list[str]) -> None:
+        """아카이브 메시지 정보를 시트에 업데이트 합니다."""
+        # TODO: 추후 업데이트 함수 통합하기
+        sheet = self._sheets[sheet_name]
+        records = sheet.get_all_records()
+
+        target_record = dict()
+        row_number = 2  # 1은 인덱스가 0부터 시작하기 때문이며 나머지 1은 시드 헤더 행이 있기 때문.
+        for idx, record in enumerate(records):
+            if values[0] == record["ts"]:
+                target_record = record
+                row_number += idx
+                break
+
+        if not target_record:
+            logger.error(f"시트에 해당 값이 존재하지 않습니다. {values}")
+
+        sheet.update(f"A{row_number}:E{row_number}", [values])
