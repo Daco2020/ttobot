@@ -10,6 +10,7 @@ bookmark_update_queue: list[Bookmark] = []  # TODO: 추후 타입 수정 필요
 user_update_queue: list[list[str]] = []
 trigger_message_upload_queue: list[list[str]] = []
 archive_message_upload_queue: list[list[str]] = []
+archive_message_update_queue: list[list[str]] = []
 
 
 class Store:
@@ -99,7 +100,7 @@ class Store:
                 actor="system",
                 event="uploaded_trigger_message",
                 type="community",
-                description=f"{len(trigger_message_upload_queue)}개 트리거 메시지 업로드",
+                description=f"{len(trigger_message_upload_queue)}개 키워드 메시지 업로드",
                 body={"trigger_message_upload_queue": trigger_message_upload_queue},
             )
             trigger_message_upload_queue = []
@@ -115,6 +116,21 @@ class Store:
                 body={"archive_message_upload_queue": archive_message_upload_queue},
             )
             archive_message_upload_queue = []
+
+        global archive_message_update_queue
+        if archive_message_update_queue:
+            for values in archive_message_update_queue:
+                self._client.update_archive_message(
+                    sheet_name="archive_message", values=values
+                )
+            log_event(
+                actor="system",
+                event="updated_archive_message",
+                type="user",
+                description=f"{len(archive_message_update_queue)}개 아카이브 메시지 업데이트",
+                body={"archive_message_update_queue": archive_message_update_queue},
+            )
+            archive_message_update_queue = []
 
     def backup(self, table_name: str) -> None:
         values = self.read(table_name)

@@ -252,7 +252,7 @@ class ArchiveMessage(StoreModel):
     user_id: str
     message: str
     file_urls: str
-    created_at: str = Field(default_factory=tz_now_to_str)
+    updated_at: str = Field(default_factory=tz_now_to_str)
 
     def to_list_for_csv(self) -> list[str]:
         return [
@@ -262,7 +262,7 @@ class ArchiveMessage(StoreModel):
             self.user_id,
             self.message,
             self.file_urls,
-            self.created_at,
+            self.updated_at,
         ]
 
     def to_list_for_sheet(self) -> list[str]:
@@ -273,5 +273,5 @@ class ArchiveMessage(StoreModel):
             self.user_id,
             self.message,
             self.file_urls,
-            self.created_at,
+            self.updated_at,
         ]
