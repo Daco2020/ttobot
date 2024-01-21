@@ -111,22 +111,24 @@ async def handle_error(error, body):
         message = str(error)
     else:
         message = "예기치 못한 오류가 발생했어요."
-    await app.client.views_open(
-        trigger_id=body["trigger_id"],
-        view={
-            "type": "modal",
-            "title": {"type": "plain_text", "text": "잠깐!"},
-            "blocks": [
-                {
-                    "type": "section",
-                    "text": {
-                        "type": "mrkdwn",
-                        "text": f"🥲 {message}\n\n👉🏼 문제가 해결되지 않는다면 <#{settings.SUPPORT_CHANNEL}> 채널로 문의해주세요! ",  # noqa E501
-                    },
-                }
-            ],
-        },
-    )
+
+    if trigger_id := body.get("trigger_id"):
+        await app.client.views_open(
+            trigger_id=trigger_id,
+            view={
+                "type": "modal",
+                "title": {"type": "plain_text", "text": "잠깐!"},
+                "blocks": [
+                    {
+                        "type": "section",
+                        "text": {
+                            "type": "mrkdwn",
+                            "text": f"🥲 {message}\n\n👉🏼 문제가 해결되지 않는다면 <#{settings.SUPPORT_CHANNEL}> 채널로 문의해주세요! ",  # noqa E501
+                        },
+                    }
+                ],
+            },
+        )
 
     # 관리자에게 에러를 알립니다.
     await app.client.chat_postMessage(
