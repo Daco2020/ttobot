@@ -1,4 +1,5 @@
 from slack_sdk.web.async_client import AsyncWebClient
+from slack_sdk.errors import SlackApiError
 
 from typing import Any
 
@@ -95,12 +96,20 @@ async def handle_trigger_message(
     event: dict[str, Any],
     service: SlackService,
 ) -> None:
-    ts = event["ts"]
-    channel_id = event["channel"]
-    message = event["text"]
-    user_id = event["user"]
-    files = event.get("files")
-    file_urls = [file.get("url_private") for file in files] if files else []
+    if event.get("subtype") == "message_changed":
+        message = event["message"]["text"]  # 수정된 메시지
+        ts = event["message"]["ts"]
+        channel_id = event["channel"]
+        user_id = event["message"]["user"]
+        files = event["message"].get("files")
+        file_urls = [file.get("url_private") for file in files] if files else []
+    else:
+        message = event["text"]  # 새로운 메시지
+        ts = event["ts"]
+        channel_id = event["channel"]
+        user_id = event["user"]
+        files = event.get("files")
+        file_urls = [file.get("url_private") for file in files] if files else []
 
     trigger = service.get_trigger_message(channel_id, message)
     if not trigger:
@@ -108,6 +117,7 @@ async def handle_trigger_message(
 
     message = convert_user_id_to_name(message)
 
+    # TODO: update_archive_message 추가하기
     service.create_archive_message(
         ts=ts,
         channel_id=channel_id,
@@ -116,12 +126,16 @@ async def handle_trigger_message(
         trigger_word=trigger.trigger_word,
         file_urls=file_urls,
     )
-
-    await client.reactions_add(
-        channel=channel_id,
-        timestamp=ts,
-        name="round_pushpin",
-    )
+    try:
+        await client.reactions_add(
+            channel=channel_id,
+            timestamp=ts,
+            name="round_pushpin",
+        )
+    except SlackApiError as e:
+        if e.response["error"] == "already_reacted":
+            # 이미 이모지 반응을 한 경우 패스합니다.
+            pass
 
     archive_messages = service.fetch_archive_messages(
         channel_id, trigger.trigger_word, user_id
