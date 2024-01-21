@@ -106,7 +106,7 @@ class SpreadSheetClient:
         target_record = dict()
         row_number = 2  # 1은 인덱스가 0부터 시작하기 때문이며 나머지 1은 시드 헤더 행이 있기 때문.
         for idx, record in enumerate(records):
-            if values[0] == record["ts"]:
+            if values[0] == str(record["ts"]):
                 target_record = record
                 row_number += idx
                 break
@@ -114,4 +114,4 @@ class SpreadSheetClient:
         if not target_record:
             logger.error(f"시트에 해당 값이 존재하지 않습니다. {values}")
 
-        sheet.update(f"A{row_number}:E{row_number}", [values])
+        sheet.update(f"A{row_number}:G{row_number}", [values])

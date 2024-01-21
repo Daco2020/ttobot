@@ -120,7 +120,9 @@ class Store:
         global archive_message_update_queue
         if archive_message_update_queue:
             for values in archive_message_update_queue:
-                self._client.update_archive_message(sheet_name="users", values=values)
+                self._client.update_archive_message(
+                    sheet_name="archive_message", values=values
+                )
             log_event(
                 actor="system",
                 event="updated_archive_message",

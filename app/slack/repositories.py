@@ -213,6 +213,7 @@ class SlackRepository:
         """아카이브 메시지를 업데이트합니다."""
         df = pd.read_csv("store/archive_message.csv")
         df.loc[df["ts"] == float(ts), "message"] = new_message
+        df.loc[df["ts"] == float(ts), "updated_at"] = tz_now_to_str()
         df.to_csv("store/archive_message.csv", index=False, quoting=csv.QUOTE_ALL)
 
     def get_archive_message(
