@@ -78,12 +78,14 @@ async def inject_service_middleware(
         return
 
     # 사용자 정보가 없으면 안내 문구를 전송하고 관리자에게 알립니다.
-    await app.client.chat_postEphemeral(
-        channel=cast(str, channel_id),
-        user=cast(str, user_id),
-        text=f"🥲 아직 사용자 정보가 없어요...\
-            \n👉🏼 <#{settings.SUPPORT_CHANNEL}> 채널로 문의해주시면 도와드릴게요!",
-    )
+    # 유저가 아닌 봇의 user_id 가 들어올 수 있음.
+    # 추후 TODO: user_not_in_channel 핸들링 필요. ex) is_bot 여부 확인
+    # await app.client.chat_postEphemeral(
+    #     channel=cast(str, channel_id),
+    #     user=cast(str, user_id),
+    #     text=f"🥲 아직 사용자 정보가 없어요...\
+    #         \n👉🏼 <#{settings.SUPPORT_CHANNEL}> 채널로 문의해주시면 도와드릴게요!",
+    # )
     message = (
         "🥲 사용자 정보를 추가해주세요. 👉🏼 "
         f"event: `{event}` "
