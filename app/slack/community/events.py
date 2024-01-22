@@ -104,6 +104,11 @@ async def handle_trigger_message(
         is_messgae_changed = True
         event = event["message"]
 
+    elif event.get("subtype"):
+        # 수정 외 메시지는 저장하지 않습니다.
+        print(event.get("subtype"))
+        return None
+
     message = event["text"]
     ts = event["ts"]
     user_id = event["user"]
