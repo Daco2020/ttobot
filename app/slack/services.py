@@ -580,7 +580,7 @@ class SlackService:
             raise ValueError(message)
         if user.is_prev_pass:
             block_id = "description"
-            message = "연속으로 pass 를 사용할 수 없어요."
+            message = "직전 회차에 pass 를 사용했기 때문에 연속으로 pass 를 사용할 수 없어요."
             await ack(response_action="errors", errors={block_id: message})
             raise ValueError(message)
 
