@@ -14,6 +14,7 @@ from typing import Callable, cast
 from app.slack.contents import events as contents_events
 from app.slack.core import events as core_events
 from app.slack.community import events as community_events
+from app.slack.exception import BotException
 from app.slack.repositories import SlackRepository
 from app.slack.services import SlackService
 
@@ -77,15 +78,10 @@ async def inject_service_middleware(
         await next()
         return
 
-    # 사용자 정보가 없으면 안내 문구를 전송하고 관리자에게 알립니다.
-    # 유저가 아닌 봇의 user_id 가 들어올 수 있음.
-    # 추후 TODO: user_not_in_channel 핸들링 필요. ex) is_bot 여부 확인
-    # await app.client.chat_postEphemeral(
-    #     channel=cast(str, channel_id),
-    #     user=cast(str, user_id),
-    #     text=f"🥲 아직 사용자 정보가 없어요...\
-    #         \n👉🏼 <#{settings.SUPPORT_CHANNEL}> 채널로 문의해주시면 도와드릴게요!",
-    # )
+    if user_id is None:
+        # TODO: 추후 에러 코드 정의할 것
+        raise BotException("사용자 아이디가 없습니다.")
+
     message = (
         "🥲 사용자 정보를 추가해주세요. 👉🏼 "
         f"event: `{event}` "
@@ -103,9 +99,14 @@ async def handle_error(error, body):
     trace = traceback.format_exc()
     logger.debug(dict(body=body, error=trace))
 
-    # 단순 값 에러는 무시합니다.
+    # 단순 값 에러는 사용자에게 알리지 않습니다.
     if isinstance(error, ValueError):
         raise error
+
+    # 일부 봇은 user_id 를 가지지 않기 때문에 무시합니다.
+    if isinstance(error, BotException):
+        if error.message == "사용자 아이디가 없습니다.":
+            return
 
     # 사용자에게 에러를 알립니다.
     if re.search(r"[\u3131-\uD79D]", str(error)):
