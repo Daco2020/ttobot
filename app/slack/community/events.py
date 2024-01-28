@@ -105,7 +105,8 @@ async def handle_trigger_message(
         event = event["message"]
     elif event.get("subtype") == "file_share":
         pass
-    else:
+    elif event.get("subtype"):
+        # 수정/파일공유 외 메시지는 저장하지 않습니다.
         return None
 
     message = event["text"]
