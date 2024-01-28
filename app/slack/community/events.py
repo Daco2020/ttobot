@@ -103,9 +103,9 @@ async def handle_trigger_message(
         #  메시지 수정 이벤트는 event["message"] 안에 있습니다.
         is_messgae_changed = True
         event = event["message"]
-
-    elif event.get("subtype"):
-        # 수정 외 메시지는 저장하지 않습니다.
+    elif event.get("subtype") == "file_share":
+        pass
+    else:
         return None
 
     message = event["text"]

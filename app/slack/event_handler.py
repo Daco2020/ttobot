@@ -162,7 +162,6 @@ async def handle_message(
             await client.chat_postMessage(channel=settings.ADMIN_CHANNEL, text=message)
 
     await community_events.handle_trigger_message(client, event, service)
-    await ack()
 
 
 @app.event("member_joined_channel")
