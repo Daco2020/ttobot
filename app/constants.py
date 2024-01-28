@@ -56,3 +56,6 @@ HELP_TEXT = f"""
 > 이 외에 궁금한 사항이 있다면 <#{settings.SUPPORT_CHANNEL}> 채널로 문의해주세요! 🙌🏼
 > 또봇 코드가 궁금하다면 👉🏼 *<https://github.com/Daco2020/ttobot|또봇 깃허브>* 로 놀러오세요~ 🤗
 """
+
+
+CONTENTS_PER_PAGE = 20

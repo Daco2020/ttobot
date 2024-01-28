@@ -184,9 +184,11 @@ app.command("/검색")(contents_events.search_command)
 app.view("submit_search")(contents_events.submit_search)
 app.view("back_to_search_view")(contents_events.back_to_search_view)
 app.command("/북마크")(contents_events.bookmark_command)
-app.view("bookmark_search_view")(contents_events.bookmark_search_view)
+# app.view("bookmark_search_view")(contents_events.bookmark_search_view)
 app.action("bookmark_overflow_action")(contents_events.open_overflow_action)
-app.view("bookmark_submit_search_view")(contents_events.bookmark_submit_search_view)
+# app.view("bookmark_submit_search_view")(contents_events.bookmark_submit_search_view)
+app.action("next_bookmark_page_action")(contents_events.next_bookmark_page_action)
+app.action("prev_bookmark_page_action")(contents_events.prev_bookmark_page_action)
 
 # core
 app.event("app_mention")(core_events.handle_app_mention)
@@ -211,9 +213,9 @@ event_descriptions = {
     "submit_search": "글 검색 완료",
     "back_to_search_view": "글 검색 다시 시작",
     "/북마크": "북마크 조회",
-    "bookmark_search_view": "북마크 검색 시작",
+    # "bookmark_search_view": "북마크 검색 시작",
     "bookmark_overflow_action": "북마크 메뉴 선택",
-    "bookmark_submit_search_view": "북마크 검색 완료",
+    # "bookmark_submit_search_view": "북마크 검색 완료",
     "app_mention": "앱 멘션",
     "/예치금": "예치금 조회",
     "/제출내역": "제출내역 조회",
