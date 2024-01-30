@@ -621,18 +621,19 @@ async def bookmark_command(
     private_metadata = dict()
     private_metadata = orjson.dumps({"page": 1}).decode("utf-8")
 
-    actions: dict[str, Any] = {"type": "actions", "elements": []}
     if len(content_matrix) > 1:
-        actions["elements"].append(
-            {
-                "type": "button",
-                "text": {"type": "plain_text", "text": "다음 페이지"},
-                "style": "primary",
-                "action_id": "next_bookmark_page_action",
-            }
-        )
-
-    view["blocks"].append(actions)
+        actions = {
+            "type": "actions",
+            "elements": [
+                {
+                    "type": "button",
+                    "text": {"type": "plain_text", "text": "다음 페이지"},
+                    "style": "primary",
+                    "action_id": "next_bookmark_page_action",
+                }
+            ],
+        }
+        view["blocks"].append(actions)
     view["private_metadata"] = private_metadata
     await client.views_open(
         trigger_id=body["trigger_id"],
