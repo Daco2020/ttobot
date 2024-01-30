@@ -691,8 +691,9 @@ async def handle_bookmark_page(
             }
         )
 
-    button_actions = {"type": "actions", "elements": button_elements}
-    view["blocks"].append(button_actions)
+    if button_elements:
+        button_actions = {"type": "actions", "elements": button_elements}
+        view["blocks"].append(button_actions)
     if body["type"] == "block_actions":
         await client.views_update(
             view_id=body["view"]["id"],
