@@ -1,10 +1,10 @@
 import ast
 import re
 from typing import Any
-
 import orjson
 from app.constants import CONTENTS_PER_PAGE
 from app.slack.exception import BotException
+from slack_sdk.web.async_client import AsyncWebClient
 
 from app import models
 from app.slack.services import SlackService
@@ -608,40 +608,106 @@ async def bookmark_command(
     contents = service.fetch_contents_by_ids(content_ids)
     content_matrix = _get_content_metrix(contents)
 
-    view = {
+    view: dict[str, Any] = {
         "type": "modal",
         "title": {
             "type": "plain_text",
             "text": f"총 {len(contents)} 개의 북마크가 있어요.",
         },
         "blocks": _fetch_bookmark_blocks(content_matrix, bookmarks),
-        "private_metadata": orjson.dumps({"next": 1}).decode("utf-8"),
+        "callback_id": "handle_bookmark_page_view",
     }
+
+    private_metadata = dict()
+    private_metadata = orjson.dumps({"page": 1}).decode("utf-8")
+
+    actions: dict[str, Any] = {"type": "actions", "elements": []}
     if len(content_matrix) > 1:
-        view["blocks"].append(
+        actions["elements"].append(
             {
-                "type": "actions",
-                "elements": [
-                    {
-                        "type": "button",
-                        "text": {"type": "plain_text", "text": "다음 페이지"},
-                        "style": "primary",
-                        "action_id": "next_bookmark_page_action",
-                    }
-                ],
+                "type": "button",
+                "text": {"type": "plain_text", "text": "다음 페이지"},
+                "style": "primary",
+                "action_id": "next_bookmark_page_action",
             }
         )
 
+    view["blocks"].append(actions)
+    view["private_metadata"] = private_metadata
     await client.views_open(
         trigger_id=body["trigger_id"],
         view=view,
     )
 
 
+async def handle_bookmark_page(
+    ack, body, say, client: AsyncWebClient, user_id: str, service: SlackService
+) -> None:
+    """북마크 페이지 이동"""
+    await ack()
+
+    bookmarks = service.fetch_bookmarks(user_id)
+    content_ids = [bookmark.content_id for bookmark in bookmarks]
+    contents = service.fetch_contents_by_ids(content_ids)
+    content_matrix = _get_content_metrix(contents)
+    action_id = body["actions"][0]["action_id"] if body.get("actions") else None
+    private_metadata = body.get("view", {}).get("private_metadata", {})
+    page = orjson.loads(private_metadata).get("page", 1) if private_metadata else 1
+
+    if action_id == "next_bookmark_page_action":
+        page += 1
+    elif action_id == "prev_bookmark_page_action":
+        page -= 1
+
+    view: dict[str, Any] = {
+        "type": "modal",
+        "title": {
+            "type": "plain_text",
+            "text": f"총 {len(contents)} 개의 북마크가 있어요.",
+        },
+        "blocks": _fetch_bookmark_blocks(content_matrix, bookmarks, page=page),
+        "callback_id": "handle_bookmark_page_view",
+        "private_metadata": orjson.dumps({"page": page}).decode("utf-8"),
+    }
+
+    button_elements = []
+    if page != 1:
+        button_elements.append(
+            {
+                "type": "button",
+                "text": {"type": "plain_text", "text": "이전 페이지"},
+                "style": "primary",
+                "action_id": "prev_bookmark_page_action",
+            }
+        )
+    if len(content_matrix) > page:
+        button_elements.append(
+            {
+                "type": "button",
+                "text": {"type": "plain_text", "text": "다음 페이지"},
+                "style": "primary",
+                "action_id": "next_bookmark_page_action",
+            }
+        )
+
+    button_actions = {"type": "actions", "elements": button_elements}
+    view["blocks"].append(button_actions)
+    if body["type"] == "block_actions":
+        await client.views_update(
+            view_id=body["view"]["id"],
+            view=view,
+        )
+    else:
+        await client.views_open(
+            trigger_id=body["trigger_id"],
+            view=view,
+        )
+
+
 def _fetch_bookmark_blocks(
-    content_matrix: list[list[models.Content]],
+    content_matrix: dict[int, list[models.Content]],
     bookmarks: list[models.Bookmark],
-    page: int = 0,
+    page: int = 1,
 ) -> list[dict[str, Any]]:
     blocks: list[dict[str, Any]] = []
     blocks.append(
@@ -649,13 +715,11 @@ def _fetch_bookmark_blocks(
             "type": "section",
             "text": {
                 "type": "plain_text",
-                "text": "결과는 최대 20개까지만 표시해요.",
+                "text": f"{len(content_matrix)} 페이지 중에 {page} 페이지",
             },  # TODO: 프론트 링크 붙이기
         },
     )
-    if not content_matrix:
-        return []
-    for content in content_matrix[page]:
+    for content in content_matrix.get(page, []):
         if content.content_url:
             blocks.append({"type": "divider"})
             blocks.append(
@@ -724,10 +788,13 @@ async def open_overflow_action(
 ) -> None:
     """북마크 메뉴 선택"""
     await ack()
+    private_metadata = body["view"]["private_metadata"]
 
     title = ""
     text = ""
-    value = ast.literal_eval(body["actions"][0]["selected_option"]["value"])
+    value = ast.literal_eval(
+        body["actions"][0]["selected_option"]["value"]
+    )  # TODO: ast.literal_eval 를 유틸함수로 만들기?
     if value["action"] == "remove_bookmark":
         title = "북마크 취소📌"
         service.update_bookmark(
@@ -743,7 +810,8 @@ async def open_overflow_action(
         view_id=body["view"]["id"],
         view={
             "type": "modal",
-            # "callback_id": "bookmark_submit_search_view",  # TODO: 액션에 따라 동적으로 호출
+            "callback_id": "handle_bookmark_page_view",
+            "private_metadata": private_metadata,
             "title": {
                 "type": "plain_text",
                 "text": title,
@@ -759,121 +827,13 @@ async def open_overflow_action(
     )
 
 
-async def next_bookmark_page_action(
-    ack, body, say, client, user_id: str, service: SlackService
-) -> None:
-    """북마크 다음 페이지"""
-    ack()
-
-    bookmarks = service.fetch_bookmarks(user_id)
-    content_ids = [bookmark.content_id for bookmark in bookmarks]
-    contents = service.fetch_contents_by_ids(content_ids)
-    content_matrix = _get_content_metrix(contents)
-    private_metadata = orjson.loads(body["view"]["private_metadata"])
-    next_page = private_metadata.get("next")
-    prev_page = private_metadata.get("prev")
-    page = next_page if next_page else prev_page
-    view: dict[str, Any] = {
-        "type": "modal",
-        "title": {
-            "type": "plain_text",
-            "text": f"총 {len(contents)} 개의 북마크가 있어요.",
-        },
-        "blocks": _fetch_bookmark_blocks(content_matrix, bookmarks, page=page),
-    }
-    private_metadata = dict()
-    actions: dict[str, Any] = {"type": "actions", "elements": []}
-
-    print(page + 1, "@@@@@@@", "next")
-    if len(content_matrix) <= page + 1:
-        private_metadata.update({"prev": page - 1})
-        actions["elements"].append(
-            {
-                "type": "button",
-                "text": {"type": "plain_text", "text": "이전 페이지"},
-                "action_id": "prev_bookmark_page_action",
-            }
-        )
-
-    if len(content_matrix) > page + 1:
-        private_metadata.update({"next": page + 1})
-        actions["elements"].append(
-            {
-                "type": "button",
-                "text": {"type": "plain_text", "text": "다음 페이지"},
-                "action_id": "next_bookmark_page_action",
-            }
-        )
-
-    view["blocks"].append(actions)
-    view.update({"private_metadata": orjson.dumps(private_metadata).decode("utf-8")})
-    await client.views_update(
-        view_id=body["view"]["id"],
-        view=view,
-    )
-
-
-async def prev_bookmark_page_action(
-    ack, body, say, client, user_id: str, service: SlackService
-) -> None:
-    """북마크 다음 페이지"""
-    ack()
-
-    bookmarks = service.fetch_bookmarks(user_id)
-    content_ids = [bookmark.content_id for bookmark in bookmarks]
-    contents = service.fetch_contents_by_ids(content_ids)
-    content_matrix = _get_content_metrix(contents)
-    private_metadata = orjson.loads(body["view"]["private_metadata"])
-    next_page = private_metadata.get("next")
-    prev_page = private_metadata.get("prev")
-    page = next_page if next_page else prev_page
-    view: dict[str, Any] = {
-        "type": "modal",
-        "title": {
-            "type": "plain_text",
-            "text": f"총 {len(contents)} 개의 북마크가 있어요.",
-        },
-        "blocks": _fetch_bookmark_blocks(content_matrix, bookmarks, page=page),
-    }
-    private_metadata = dict()
-    actions: dict[str, Any] = {"type": "actions", "elements": []}
-
-    print(page + 1, "@@@@@@@")
-    if len(content_matrix) <= page + 1:
-        private_metadata.update({"prev": page - 1})
-        actions["elements"].append(
-            {
-                "type": "button",
-                "text": {"type": "plain_text", "text": "이전 페이지"},
-                "action_id": "prev_bookmark_page_action",
-            }
-        )
-
-    if len(content_matrix) > page + 1:
-        private_metadata.update({"next": page + 1})
-        actions["elements"].append(
-            {
-                "type": "button",
-                "text": {"type": "plain_text", "text": "다음 페이지"},
-                "action_id": "next_bookmark_page_action",
-            }
-        )
-
-    view["blocks"].append(actions)
-    view.update({"private_metadata": orjson.dumps(private_metadata).decode("utf-8")})
-    await client.views_update(
-        view_id=body["view"]["id"],
-        view=view,
-    )
-
-
-def _get_content_metrix(contents: list[models.Content]):
+def _get_content_metrix(
+    contents: list[models.Content],
+) -> dict[int, list[models.Content]]:
     """컨텐츠를 2차원 배열로 변환합니다."""
-    content_matrix = [
-        contents[i : i + CONTENTS_PER_PAGE]
-        for i in range(0, len(contents), CONTENTS_PER_PAGE)
-    ]
-    print(content_matrix)
+    content_matrix = {}
+    for i, v in enumerate(range(0, len(contents), CONTENTS_PER_PAGE)):
+        content_matrix.update({i + 1: contents[v : v + CONTENTS_PER_PAGE]})
     return content_matrix
 
 
