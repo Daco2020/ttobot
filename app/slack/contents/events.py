@@ -1,7 +1,10 @@
 import ast
 import re
 from typing import Any
+import orjson
+from app.constants import CONTENTS_PER_PAGE
 from app.slack.exception import BotException
+from slack_sdk.web.async_client import AsyncWebClient
 
 from app import models
 from app.slack.services import SlackService
@@ -603,24 +606,108 @@ async def bookmark_command(
     bookmarks = service.fetch_bookmarks(user_id)
     content_ids = [bookmark.content_id for bookmark in bookmarks]
     contents = service.fetch_contents_by_ids(content_ids)
+    content_matrix = _get_content_metrix(contents)
 
+    view: dict[str, Any] = {
+        "type": "modal",
+        "title": {
+            "type": "plain_text",
+            "text": f"총 {len(contents)} 개의 북마크가 있어요.",
+        },
+        "blocks": _fetch_bookmark_blocks(content_matrix, bookmarks),
+        "callback_id": "handle_bookmark_page_view",
+    }
+
+    private_metadata = dict()
+    private_metadata = orjson.dumps({"page": 1}).decode("utf-8")
+
+    actions: dict[str, Any] = {"type": "actions", "elements": []}
+    if len(content_matrix) > 1:
+        actions["elements"].append(
+            {
+                "type": "button",
+                "text": {"type": "plain_text", "text": "다음 페이지"},
+                "style": "primary",
+                "action_id": "next_bookmark_page_action",
+            }
+        )
+
+    view["blocks"].append(actions)
+    view["private_metadata"] = private_metadata
     await client.views_open(
         trigger_id=body["trigger_id"],
-        view={
-            "type": "modal",
-            "callback_id": "bookmark_search_view",
-            "title": {
-                "type": "plain_text",
-                "text": f"총 {len(contents)} 개의 북마크가 있어요.",
-            },
-            "submit": {"type": "plain_text", "text": "북마크 검색"},
-            "blocks": _fetch_bookmark_blocks(contents, bookmarks),
-        },
+        view=view,
     )
 
 
+async def handle_bookmark_page(
+    ack, body, say, client: AsyncWebClient, user_id: str, service: SlackService
+) -> None:
+    """북마크 페이지 이동"""
+    await ack()
+
+    bookmarks = service.fetch_bookmarks(user_id)
+    content_ids = [bookmark.content_id for bookmark in bookmarks]
+    contents = service.fetch_contents_by_ids(content_ids)
+    content_matrix = _get_content_metrix(contents)
+    action_id = body["actions"][0]["action_id"] if body.get("actions") else None
+    private_metadata = body.get("view", {}).get("private_metadata", {})
+    page = orjson.loads(private_metadata).get("page", 1) if private_metadata else 1
+
+    if action_id == "next_bookmark_page_action":
+        page += 1
+    elif action_id == "prev_bookmark_page_action":
+        page -= 1
+
+    view: dict[str, Any] = {
+        "type": "modal",
+        "title": {
+            "type": "plain_text",
+            "text": f"총 {len(contents)} 개의 북마크가 있어요.",
+        },
+        "blocks": _fetch_bookmark_blocks(content_matrix, bookmarks, page=page),
+        "callback_id": "handle_bookmark_page_view",
+        "private_metadata": orjson.dumps({"page": page}).decode("utf-8"),
+    }
+
+    button_elements = []
+    if page != 1:
+        button_elements.append(
+            {
+                "type": "button",
+                "text": {"type": "plain_text", "text": "이전 페이지"},
+                "style": "primary",
+                "action_id": "prev_bookmark_page_action",
+            }
+        )
+    if len(content_matrix) > page:
+        button_elements.append(
+            {
+                "type": "button",
+                "text": {"type": "plain_text", "text": "다음 페이지"},
+                "style": "primary",
+                "action_id": "next_bookmark_page_action",
+            }
+        )
+
+    button_actions = {"type": "actions", "elements": button_elements}
+    view["blocks"].append(button_actions)
+    if body["type"] == "block_actions":
+        await client.views_update(
+            view_id=body["view"]["id"],
+            view=view,
+        )
+    else:
+        await client.views_open(
+            trigger_id=body["trigger_id"],
+            view=view,
+        )
+
+
 def _fetch_bookmark_blocks(
-    contents: list[models.Content], bookmarks: list[models.Bookmark]
+    content_matrix: dict[int, list[models.Content]],
+    bookmarks: list[models.Bookmark],
+    page: int = 1,
 ) -> list[dict[str, Any]]:
     blocks: list[dict[str, Any]] = []
     blocks.append(
@@ -628,11 +715,11 @@ def _fetch_bookmark_blocks(
             "type": "section",
             "text": {
                 "type": "plain_text",
-                "text": "결과는 최대 20개까지만 표시해요.",
+                "text": f"{len(content_matrix)} 페이지 중에 {page} 페이지",
             },  # TODO: 프론트 링크 붙이기
         },
     )
-    for content in contents:
+    for content in content_matrix.get(page, []):
         if content.content_url:
             blocks.append({"type": "divider"})
             blocks.append(
@@ -696,58 +783,18 @@ def _fetch_bookmark_blocks(
     return blocks
 
 
-async def bookmark_search_view(
-    ack, body, say, client, user_id: str, service: SlackService
-) -> None:
-    """북마크 검색 시작"""
-    view = {
-        "type": "modal",
-        "callback_id": "bookmark_submit_search_view",
-        "title": {"type": "plain_text", "text": "북마크 검색 🔍"},
-        "submit": {"type": "plain_text", "text": "검색"},
-        "blocks": [
-            {
-                "type": "section",
-                "block_id": "description_section",
-                "text": {
-                    "type": "mrkdwn",
-                    "text": "찾고 있는 북마크가 있나요?\n키워드로 연관된 글을 찾을 수 있어요!",
-                },
-            },
-            {
-                "type": "input",
-                "block_id": "keyword_search",
-                "optional": True,
-                "element": {
-                    "type": "plain_text_input",
-                    "action_id": "keyword",
-                    "placeholder": {
-                        "type": "plain_text",
-                        "text": "키워드를 입력해주세요.",
-                    },
-                    "multiline": False,
-                },
-                "label": {
-                    "type": "plain_text",
-                    "text": "키워드",
-                    "emoji": True,
-                },
-            },
-        ],
-    }
-
-    await ack({"response_action": "update", "view": view})
-
-
 async def open_overflow_action(
     ack, body, client, view, say, user_id: str, service: SlackService
 ) -> None:
     """북마크 메뉴 선택"""
     await ack()
+    private_metadata = body["view"]["private_metadata"]
 
     title = ""
     text = ""
-    value = ast.literal_eval(body["actions"][0]["selected_option"]["value"])
+    value = ast.literal_eval(
+        body["actions"][0]["selected_option"]["value"]
+    )  # TODO: ast.literal_eval 를 유틸함수로 만들기?
     if value["action"] == "remove_bookmark":
         title = "북마크 취소📌"
         service.update_bookmark(
@@ -763,7 +810,8 @@ async def open_overflow_action(
         view_id=body["view"]["id"],
         view={
             "type": "modal",
-            "callback_id": "bookmark_submit_search_view",  # TODO: 액션에 따라 동적으로 호출
+            "callback_id": "handle_bookmark_page_view",
+            "private_metadata": private_metadata,
             "title": {
                 "type": "plain_text",
                 "text": title,
@@ -779,33 +827,88 @@ async def open_overflow_action(
     )
 
 
-async def bookmark_submit_search_view(
-    ack, body, say, client, user_id: str, service: SlackService
-) -> None:
-    """북마크 검색 완료"""
-    keyword = _get_keyword(body)
-    bookmarks = service.fetch_bookmarks(user_id)
+def _get_content_metrix(
+    contents: list[models.Content],
+) -> dict[int, list[models.Content]]:
+    """컨텐츠를 2차원 배열로 변환합니다."""
+    content_matrix = {}
+    for i, v in enumerate(range(0, len(contents), CONTENTS_PER_PAGE)):
+        content_matrix.update({i + 1: contents[v : v + CONTENTS_PER_PAGE]})
+    return content_matrix
 
-    ids = [bookmark.content_id for bookmark in bookmarks if keyword in bookmark.note]
-    contents_with_keyword_in_notes = service.fetch_contents_by_ids(ids)
 
-    ids = [bookmark.content_id for bookmark in bookmarks]
-    contents_with_keyword = service.fetch_contents_by_ids(ids, keyword)
+# TODO: 니즈가 확인되는 경우 활성화
+# async def bookmark_search_view(
+#     ack, body, say, client, user_id: str, service: SlackService
+# ) -> None:
+#     """북마크 검색 시작"""
+#     view = {
+#         "type": "modal",
+#         "callback_id": "bookmark_submit_search_view",
+#         "title": {"type": "plain_text", "text": "북마크 검색 🔍"},
+#         "submit": {"type": "plain_text", "text": "검색"},
+#         "blocks": [
+#             {
+#                 "type": "section",
+#                 "block_id": "description_section",
+#                 "text": {
+#                     "type": "mrkdwn",
+#                     "text": "찾고 있는 북마크가 있나요?\n키워드로 연관된 글을 찾을 수 있어요!",
+#                 },
+#             },
+#             {
+#                 "type": "input",
+#                 "block_id": "keyword_search",
+#                 "optional": True,
+#                 "element": {
+#                     "type": "plain_text_input",
+#                     "action_id": "keyword",
+#                     "placeholder": {
+#                         "type": "plain_text",
+#                         "text": "키워드를 입력해주세요.",
+#                     },
+#                     "multiline": False,
+#                 },
+#                 "label": {
+#                     "type": "plain_text",
+#                     "text": "키워드",
+#                     "emoji": True,
+#                 },
+#             },
+#         ],
+#     }
 
-    contents = list(set(contents_with_keyword_in_notes + contents_with_keyword))
+#     await ack({"response_action": "update", "view": view})
 
-    await ack(
-        {
-            "response_action": "update",
-            "view": {
-                "type": "modal",
-                "callback_id": "bookmark_search_view",
-                "title": {
-                    "type": "plain_text",
-                    "text": f"{len(contents)} 개의 북마크를 찾았어요.",
-                },
-                "submit": {"type": "plain_text", "text": "북마크 검색"},
-                "blocks": _fetch_bookmark_blocks(contents, bookmarks),
-            },
-        }
-    )
+# TODO: 니즈가 확인되는 경우 활성화
+# async def bookmark_submit_search_view(
+#     ack, body, say, client, user_id: str, service: SlackService
+# ) -> None:
+#     """북마크 검색 완료"""
+#     keyword = _get_keyword(body)
+#     bookmarks = service.fetch_bookmarks(user_id)
+
+#     ids = [bookmark.content_id for bookmark in bookmarks if keyword in bookmark.note]
+#     contents_with_keyword_in_notes = service.fetch_contents_by_ids(ids)
+
+#     ids = [bookmark.content_id for bookmark in bookmarks]
+#     contents_with_keyword = service.fetch_contents_by_ids(ids, keyword)
+
+#     contents = list(set(contents_with_keyword_in_notes + contents_with_keyword))
+#     content_matrix = _get_content_metrix(contents)
+
+#     await ack(
+#         {
+#             "response_action": "update",
+#             "view": {
+#                 "type": "modal",
+#                 "callback_id": "bookmark_search_view",
+#                 "title": {
+#                     "type": "plain_text",
+#                     "text": f"{len(contents)} 개의 북마크를 찾았어요.",
+#                 },
+#                 "submit": {"type": "plain_text", "text": "북마크 검색"},
+#                 "blocks": _fetch_bookmark_blocks(content_matrix, bookmarks),
+#             },
+#         }
+#     )
