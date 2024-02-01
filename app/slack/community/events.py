@@ -11,7 +11,7 @@ import re
 async def trigger_command(
     ack, body, say, client: AsyncWebClient, user_id: str, service: SlackService
 ) -> None:
-    """키워드 감지 등록"""
+    """저장할 키워드 등록 시작"""
     await ack()
 
     await client.views_open(
@@ -20,7 +20,7 @@ async def trigger_command(
             "type": "modal",
             "private_metadata": body["channel_id"],
             "callback_id": "trigger_view",
-            "title": {"type": "plain_text", "text": "키워드 감지 등록"},
+            "title": {"type": "plain_text", "text": "저장할 키워드 등록"},
             "submit": {"type": "plain_text", "text": "등록"},
             "blocks": [
                 {
@@ -28,7 +28,7 @@ async def trigger_command(
                     "block_id": "description_section",
                     "text": {
                         "type": "mrkdwn",
-                        "text": f"키워드 감지를 등록하면 <#{body['channel_id']}> 에서 키워드가 포함된 메시지를 저장할 수 있어요. 😉",  # noqa E501
+                        "text": f"키워드를 등록하면 <#{body['channel_id']}> 에서 키워드가 포함된 메시지를 저장할 수 있어요. 😉",  # noqa E501
                     },
                 },
                 {
@@ -57,7 +57,7 @@ async def trigger_command(
 async def trigger_view(
     ack, body, client, view, say, user_id: str, service: SlackService
 ) -> None:
-    """키워드 감지 생성"""
+    """저장할 키워드 등록"""
     await ack()
 
     user_id = body["user"]["id"]
@@ -89,6 +89,23 @@ async def trigger_view(
         raise ValueError(error_message)
 
     service.create_trigger_message(user_id, channel_id, trigger_word)
+
+    await client.views_open(
+        trigger_id=body["trigger_id"],
+        view={
+            "type": "modal",
+            "title": {"type": "plain_text", "text": "키워드 등록 완료🥳"},
+            "blocks": [
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": f"이제 <#{channel_id}> 채널에서 `{trigger_word}` 키워드가 포함된 메시지를 저장합니다. 😉",  # noqa E501
+                    },
+                }
+            ],
+        },
+    )
 
 
 async def handle_trigger_message(

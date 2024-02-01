@@ -140,7 +140,7 @@ async def handle_error(error, body):
 
 
 # community
-app.command("/키워드감지등록")(community_events.trigger_command)
+app.command("/저장키워드등록")(community_events.trigger_command)
 app.view("trigger_view")(community_events.trigger_view)
 
 
@@ -225,6 +225,6 @@ event_descriptions = {
     "/제출내역": "제출내역 조회",
     "/관리자": "관리자 메뉴 조회",
     "/도움말": "도움말 조회",
-    "/키워드감지등록": "키워드 감지 등록 시작",
-    "/trigger_view": "키워드 감지 등록 완료",
+    "/저장키워드등록": "저장할 키워드 등록 시작",
+    "/trigger_view": "저장할 키워드 등록 완료",
 }
