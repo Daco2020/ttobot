@@ -62,7 +62,7 @@ class User(BaseModel):
         """유저의 모든 콘텐츠를 반환합니다."""
         return self.contents
 
-    def get_due_date(self) -> tuple[int, datetime.date]:
+    def get_due_date(self) -> tuple[int, datetime.date]: # 리마인드 참고
         """현재 회차와 마감일을 반환합니다."""
         now_date = tz_now().date()
         for i, due_date in enumerate(DUE_DATES):
@@ -72,7 +72,7 @@ class User(BaseModel):
         raise BotException("글또 활동 기간이 아니에요.")
 
     @property
-    def is_submit(self) -> bool:
+    def is_submit(self) -> bool: # 리마인드 참고
         """현재 회차의 제출여부를 반환합니다."""
         try:
             recent_content = self.recent_content
@@ -99,6 +99,17 @@ class User(BaseModel):
             self.channel_id,
             self.intro,
         ]
+    
+    # 리마인드 기능 추가 파트
+    def check_remind(self):
+        """리마인드가 필요한 유저인지 체크합니다."""
+        round, due_date = self.get_due_date()
+        now_date = tz_now().date()
+        if self.is_submit | self.is_prev_pass:
+            return False # 패스를 사용했거나, 이미 제출 했거나, 이미 리마인드를 했다면 메시지 보내지 않음
+        else:
+            if due_date - now_date <= datetime.timedelta(days=1):
+                return True # 마감일 하루 전 메시지 발송
 
 
 class StoreModel(BaseModel):

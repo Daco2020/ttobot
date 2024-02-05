@@ -23,6 +23,7 @@ DUE_DATES = [  # 글또 시작일 을 포함한 오름차순 마감일 리스트
     datetime.datetime(2024, 6, 23).date(),  # 15회차
 ]
 
+# REMIND_DT = 제출 마감일 오전 9시  # 리마인드 참고
 
 HELP_TEXT = f"""
 👋🏼 *반가워요!*

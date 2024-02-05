@@ -35,6 +35,8 @@ if settings.ENV == "prod":
         schedule.add_job(upload_logs, trigger=trigger, args=[store])
         schedule.start()
 
+        # TODO: 리마인드 스케줄러 등록
+
         # 슬랙 소켓 모드 실행
         await slack_handler.connect_async()
 

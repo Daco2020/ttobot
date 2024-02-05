@@ -14,7 +14,6 @@ from bs4 import BeautifulSoup
 
 from app import models
 
-
 class SlackService:
     def __init__(self, user_repo: SlackRepository, user: models.User) -> None:
         self._user_repo = user_repo
@@ -704,3 +703,11 @@ class SlackService:
     ) -> list[models.ArchiveMessage]:
         """아카이브 메시지를 가져옵니다."""
         return self._user_repo.fetch_archive_messages(channel_id, trigger_word, user_id)
+    
+    # 리마인드 기능 추가 파트
+    def create_remind_mesages(self, user_id: str) -> None:
+        """리마인드 메시지를 생성합니다."""
+        # TODO: 리마인드 메시지를 유저 별로 다르게 줄 수 있도록 수정
+        message = f"글 제출 마감일이 벌써 내일..?"
+        if self._user.check_remind:
+            return message
