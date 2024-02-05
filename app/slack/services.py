@@ -26,7 +26,10 @@ class SlackService:
         return self._user
 
     def fetch_contents(
-        self, keyword: str | None = None, name: str | None = None, category: str = "전체"
+        self,
+        keyword: str | None = None,
+        name: str | None = None,
+        category: str = "전체",
     ) -> list[models.Content]:
         """콘텐츠를 조건에 맞춰 가져옵니다."""
         if keyword:
@@ -144,12 +147,20 @@ class SlackService:
                             "type": "url_text_input",
                             "action_id": "url_text_input-action",
                         },
-                        "label": {"type": "plain_text", "text": "글 링크", "emoji": True},
+                        "label": {
+                            "type": "plain_text",
+                            "text": "글 링크",
+                            "emoji": True,
+                        },
                     },
                     {
                         "type": "input",
                         "block_id": "category",
-                        "label": {"type": "plain_text", "text": "카테고리", "emoji": True},
+                        "label": {
+                            "type": "plain_text",
+                            "text": "카테고리",
+                            "emoji": True,
+                        },
                         "element": {
                             "type": "static_select",
                             "placeholder": {
@@ -221,7 +232,11 @@ class SlackService:
                     {
                         "type": "input",
                         "block_id": "curation",
-                        "label": {"type": "plain_text", "text": "큐레이션", "emoji": True},
+                        "label": {
+                            "type": "plain_text",
+                            "text": "큐레이션",
+                            "emoji": True,
+                        },
                         "element": {
                             "type": "static_select",
                             "placeholder": {
@@ -301,7 +316,7 @@ class SlackService:
                             "action_id": "title_input",
                             "placeholder": {
                                 "type": "plain_text",
-                                "text": "노션으로 작성한 글은 `글 제목`이 필수입니다.",
+                                "text": "노션은 `글 제목`이 필수입니다. `공유 권한`도 꼭 확인해주세요.",
                             },
                             "multiline": False,
                         },
@@ -380,7 +395,10 @@ class SlackService:
                     {
                         "type": "section",
                         "block_id": "description_section",
-                        "text": {"type": "mrkdwn", "text": "원하는 조건의 글을 검색할 수 있어요."},
+                        "text": {
+                            "type": "mrkdwn",
+                            "text": "원하는 조건의 글을 검색할 수 있어요.",
+                        },
                     },
                     {
                         "type": "input",
@@ -423,11 +441,18 @@ class SlackService:
                     {
                         "type": "input",
                         "block_id": "category_search",
-                        "label": {"type": "plain_text", "text": "카테고리", "emoji": True},
+                        "label": {
+                            "type": "plain_text",
+                            "text": "카테고리",
+                            "emoji": True,
+                        },
                         "element": {
                             "type": "static_select",
                             "action_id": "chosen_category",
-                            "placeholder": {"type": "plain_text", "text": "카테고리 선택"},
+                            "placeholder": {
+                                "type": "plain_text",
+                                "text": "카테고리 선택",
+                            },
                             "initial_option": {
                                 "text": {"type": "plain_text", "text": "전체"},
                                 "value": "전체",
@@ -442,23 +467,38 @@ class SlackService:
                                     "value": "프로젝트",
                                 },
                                 {
-                                    "text": {"type": "plain_text", "text": "기술 & 언어"},
+                                    "text": {
+                                        "type": "plain_text",
+                                        "text": "기술 & 언어",
+                                    },
                                     "value": "기술 & 언어",
                                 },
                                 {
-                                    "text": {"type": "plain_text", "text": "조직 & 문화"},
+                                    "text": {
+                                        "type": "plain_text",
+                                        "text": "조직 & 문화",
+                                    },
                                     "value": "조직 & 문화",
                                 },
                                 {
-                                    "text": {"type": "plain_text", "text": "취준 & 이직"},
+                                    "text": {
+                                        "type": "plain_text",
+                                        "text": "취준 & 이직",
+                                    },
                                     "value": "취준 & 이직",
                                 },
                                 {
-                                    "text": {"type": "plain_text", "text": "일상 & 생각"},
+                                    "text": {
+                                        "type": "plain_text",
+                                        "text": "일상 & 생각",
+                                    },
                                     "value": "일상 & 생각",
                                 },
                                 {
-                                    "text": {"type": "plain_text", "text": "유데미 후기"},
+                                    "text": {
+                                        "type": "plain_text",
+                                        "text": "유데미 후기",
+                                    },
                                     "value": "유데미 후기",
                                 },
                                 {
@@ -557,6 +597,12 @@ class SlackService:
             message = "이미 제출한 url 이에요."
             await ack(response_action="errors", errors={block_id: message})
             raise ValueError(message)
+        if "tistory.com/manage/posts" in content_url:
+            """티스토리 posts 페이지는 글 링크가 아니므로 제외합니다."""
+            block_id = "content_url"
+            message = "잠깐! 입력한 링크가 `글 링크`가 맞는지 확인해주세요."
+            await ack(response_action="errors", errors={block_id: message})
+            raise ValueError(message)
         # notion.so, notion.site, oopy.io 는 title 을 크롤링하지 못하므로 직접 입력을 받는다.
         if "notion." in content_url or "oopy.io" in content_url:
             # 글 제목을 입력한 경우 통과.
@@ -568,7 +614,7 @@ class SlackService:
             ):
                 return
             block_id = "content_url"
-            message = "노션 페이지는 하단의 `글 제목`을 필수로 입력해주세요."
+            message = "노션은 하단의 `글 제목`을 필수로 입력해주세요. `공유 권한`도 꼭 확인해주세요."
             await ack(response_action="errors", errors={block_id: message})
             raise ValueError(message)
 
