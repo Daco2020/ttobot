@@ -1,5 +1,4 @@
 import re
-import time
 
 import googletrans
 import polars as pl
@@ -21,6 +20,16 @@ class ContentSortEnum(str, Enum):
     # LIKE = "like" # TODO: 추후 추가
 
 
+class ContentCategoryEnum(str, Enum):
+    UDEMY = "유데미 후기"
+    PROJECT = "프로젝트"
+    TECH = "기술 & 언어"
+    CULTURE = "조직 & 문화"
+    JOB = "취준 & 이직"
+    DAILY = "일상 & 생각"
+    ETC = "기타"
+
+
 class Content(TypedDict):
     user_id: str
     name: str
@@ -39,16 +48,14 @@ async def fetch_contents(
     keyword: str,
     offset: int = 0,
     limit: int = 10,
-    category: str = "",
+    category: ContentCategoryEnum | None = None,
     order_by: ContentSortEnum = ContentSortEnum.DT,
     descending: bool = True,
 ) -> list[Any]:
-    """콘텐츠를 가져옵니다."""
+    """조건에 맞는 콘텐츠를 가져옵니다."""
     # TODO: 기수(period) 정보를 유저정보에 추가하기
     # TODO: LIKE 컬럼 추가하기
     # TODO: 결과가 없을 경우, 글감 추천하기 <- 클라이언트가 처리
-
-    start = time.time()
 
     # 원본 데이터 불러오기
     users_df = pl.read_csv(
@@ -79,7 +86,6 @@ async def fetch_contents(
         if keyword
     ]
     keywords.extend(translate_keywords(keywords))
-    print(set(keywords))
 
     # 키워드 매칭
     matched_dfs = [
@@ -101,9 +107,6 @@ async def fetch_contents(
         .slice(offset, limit)
         .to_dicts()
     )
-
-    end = time.time()
-    print(f"실행시간: {end - start}")
     return contents
 
 
