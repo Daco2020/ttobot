@@ -94,6 +94,8 @@ async def fetch_contents(
         )
         for keyword in set(keywords)
     ]
+    if not matched_dfs:
+        return []
 
     # 관련도 추가
     combined_df: pl.DataFrame = pl.concat(matched_dfs)
