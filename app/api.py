@@ -1,23 +1,27 @@
-import re
-
-import googletrans
 import polars as pl
 
 from enum import Enum
-from typing import Any, TypedDict
+from typing import Any
 
 from starlette import status
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
+from app.deps import get_app_service
+from app.services import AppService
+
+from app.utils import translate_keywords
 
 
 router = APIRouter()
-translator = googletrans.Translator()
 
 
 class ContentSortEnum(str, Enum):
     DT = "dt"
     RELEVANCE = "relevance"
     # LIKE = "like" # TODO: 추후 추가
+
+
+class ArchiveMessageSortEnum(str, Enum):
+    DT = "dt"
 
 
 class ContentCategoryEnum(str, Enum):
@@ -28,16 +32,6 @@ class ContentCategoryEnum(str, Enum):
     JOB = "취준 & 이직"
     DAILY = "일상 & 생각"
     ETC = "기타"
-
-
-class Content(TypedDict):
-    user_id: str
-    name: str
-    title: str
-    content_url: str
-    dt: str
-    category: str
-    tags: str
 
 
 @router.get(
@@ -116,24 +110,17 @@ def match_keyword(keyword: str, row: tuple) -> bool:
     return keyword in f"{row[1]},{row[5]}".lower()  # title, tags
 
 
-def translate_keywords(keywords: list[str]) -> list[str]:
-    results = []
-    for keyword in keywords:
-        value = is_english(keyword)
-        if value is True:
-            # 영어 -> 한글 번역, 한글이 없는 단어는 그대로 영어가 나올 수 있음.
-            results.append(translator.translate(keyword, dest="ko").text.lower())
-        elif value is False:
-            results.append(translator.translate(keyword, dest="en").text.lower())
-        else:
-            continue
-    return results
-
-
-def is_english(text):
-    if re.match("^[a-zA-Z]+$", text):
-        return True
-    elif re.match("^[가-힣]+$", text):
-        return False
-    else:
-        return None
+@router.get(
+    "/archive_messages",
+    status_code=status.HTTP_200_OK,
+)
+async def fetch_archive_messages(
+    keyword: str,
+    offset: int = 0,
+    limit: int = 10,
+    channal_id: str | None = None,
+    order_by: ArchiveMessageSortEnum = ArchiveMessageSortEnum.DT,
+    descending: bool = True,
+    service: AppService = Depends(get_app_service),
+) -> None:
+    ...
