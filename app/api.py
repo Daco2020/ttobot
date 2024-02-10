@@ -4,6 +4,7 @@ from typing import Any
 
 from starlette import status
 from fastapi import APIRouter, Depends
+from app import models
 from app.constants import ArchiveMessageSortEnum, ContentCategoryEnum, ContentSortEnum
 from app.deps import get_app_service
 from app.services import AppService
@@ -91,17 +92,56 @@ def match_keyword(keyword: str, row: tuple) -> bool:
 
 
 @router.get(
-    "/archive_messages",
+    "/community/trigger_messages",
     status_code=status.HTTP_200_OK,
+    response_model=list[models.TriggerMessage],
+)
+async def fetch_trigger_messages(
+    offset: int = 0,
+    limit: int = 10,
+    ts: str | None = None,
+    user_id: str | None = None,
+    search_word: str | None = None,
+    descending: bool = True,
+    service: AppService = Depends(get_app_service),
+) -> list[models.TriggerMessage]:
+    """조건에 맞는 트리거 메시지를 가져옵니다."""
+    return service.fetch_trigger_messages(
+        offset=offset,
+        limit=limit,
+        ts=ts,
+        user_id=user_id,
+        search_word=search_word,
+        descending=descending,
+    )
+
+
+@router.get(
+    "/community/archive_messages",
+    status_code=status.HTTP_200_OK,
+    response_model=list[models.ArchiveMessage],
 )
 async def fetch_archive_messages(
     offset: int = 0,
     limit: int = 10,
+    ts: str | None = None,
     user_id: str | None = None,
     search_word: str | None = None,
     trigger_word: str | None = None,
-    order_by: ArchiveMessageSortEnum = ArchiveMessageSortEnum.DT,
+    order_by: ArchiveMessageSortEnum = ArchiveMessageSortEnum.TS,
     descending: bool = True,
+    exclude_emoji: bool = True,
     service: AppService = Depends(get_app_service),
-) -> None:
+) -> list[models.ArchiveMessage]:
     """조건에 맞는 아카이브 메시지를 가져옵니다."""
+    return service.fetch_archive_messages(
+        offset=offset,
+        limit=limit,
+        ts=ts,
+        user_id=user_id,
+        search_word=search_word,
+        trigger_word=trigger_word,
+        order_by=order_by,
+        descending=descending,
+        exclude_emoji=exclude_emoji,
+    )

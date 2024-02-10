@@ -1,5 +1,6 @@
+import regex as re
 import datetime
-import re
+
 from zoneinfo import ZoneInfo
 
 import googletrans
@@ -37,3 +38,8 @@ def translate_keywords(keywords: list[str]) -> list[str]:
         else:
             continue
     return results
+
+
+def remove_emoji(message: str) -> str:
+    emoji_code_pattern = re.compile(r":[a-zA-Z0-9_\-]+:|:\p{Script=Hangul}+:")
+    return emoji_code_pattern.sub(r"", message)

@@ -73,7 +73,8 @@ class ContentCategoryEnum(str, Enum):
 
 
 class ArchiveMessageSortEnum(str, Enum):
-    DT = "dt"
+    TS = "ts"  # timestamp 이며, 슬랙 메시지에서는 pk id 로 사용된다.
+    updated_at = "updated_at"
 
 
 class ContentSortEnum(str, Enum):
