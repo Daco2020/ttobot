@@ -11,7 +11,6 @@ class AppService:
         self,
         offset: int = 0,
         limit: int = 10,
-        ts: str | None = None,
         user_id: str | None = None,
         search_word: str | None = None,
         descending: bool = True,
@@ -20,7 +19,6 @@ class AppService:
         return self._message_repo.fetch_trigger_messages(
             offset=offset,
             limit=limit,
-            ts=ts,
             user_id=user_id,
             search_word=search_word,
             descending=descending,

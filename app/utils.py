@@ -17,6 +17,7 @@ def tz_now_to_str(tz: str = "Asia/Seoul") -> str:
 
 
 def is_english(text):
+    """영어인지 한글인지 판별합니다."""
     if re.match("^[a-zA-Z]+$", text):
         return True
     elif re.match("^[가-힣]+$", text):
@@ -26,6 +27,7 @@ def is_english(text):
 
 
 def translate_keywords(keywords: list[str]) -> list[str]:
+    """키워드를 번역합니다."""
     translator = googletrans.Translator()
     results = []
     for keyword in keywords:
@@ -41,5 +43,12 @@ def translate_keywords(keywords: list[str]) -> list[str]:
 
 
 def remove_emoji(message: str) -> str:
+    """이모지를 제거합니다."""
     emoji_code_pattern = re.compile(r":[a-zA-Z0-9_\-]+:|:\p{Script=Hangul}+:")
     return emoji_code_pattern.sub(r"", message)
+
+
+def slack_link_to_markdown(text):
+    """Slack 링크를 마크다운 링크로 변환합니다."""
+    pattern = re.compile(r"<(http[s]?://[^\|]+)\|([^\>]+)>")
+    return pattern.sub(r"[\2](\1)", text)

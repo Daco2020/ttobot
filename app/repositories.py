@@ -8,14 +8,12 @@ from app.utils import remove_emoji
 
 # TODO: 추후 레포지토리를 도메인별로 분리 필요
 class MessageRepository:
-    def __init__(self) -> None:
-        ...
+    def __init__(self) -> None: ...
 
     def fetch_trigger_messages(
         self,
         offset: int = 0,
         limit: int = 10,
-        ts: str | None = None,
         user_id: str | None = None,
         search_word: str | None = None,
         descending: bool = True,
@@ -24,8 +22,6 @@ class MessageRepository:
         df = pl.read_csv("store/trigger_message.csv")
 
         queries = []
-        if ts is not None:
-            queries.append(pl.col("ts") == ts)
         if user_id is not None:
             queries.append(pl.col("user_id") == user_id)
         if search_word is not None:

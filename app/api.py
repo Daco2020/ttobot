@@ -3,7 +3,7 @@ import polars as pl
 from typing import Any
 
 from starlette import status
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from app import models
 from app.constants import ArchiveMessageSortEnum, ContentCategoryEnum, ContentSortEnum
 from app.deps import get_app_service
@@ -99,17 +99,17 @@ def match_keyword(keyword: str, row: tuple) -> bool:
 async def fetch_trigger_messages(
     offset: int = 0,
     limit: int = 10,
-    ts: str | None = None,
-    user_id: str | None = None,
-    search_word: str | None = None,
-    descending: bool = True,
+    user_id: str | None = Query(default=None, description="유저의 슬랙 아이디"),
+    search_word: str | None = Query(
+        default=None, description="트리거 메시지 중 검색할 단어"
+    ),
+    descending: bool = Query(default=True, description="내림차순 정렬 여부"),
     service: AppService = Depends(get_app_service),
 ) -> list[models.TriggerMessage]:
     """조건에 맞는 트리거 메시지를 가져옵니다."""
     return service.fetch_trigger_messages(
         offset=offset,
         limit=limit,
-        ts=ts,
         user_id=user_id,
         search_word=search_word,
         descending=descending,
@@ -124,13 +124,17 @@ async def fetch_trigger_messages(
 async def fetch_archive_messages(
     offset: int = 0,
     limit: int = 10,
-    ts: str | None = None,
-    user_id: str | None = None,
-    search_word: str | None = None,
-    trigger_word: str | None = None,
-    order_by: ArchiveMessageSortEnum = ArchiveMessageSortEnum.TS,
-    descending: bool = True,
-    exclude_emoji: bool = True,
+    ts: str | None = Query(default=None, description="메시지 생성 타임스탬프"),
+    user_id: str | None = Query(default=None, description="유저의 슬랙 아이디"),
+    search_word: str | None = Query(
+        default=None, description="아카이브 메시지 중 검색할 단어"
+    ),
+    trigger_word: str | None = Query(default=None, description="트리거 단어"),
+    order_by: ArchiveMessageSortEnum = Query(
+        default=ArchiveMessageSortEnum.TS, description="정렬 기준"
+    ),
+    descending: bool = Query(default=True, description="내림차순 정렬 여부"),
+    exclude_emoji: bool = Query(default=True, description="이모지 제외 여부"),
     service: AppService = Depends(get_app_service),
 ) -> list[models.ArchiveMessage]:
     """조건에 맞는 아카이브 메시지를 가져옵니다."""
