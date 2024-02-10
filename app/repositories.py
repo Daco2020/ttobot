@@ -25,7 +25,6 @@ class MessageRepository:
 
         queries = []
         if ts is not None:
-            print(pl.col("ts"), type(pl.col("ts")))
             queries.append(pl.col("ts") == ts)
         if user_id is not None:
             queries.append(pl.col("user_id") == user_id)
