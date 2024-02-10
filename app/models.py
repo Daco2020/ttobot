@@ -3,12 +3,12 @@ from __future__ import annotations
 from abc import abstractmethod
 from enum import Enum
 from zoneinfo import ZoneInfo
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 import datetime
 from app.constants import DUE_DATES
 from app.slack.exception import BotException
 
-from app.utils import tz_now, tz_now_to_str
+from app.utils import slack_link_to_markdown, tz_now, tz_now_to_str
 
 
 class User(BaseModel):
@@ -85,7 +85,8 @@ class User(BaseModel):
         now_date = tz_now().date()
         for i, due_date in enumerate(DUE_DATES):
             if now_date <= due_date:  # 현재 날짜가 보다 같거나 크면 현재 마감일이다.
-                latest_due_date = DUE_DATES[i - 1]  # 현재 마감일의 직전 마감일을 구한다.
+                # 현재 마감일의 직전 마감일을 구한다.
+                latest_due_date = DUE_DATES[i - 1]
                 break
 
         # 최근 제출한 콘텐츠의 날짜가 직전 마감일 초과, 현재 날짜 이하 라면 제출했다고 판단한다.
@@ -223,10 +224,26 @@ class Bookmark(StoreModel):
 
 
 class TriggerMessage(StoreModel):
-    user_id: str
-    channel_id: str
-    trigger_word: str
-    created_at: str = Field(default_factory=tz_now_to_str)
+    user_id: str = Field(
+        ...,
+        description="유저의 슬랙 아이디",
+        examples=["U01UJ9MUADT"],
+    )
+    channel_id: str = Field(
+        ...,
+        description="채널 아이디",
+        examples=["C01B4PVGLVB"],
+    )
+    trigger_word: str = Field(
+        ...,
+        description="트리거 단어",
+        examples=["$인사이트"],
+    )
+    created_at: str = Field(
+        default_factory=tz_now_to_str,
+        description="생성 일시",
+        examples=["2021-03-16 00:00:00"],
+    )
 
     def to_list_for_csv(self) -> list[str]:
         return [
@@ -246,13 +263,56 @@ class TriggerMessage(StoreModel):
 
 
 class ArchiveMessage(StoreModel):
-    ts: str
-    channel_id: str
-    trigger_word: str
-    user_id: str
-    message: str
-    file_urls: str
-    updated_at: str = Field(default_factory=tz_now_to_str)
+    ts: str = Field(
+        ...,
+        description="메시지 생성 타임스탬프",
+        examples=["1615844583.000100"],
+    )
+    channel_id: str = Field(
+        ...,
+        description="채널 아이디",
+        examples=["C01B4PVGLVB"],
+    )
+    trigger_word: str = Field(
+        ...,
+        description="트리거 단어",
+        examples=["$인사이트"],
+    )
+    user_id: str = Field(
+        ...,
+        description="유저의 슬랙 아이디",
+        examples=["U01UJ9MUADT"],
+    )
+    message: str = Field(
+        ...,
+        description="슬랙 메시지",
+        examples=["안녕하세요!"],
+    )
+    file_urls: str = Field(
+        ...,
+        description="첨부한 파일 url",
+        examples=["https://image1.jpg,https://image2.jpg,https://image3.jpg"],
+    )
+    updated_at: str = Field(
+        default_factory=tz_now_to_str,
+        description="업데이트 일시",
+        examples=["2021-03-16 00:00:00"],
+    )
+
+    @field_validator("ts", mode="before")
+    def get_ts(cls, v: str | float) -> str:
+        return str(v)
+
+    @field_validator("message", mode="before")
+    def get_message(cls, v: str) -> str:
+        return (
+            slack_link_to_markdown(v)
+            .replace("\n", "<br>")
+            .replace("&lt;", "<")
+            .replace("&gt;", ">")
+            .replace("&nbsp;", " ")
+            .replace("&amp;", "&")
+        )
 
     def to_list_for_csv(self) -> list[str]:
         return [

@@ -1,43 +1,18 @@
-import re
-
-import googletrans
 import polars as pl
 
-from enum import Enum
-from typing import Any, TypedDict
+from typing import Any
 
 from starlette import status
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends, Query
+from app import models
+from app.constants import ArchiveMessageSortEnum, ContentCategoryEnum, ContentSortEnum
+from app.deps import get_app_service
+from app.services import AppService
+
+from app.utils import translate_keywords
 
 
 router = APIRouter()
-translator = googletrans.Translator()
-
-
-class ContentSortEnum(str, Enum):
-    DT = "dt"
-    RELEVANCE = "relevance"
-    # LIKE = "like" # TODO: 추후 추가
-
-
-class ContentCategoryEnum(str, Enum):
-    UDEMY = "유데미 후기"
-    PROJECT = "프로젝트"
-    TECH = "기술 & 언어"
-    CULTURE = "조직 & 문화"
-    JOB = "취준 & 이직"
-    DAILY = "일상 & 생각"
-    ETC = "기타"
-
-
-class Content(TypedDict):
-    user_id: str
-    name: str
-    title: str
-    content_url: str
-    dt: str
-    category: str
-    tags: str
 
 
 @router.get(
@@ -116,24 +91,61 @@ def match_keyword(keyword: str, row: tuple) -> bool:
     return keyword in f"{row[1]},{row[5]}".lower()  # title, tags
 
 
-def translate_keywords(keywords: list[str]) -> list[str]:
-    results = []
-    for keyword in keywords:
-        value = is_english(keyword)
-        if value is True:
-            # 영어 -> 한글 번역, 한글이 없는 단어는 그대로 영어가 나올 수 있음.
-            results.append(translator.translate(keyword, dest="ko").text.lower())
-        elif value is False:
-            results.append(translator.translate(keyword, dest="en").text.lower())
-        else:
-            continue
-    return results
+@router.get(
+    "/community/trigger_messages",
+    status_code=status.HTTP_200_OK,
+    response_model=list[models.TriggerMessage],
+)
+async def fetch_trigger_messages(
+    offset: int = 0,
+    limit: int = 10,
+    user_id: str | None = Query(default=None, description="유저의 슬랙 아이디"),
+    search_word: str | None = Query(
+        default=None, description="트리거 메시지 중 검색할 단어"
+    ),
+    descending: bool = Query(default=True, description="내림차순 정렬 여부"),
+    service: AppService = Depends(get_app_service),
+) -> list[models.TriggerMessage]:
+    """조건에 맞는 트리거 메시지를 가져옵니다."""
+    return service.fetch_trigger_messages(
+        offset=offset,
+        limit=limit,
+        user_id=user_id,
+        search_word=search_word,
+        descending=descending,
+    )
 
 
-def is_english(text):
-    if re.match("^[a-zA-Z]+$", text):
-        return True
-    elif re.match("^[가-힣]+$", text):
-        return False
-    else:
-        return None
+@router.get(
+    "/community/archive_messages",
+    status_code=status.HTTP_200_OK,
+    response_model=list[models.ArchiveMessage],
+)
+async def fetch_archive_messages(
+    offset: int = 0,
+    limit: int = 10,
+    ts: str | None = Query(default=None, description="메시지 생성 타임스탬프"),
+    user_id: str | None = Query(default=None, description="유저의 슬랙 아이디"),
+    search_word: str | None = Query(
+        default=None, description="아카이브 메시지 중 검색할 단어"
+    ),
+    trigger_word: str | None = Query(default=None, description="트리거 단어"),
+    order_by: ArchiveMessageSortEnum = Query(
+        default=ArchiveMessageSortEnum.TS, description="정렬 기준"
+    ),
+    descending: bool = Query(default=True, description="내림차순 정렬 여부"),
+    exclude_emoji: bool = Query(default=True, description="이모지 제외 여부"),
+    service: AppService = Depends(get_app_service),
+) -> list[models.ArchiveMessage]:
+    """조건에 맞는 아카이브 메시지를 가져옵니다."""
+    return service.fetch_archive_messages(
+        offset=offset,
+        limit=limit,
+        ts=ts,
+        user_id=user_id,
+        search_word=search_word,
+        trigger_word=trigger_word,
+        order_by=order_by,
+        descending=descending,
+        exclude_emoji=exclude_emoji,
+    )
