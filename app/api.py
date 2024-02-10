@@ -1,10 +1,10 @@
 import polars as pl
 
-from enum import Enum
 from typing import Any
 
 from starlette import status
 from fastapi import APIRouter, Depends
+from app.constants import ArchiveMessageSortEnum, ContentCategoryEnum, ContentSortEnum
 from app.deps import get_app_service
 from app.services import AppService
 
@@ -12,26 +12,6 @@ from app.utils import translate_keywords
 
 
 router = APIRouter()
-
-
-class ContentSortEnum(str, Enum):
-    DT = "dt"
-    RELEVANCE = "relevance"
-    # LIKE = "like" # TODO: 추후 추가
-
-
-class ArchiveMessageSortEnum(str, Enum):
-    DT = "dt"
-
-
-class ContentCategoryEnum(str, Enum):
-    UDEMY = "유데미 후기"
-    PROJECT = "프로젝트"
-    TECH = "기술 & 언어"
-    CULTURE = "조직 & 문화"
-    JOB = "취준 & 이직"
-    DAILY = "일상 & 생각"
-    ETC = "기타"
 
 
 @router.get(
@@ -115,12 +95,13 @@ def match_keyword(keyword: str, row: tuple) -> bool:
     status_code=status.HTTP_200_OK,
 )
 async def fetch_archive_messages(
-    keyword: str,
     offset: int = 0,
     limit: int = 10,
-    channal_id: str | None = None,
+    user_id: str | None = None,
+    search_word: str | None = None,
+    trigger_word: str | None = None,
     order_by: ArchiveMessageSortEnum = ArchiveMessageSortEnum.DT,
     descending: bool = True,
     service: AppService = Depends(get_app_service),
 ) -> None:
-    ...
+    """조건에 맞는 아카이브 메시지를 가져옵니다."""
