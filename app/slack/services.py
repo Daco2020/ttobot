@@ -61,22 +61,6 @@ class SlackService:
         description = self._get_description(view)
         tags = self._get_tags(view)
         curation_flag = self._get_curation_flag(view)
-        feedback_message = self._get_feedback_message(view)
-        feedback_flag = "Y" if feedback_message else "N"
-
-        if feedback_flag == "Y":
-            feedback_request = models.FeedbackRequest(
-                user_id=body["user"]["id"],
-                content_url=content_url,
-                title=title,
-                category=category,
-                tags=tags,
-                message=feedback_message,
-            )
-            self._user_repo.create_feedback_request(feedback_request)
-            store.feedback_request_upload_queue.append(
-                feedback_request.to_list_for_sheet()
-            )
 
         content = models.Content(
             user_id=body["user"]["id"],
@@ -88,11 +72,27 @@ class SlackService:
             type="submit",
             tags=tags,
             curation_flag=curation_flag,
-            feedback_flag=feedback_flag,
         )
         self._user.contents.append(content)
         self._user_repo.update(self._user)
         return content
+
+    async def create_feedback_request(
+        self, content: models.Content, ts: str, feedback_message: str
+    ) -> models.FeedbackRequest:
+        """피드백 요청을 생성합니다."""
+        feedback_request = models.FeedbackRequest(
+            ts=ts,
+            user_id=content.user_id,
+            content_url=content.content_url,
+            title=content.title,
+            category=content.category,
+            tags=content.tags,
+            message=feedback_message,
+        )
+        self._user_repo.create_feedback_request(feedback_request)
+        store.feedback_request_upload_queue.append(feedback_request.to_list_for_sheet())
+        return feedback_request
 
     async def create_pass_content(self, ack, body, view) -> models.Content:
         """패스 콘텐츠를 생성합니다."""
@@ -107,12 +107,11 @@ class SlackService:
         self._user_repo.update(self._user)
         return content
 
-    def get_chat_message(self, content: models.Content) -> str:
+    def get_chat_text_by_content(self, content: models.Content) -> str:
         if content.type == "submit":
-            title = content.title.replace("\n", " ")
             message = f"\n>>>🎉 *<@{content.user_id}>님 제출 완료.*\
                 {self._description_message(content.description)}\
-                \n링크 : *<{content.content_url}|{re.sub('<|>', '', title if content.title != 'title unknown.' else content.content_url)}>*\
+                \n링크 : *<{content.content_url}|{re.sub('<|>', '', content.title if content.title != 'title unknown.' else content.content_url)}>*\
                 \n카테고리 : {content.category}\
                 {self._tag_message(content.tags)}"  # noqa E501
         else:
@@ -585,13 +584,21 @@ class SlackService:
         ]["value"]
         return curation_flag
 
-    def _get_feedback_message(self, view) -> str:
+    def get_feedback_message(self, view) -> str:
         feedback_message: str = view["state"]["values"]["feedback_message"][
             "plain_text_input-feedback_message"
         ]["value"]
         if not feedback_message:
             return ""
         return feedback_message
+
+    def get_chat_text_by_feedback_request(self, content: models.Content) -> str:
+        text = f"\n<@{content.user_id}>님이 *<{content.content_url}|{re.sub('<|>', '', content.title if content.title != 'title unknown.' else content.content_url)}>* 글에 피드백을 요청했어요."
+        text += f"\n> 카테고리 : {content.category} "
+        if content.tags:
+            text += "/ 태그 : "
+            text += " ".join([f"`{t.strip()}`" for t in content.tags.split(",")])
+        return text
 
     def _get_content_url(self, view) -> str:
         # 슬랙 앱이 구 버전일 경우 일부 block 이 사라져 키에러가 발생할 수 있음

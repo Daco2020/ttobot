@@ -127,7 +127,6 @@ class Content(StoreModel):
     category: str = ""
     tags: str = ""
     curation_flag: str = "N"  # "Y", "N"
-    feedback_flag: str = "N"  # "Y", "N"
 
     def __hash__(self) -> int:
         return hash(self.content_id)
@@ -154,6 +153,11 @@ class Content(StoreModel):
         """생성일시를 date 객체로 반환합니다."""
         return self.dt_.date()
 
+    @field_validator("title", mode="before")
+    def get_title(cls, v: str) -> str:
+        """간혹 글 제목에 개행문자가 들어가는 경우가 있어서 개행문자를 공백으로 치환합니다."""
+        return v.replace("\n", " ")
+
     def to_list_for_csv(self) -> list[str]:
         return [
             self.user_id,
@@ -166,7 +170,6 @@ class Content(StoreModel):
             self.type,
             self.tags,
             self.curation_flag,
-            self.feedback_flag,
         ]
 
     def to_list_for_sheet(self) -> list[str]:
@@ -181,7 +184,6 @@ class Content(StoreModel):
             self.type,
             self.tags,
             self.curation_flag,
-            self.feedback_flag,
         ]
 
     def get_round(self) -> int:
