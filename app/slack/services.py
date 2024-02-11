@@ -299,7 +299,7 @@ class SlackService:
                             "action_id": "plain_text_input-feedback_message",
                             "placeholder": {
                                 "type": "plain_text",
-                                "text": "글에 대한 피드백을 받고 싶다면 요청사항을 남겨주세요.",
+                                "text": "원하는 피드백 요청 사항이 있다면 남겨주세요. \nex) '기술적으로 틀린 부분이 있는지 확인 부탁드려요.'\n\n해당 내용은 [피드백 채널]로 전송됩니다.",
                             },
                             "multiline": True,
                         },
