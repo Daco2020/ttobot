@@ -22,7 +22,7 @@ router = APIRouter()
 async def fetch_contents(
     keyword: str,
     offset: int = 0,
-    limit: int = 10,
+    limit: int = Query(default=50, le=50),
     category: ContentCategoryEnum | None = None,
     order_by: ContentSortEnum = ContentSortEnum.DT,
     descending: bool = True,
@@ -98,7 +98,7 @@ def match_keyword(keyword: str, row: tuple) -> bool:
 )
 async def fetch_trigger_messages(
     offset: int = 0,
-    limit: int = 10,
+    limit: int = Query(default=50, le=50),
     user_id: str | None = Query(default=None, description="유저의 슬랙 아이디"),
     search_word: str | None = Query(
         default=None, description="트리거 메시지 중 검색할 단어"
@@ -123,7 +123,7 @@ async def fetch_trigger_messages(
 )
 async def fetch_archive_messages(
     offset: int = 0,
-    limit: int = 10,
+    limit: int = Query(default=50, le=50),
     ts: str | None = Query(default=None, description="메시지 생성 타임스탬프"),
     user_id: str | None = Query(default=None, description="유저의 슬랙 아이디"),
     search_word: str | None = Query(
