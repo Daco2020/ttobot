@@ -55,16 +55,40 @@ class SlackService:
         """제출 콘텐츠를 생성합니다."""
         content_url = self._get_content_url(view)
         await self._validate_url(view, ack, content_url, self._user)
+
+        title = self._get_title(view, content_url)
+        category = self._get_category(view)
+        description = self._get_description(view)
+        tags = self._get_tags(view)
+        curation_flag = self._get_curation_flag(view)
+        feedback_message = self._get_feedback_message(view)
+        feedback_flag = "Y" if feedback_message else "N"
+
+        if feedback_flag == "Y":
+            feedback_request = models.FeedbackRequest(
+                user_id=body["user"]["id"],
+                content_url=content_url,
+                title=title,
+                category=category,
+                tags=tags,
+                message=feedback_message,
+            )
+            self._user_repo.create_feedback_request(feedback_request)
+            store.feedback_request_upload_queue.append(
+                feedback_request.to_list_for_sheet()
+            )
+
         content = models.Content(
             user_id=body["user"]["id"],
             username=body["user"]["username"],
-            title=self._get_title(view, content_url),
+            title=title,
             content_url=content_url,
-            category=self._get_category(view),
-            description=self._get_description(view),
+            category=category,
+            description=description,
             type="submit",
-            tags=self._get_tags(view),
-            curation_flag=self._get_curation_flag(view),
+            tags=tags,
+            curation_flag=curation_flag,
+            feedback_flag=feedback_flag,
         )
         self._user.contents.append(content)
         self._user_repo.update(self._user)
@@ -267,6 +291,25 @@ class SlackService:
                             "action_id": "static_select-curation",
                         },
                     },
+                    {
+                        "type": "input",
+                        "block_id": "feedback_message",
+                        "optional": True,
+                        "element": {
+                            "type": "plain_text_input",
+                            "action_id": "plain_text_input-feedback_message",
+                            "placeholder": {
+                                "type": "plain_text",
+                                "text": "글에 대한 피드백을 받고 싶다면 요청사항을 남겨주세요.",
+                            },
+                            "multiline": True,
+                        },
+                        "label": {
+                            "type": "plain_text",
+                            "text": "피드백 요청사항",
+                            "emoji": True,
+                        },
+                    },
                     {"type": "divider"},
                     {
                         "type": "input",
@@ -297,7 +340,7 @@ class SlackService:
                                 "type": "plain_text",
                                 "text": "하고 싶은 말이 있다면 남겨주세요.",
                             },
-                            "multiline": True,
+                            "multiline": False,
                         },
                         "label": {
                             "type": "plain_text",
@@ -541,6 +584,14 @@ class SlackService:
             "selected_option"
         ]["value"]
         return curation_flag
+
+    def _get_feedback_message(self, view) -> str:
+        feedback_message: str = view["state"]["values"]["feedback_message"][
+            "plain_text_input-feedback_message"
+        ]["value"]
+        if not feedback_message:
+            return ""
+        return feedback_message
 
     def _get_content_url(self, view) -> str:
         # 슬랙 앱이 구 버전일 경우 일부 block 이 사라져 키에러가 발생할 수 있음

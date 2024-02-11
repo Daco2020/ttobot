@@ -54,7 +54,9 @@ async def trigger_command(
     )
 
 
-async def trigger_view(ack, body, client, view, say, user_id: str, service: SlackService) -> None:
+async def trigger_view(
+    ack, body, client, view, say, user_id: str, service: SlackService
+) -> None:
     """저장할 키워드 등록"""
     await ack()
 
@@ -173,12 +175,16 @@ async def handle_trigger_message(
             # 이미 이모지 반응을 한 경우 패스합니다.
             pass
 
-    archive_messages = service.fetch_archive_messages(channel_id, trigger.trigger_word, user_id)
+    archive_messages = service.fetch_archive_messages(
+        channel_id, trigger.trigger_word, user_id
+    )
 
     if is_created:  # 새로운 메시지 or 기존 메시지에 트리거 단어를 추가한 메시지
         response_message = f"<@{user_id}>님의 {len(archive_messages)}번째 `{trigger.trigger_word}` 메시지를 저장했어요. 😉"
     else:
-        response_message = f"<@{user_id}>님의 `{trigger.trigger_word}` 메시지를 수정했어요. 😉"
+        response_message = (
+            f"<@{user_id}>님의 `{trigger.trigger_word}` 메시지를 수정했어요. 😉"
+        )
 
     await client.chat_postMessage(
         channel=channel_id,

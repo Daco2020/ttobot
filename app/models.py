@@ -127,6 +127,7 @@ class Content(StoreModel):
     category: str = ""
     tags: str = ""
     curation_flag: str = "N"  # "Y", "N"
+    feedback_flag: str = "N"  # "Y", "N"
 
     def __hash__(self) -> int:
         return hash(self.content_id)
@@ -165,6 +166,7 @@ class Content(StoreModel):
             self.type,
             self.tags,
             self.curation_flag,
+            self.feedback_flag,
         ]
 
     def to_list_for_sheet(self) -> list[str]:
@@ -179,6 +181,7 @@ class Content(StoreModel):
             self.type,
             self.tags,
             self.curation_flag,
+            self.feedback_flag,
         ]
 
     def get_round(self) -> int:
@@ -334,4 +337,59 @@ class ArchiveMessage(StoreModel):
             self.message,
             self.file_urls,
             self.updated_at,
+        ]
+
+
+class FeedbackRequest(StoreModel):
+    ts: str = ""
+    user_id: str
+    content_url: str
+    title: str
+    category: str
+    tags: str
+    message: str
+
+    def to_list_for_csv(self) -> list[str]:
+        return [
+            self.ts,
+            self.user_id,
+            self.content_url,
+            self.title,
+            self.category,
+            self.tags,
+            self.message,
+        ]
+
+    def to_list_for_sheet(self) -> list[str]:
+        return [
+            self.ts,
+            self.user_id,
+            self.content_url,
+            self.title,
+            self.category,
+            self.tags,
+            self.message,
+        ]
+
+
+class FeedbackResponse(StoreModel):
+    ts: str
+    request_ts: str
+    user_id: str
+    message: str
+
+    def to_list_for_csv(self) -> list[str]:
+        return [
+            self.ts,
+            self.request_ts,
+            self.user_id,
+            self.message,
+        ]
+
+    def to_list_for_sheet(self) -> list[str]:
+        return [
+            self.ts,
+            self.request_ts,
+            self.user_id,
+            self.message,
         ]

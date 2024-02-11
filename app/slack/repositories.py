@@ -9,8 +9,7 @@ from app.utils import tz_now_to_str
 
 
 class SlackRepository:
-    def __init__(self) -> None:
-        ...
+    def __init__(self) -> None: ...
 
     def get_user(self, user_id: str) -> models.User | None:
         """유저와 콘텐츠를 가져옵니다."""
@@ -227,3 +226,12 @@ class SlackRepository:
                 if row["ts"] == ts:
                     return models.ArchiveMessage(**row)
             return None
+
+    def create_feedback_request(
+        self,
+        feedback_request: models.FeedbackRequest,
+    ) -> None:
+        """피드백 요청을 생성합니다."""
+        with open("store/feedback_request.csv", "a", newline="", encoding="utf-8") as f:
+            writer = csv.writer(f, quoting=csv.QUOTE_ALL)
+            writer.writerow(feedback_request.to_list_for_csv())

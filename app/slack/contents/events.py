@@ -73,9 +73,7 @@ async def submit_view(
     except ValueError as e:
         raise e
     except Exception as e:
-        message = (
-            f"{service.user.name}({service.user.channel_name}) 님의 제출이 실패했어요. {str(e)}"
-        )
+        message = f"{service.user.name}({service.user.channel_name}) 님의 제출이 실패했어요. {str(e)}"
         raise BotException(message)
 
 
@@ -137,7 +135,10 @@ async def edit_intro_view(
                     {
                         "type": "section",
                         "block_id": "required_section",
-                        "text": {"type": "mrkdwn", "text": "자신만의 개성있는 소개문구를 남겨주세요. 😉"},
+                        "text": {
+                            "type": "mrkdwn",
+                            "text": "자신만의 개성있는 소개문구를 남겨주세요. 😉",
+                        },
                     },
                     {
                         "type": "input",
@@ -363,9 +364,7 @@ async def pass_view(
             text=service.get_chat_message(content),
         )
     except Exception as e:
-        message = (
-            f"{service.user.name}({service.user.channel_name}) 님의 패스가 실패했어요. {str(e)}"
-        )
+        message = f"{service.user.name}({service.user.channel_name}) 님의 패스가 실패했어요. {str(e)}"
         raise BotException(message)
 
 
@@ -470,7 +469,10 @@ async def back_to_search_view(
             {
                 "type": "section",
                 "block_id": "description_section",
-                "text": {"type": "mrkdwn", "text": "원하는 조건의 글을 검색할 수 있어요."},
+                "text": {
+                    "type": "mrkdwn",
+                    "text": "원하는 조건의 글을 검색할 수 있어요.",
+                },
             },
             {
                 "type": "input",

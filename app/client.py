@@ -28,6 +28,8 @@ class SpreadSheetClient:
                 "bookmark": self._doc.worksheet("bookmark"),
                 "trigger_message": self._doc.worksheet("trigger_message"),
                 "archive_message": self._doc.worksheet("archive_message"),
+                "feedback_request": self._doc.worksheet("feedback_request"),
+                "feedback_response": self._doc.worksheet("feedback_response"),
             }
             if not sheets
             else sheets
