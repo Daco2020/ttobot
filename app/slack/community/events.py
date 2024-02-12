@@ -54,9 +54,7 @@ async def trigger_command(
     )
 
 
-async def trigger_view(
-    ack, body, client, view, say, user_id: str, service: SlackService
-) -> None:
+async def trigger_view(ack, body, client, view, say, user_id: str, service: SlackService) -> None:
     """저장할 키워드 등록"""
     await ack()
 
@@ -114,12 +112,19 @@ async def handle_trigger_message(
     service: SlackService,
 ) -> None:
     channel_id = event["channel"]
-    is_messgae_changed = False
+    is_message_changed = False
 
     if event.get("subtype") == "message_changed":
-        #  메시지 수정 이벤트는 event["message"] 안에 있습니다.
-        is_messgae_changed = True
-        event = event["message"]
+        is_message_changed = True
+        message_changed_ts = event["event_ts"]
+        event = event["message"]  # 메시지 수정 이벤트는 event["message"]안에 있습니다.
+
+        # 슬랙은 미리보기를 message_changed 이벤트로 생성하는데, 이 경우 동작하지 않도록 합니다.
+        # 7초 이내에 수정된 메시지는 미리보기 생성으로 판단합니다.
+        time_difference = float(message_changed_ts) - float(event["ts"])
+        if 0 <= time_difference <= 7:
+            return None
+
     elif event.get("subtype") == "file_share":
         pass
     elif event.get("subtype"):
@@ -138,7 +143,7 @@ async def handle_trigger_message(
 
     message = convert_user_id_to_name(message)
 
-    if is_messgae_changed:
+    if is_message_changed:
         is_created = service.update_archive_message(
             ts=ts,
             channel_id=channel_id,
@@ -148,6 +153,7 @@ async def handle_trigger_message(
             file_urls=file_urls,
         )
     else:
+        is_created = True
         service.create_archive_message(
             ts=ts,
             channel_id=channel_id,
@@ -167,15 +173,11 @@ async def handle_trigger_message(
             # 이미 이모지 반응을 한 경우 패스합니다.
             pass
 
-    archive_messages = service.fetch_archive_messages(
-        channel_id, trigger.trigger_word, user_id
-    )
+    archive_messages = service.fetch_archive_messages(channel_id, trigger.trigger_word, user_id)
 
-    if not is_messgae_changed or is_created:
-        # 새로운 메시지 or 키워드를 추가한 메시지
-        response_message = f"<@{user_id}>님의 {len(archive_messages)}번째 `{trigger.trigger_word}` 메시지를 저장했어요. 😉"  # noqa E501
+    if is_created:  # 새로운 메시지 or 기존 메시지에 트리거 단어를 추가한 메시지
+        response_message = f"<@{user_id}>님의 {len(archive_messages)}번째 `{trigger.trigger_word}` 메시지를 저장했어요. 😉"
     else:
-        # 수정한 메시지
         response_message = f"<@{user_id}>님의 `{trigger.trigger_word}` 메시지를 수정했어요. 😉"
 
     await client.chat_postMessage(

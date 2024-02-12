@@ -105,7 +105,7 @@ class SlackService:
             if content.type == "submit":
                 message += f"\n{sumit_head}  |  "
                 message += f"{content.dt}  |  "
-                message += f"*<{content.content_url}|{re.sub('<|>', '', content.title)}>*"  # noqa E501
+                message += f"*<{content.content_url}|{re.sub('<|>', '', content.title)}>*"
             else:
                 message += f"\n{pass_head}  |  "
                 message += f"{content.dt}  |  "
@@ -118,11 +118,11 @@ class SlackService:
             round, due_date = self._user.get_due_date()
             guide_message = f"\n\n현재 회차는 {round}회차, 마감일은 {due_date} 이에요."
             if self._user.is_submit:
-                guide_message += (
-                    f"\n({self._user.name} 님은 이미 {round}회차 글을 제출했어요)"
-                )
+                guide_message += f"\n({self._user.name} 님은 이미 {round}회차 글을 제출했어요)"
             else:
-                guide_message += f"\n({self._user.name} 님은 아직 {round}회차 글을 제출하지 않았어요)"
+                guide_message += (
+                    f"\n({self._user.name} 님은 아직 {round}회차 글을 제출하지 않았어요)"
+                )
         except BotException:
             guide_message = ""
         await client.views_open(
@@ -515,9 +515,9 @@ class SlackService:
         )
 
     def _get_description(self, view) -> str:
-        description: str = view["state"]["values"]["description"][
-            "plain_text_input-action"
-        ]["value"]
+        description: str = view["state"]["values"]["description"]["plain_text_input-action"][
+            "value"
+        ]
         if not description:
             return ""
         return description
@@ -537,24 +537,20 @@ class SlackService:
         return category
 
     def _get_curation_flag(self, view) -> str:
-        curation_flag: str = view["state"]["values"]["curation"][
-            "static_select-curation"
-        ]["selected_option"]["value"]
+        curation_flag: str = view["state"]["values"]["curation"]["static_select-curation"][
+            "selected_option"
+        ]["value"]
         return curation_flag
 
     def _get_content_url(self, view) -> str:
         # 슬랙 앱이 구 버전일 경우 일부 block 이 사라져 키에러가 발생할 수 있음
-        content_url: str = view["state"]["values"]["content_url"][
-            "url_text_input-action"
-        ]["value"]
+        content_url: str = view["state"]["values"]["content_url"]["url_text_input-action"]["value"]
         return content_url
 
     def _get_title(self, view, url: str) -> str:
         # 노션은 title 태그가 없어서 직접 수동으로 받아 처리
         if view["state"]["values"].get("manual_title_input"):
-            title: str = view["state"]["values"]["manual_title_input"]["title_input"][
-                "value"
-            ]
+            title: str = view["state"]["values"]["manual_title_input"]["title_input"]["value"]
             if title:
                 return title
         try:
@@ -574,9 +570,7 @@ class SlackService:
 
     def _tag_message(self, tag: str) -> str:
         tag_message = (
-            "\n태그 : " + " ".join([f"`{t.strip()}`" for t in tag.split(",")])
-            if tag
-            else ""
+            "\n태그 : " + " ".join([f"`{t.strip()}`" for t in tag.split(",")]) if tag else ""
         )
         return tag_message
 
@@ -588,9 +582,7 @@ class SlackService:
                 f"{self._user.name} 님의 코어 채널 <#{self._user.channel_id}> 에서 다시 시도해주세요."
             )
 
-    async def _validate_url(
-        self, view, ack, content_url: str, user: models.User
-    ) -> None:
+    async def _validate_url(self, view, ack, content_url: str, user: models.User) -> None:
         if not re.match(URL_REGEX, content_url):
             block_id = "content_url"
             message = "링크는 url 형식이어야 해요."
@@ -609,11 +601,7 @@ class SlackService:
             raise ValueError(message)
         # notion.so, notion.site, oopy.io 는 title 을 크롤링하지 못하므로 직접 입력을 받는다.
         # velog.io 는 title 을 크롤링하지 못하므로 직접 입력을 받는다. # TODO: 추후 SEO가 고쳐진다면 제거
-        if (
-            "notion." in content_url
-            or "oopy.io" in content_url
-            or "velog.io" in content_url
-        ):
+        if "notion." in content_url or "oopy.io" in content_url or "velog.io" in content_url:
             # 글 제목을 입력한 경우 통과.
             if (
                 view["state"]["values"]
@@ -623,9 +611,7 @@ class SlackService:
             ):
                 return
             block_id = "content_url"
-            message = (
-                "해당 블로그는 `글 제목`이 필수입니다. `공개 여부`도 꼭 확인해주세요."
-            )
+            message = "해당 블로그는 `글 제목`이 필수입니다. `공개 여부`도 꼭 확인해주세요."
             await ack(response_action="errors", errors={block_id: message})
             raise ValueError(message)
 
@@ -637,15 +623,11 @@ class SlackService:
             raise ValueError(message)
         if user.is_prev_pass:
             block_id = "description"
-            message = (
-                "직전 회차에 pass 를 사용했기 때문에 연속으로 pass 를 사용할 수 없어요."
-            )
+            message = "직전 회차에 pass 를 사용했기 때문에 연속으로 pass 를 사용할 수 없어요."
             await ack(response_action="errors", errors={block_id: message})
             raise ValueError(message)
 
-    def create_bookmark(
-        self, user_id: str, content_id: str, note: str = ""
-    ) -> models.Bookmark:
+    def create_bookmark(self, user_id: str, content_id: str, note: str = "") -> models.Bookmark:
         """북마크를 생성합니다."""
         bookmark = models.Bookmark(user_id=user_id, content_id=content_id, note=note)
         self._user_repo.create_bookmark(bookmark)
@@ -713,9 +695,7 @@ class SlackService:
         store.trigger_message_upload_queue.append(trigger_message.to_list_for_sheet())
         return trigger_message
 
-    def fetch_trigger_messages(
-        self, channel_id: str | None = None
-    ) -> list[models.TriggerMessage]:
+    def fetch_trigger_messages(self, channel_id: str | None = None) -> list[models.TriggerMessage]:
         """키워드 메시지를 가져옵니다."""
         triggers = self._user_repo.fetch_trigger_messages()
 
@@ -724,9 +704,7 @@ class SlackService:
 
         return [tirgger for tirgger in triggers if tirgger.channel_id == channel_id]
 
-    def get_trigger_message(
-        self, channel_id: str, message: str
-    ) -> models.TriggerMessage | None:
+    def get_trigger_message(self, channel_id: str, message: str) -> models.TriggerMessage | None:
         """채널과 단어가 일치하는 키워드를 조회합니다."""
         triggers = self._user_repo.fetch_trigger_messages()
 
@@ -773,13 +751,10 @@ class SlackService:
         trigger_word: str,
         file_urls: list[str],
     ) -> bool:
-        """아카이브 메시지를 수정합니다."""
-        self._user_repo.update_archive_message(ts, message)
-
+        """아카이브 메시지를 수정 또는 생성합니다."""
         if archive_message := self._user_repo.get_archive_message(ts):
-            store.archive_message_update_queue.append(
-                archive_message.to_list_for_sheet()
-            )
+            self._user_repo.update_archive_message(ts, message)
+            store.archive_message_update_queue.append(archive_message.to_list_for_sheet())
             is_created = False
         else:
             # 수정이 아닌, 기존 메시지에 키워드를 추가한 경우 새로 생성
@@ -792,9 +767,7 @@ class SlackService:
                 file_urls=",".join(file_urls),
             )
             self._user_repo.create_archive_message(archive_message)
-            store.archive_message_upload_queue.append(
-                archive_message.to_list_for_sheet()
-            )
+            store.archive_message_upload_queue.append(archive_message.to_list_for_sheet())
             is_created = True
 
         return is_created
