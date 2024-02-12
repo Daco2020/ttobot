@@ -118,7 +118,9 @@ class SlackService:
             round, due_date = self._user.get_due_date()
             guide_message = f"\n\n현재 회차는 {round}회차, 마감일은 {due_date} 이에요."
             if self._user.is_submit:
-                guide_message += f"\n({self._user.name} 님은 이미 {round}회차 글을 제출했어요)"
+                guide_message += (
+                    f"\n({self._user.name} 님은 이미 {round}회차 글을 제출했어요)"
+                )
             else:
                 guide_message += f"\n({self._user.name} 님은 아직 {round}회차 글을 제출하지 않았어요)"
         except BotException:
@@ -305,7 +307,7 @@ class SlackService:
                     },
                     {
                         "type": "input",
-                        "block_id": "notion_title",
+                        "block_id": "manual_title_input",
                         "label": {
                             "type": "plain_text",
                             "text": "글 제목(직접 입력)",
@@ -316,7 +318,7 @@ class SlackService:
                             "action_id": "title_input",
                             "placeholder": {
                                 "type": "plain_text",
-                                "text": "노션은 `글 제목`이 필수입니다. `공유 권한`도 꼭 확인해주세요.",
+                                "text": "해당 블로그는 `글 제목`이 필수입니다. `공개 여부`도 꼭 확인해주세요.",
                             },
                             "multiline": False,
                         },
@@ -549,8 +551,10 @@ class SlackService:
 
     def _get_title(self, view, url: str) -> str:
         # 노션은 title 태그가 없어서 직접 수동으로 받아 처리
-        if view["state"]["values"].get("notion_title"):
-            title: str = view["state"]["values"]["notion_title"]["title_input"]["value"]
+        if view["state"]["values"].get("manual_title_input"):
+            title: str = view["state"]["values"]["manual_title_input"]["title_input"][
+                "value"
+            ]
             if title:
                 return title
         try:
@@ -604,17 +608,24 @@ class SlackService:
             await ack(response_action="errors", errors={block_id: message})
             raise ValueError(message)
         # notion.so, notion.site, oopy.io 는 title 을 크롤링하지 못하므로 직접 입력을 받는다.
-        if "notion." in content_url or "oopy.io" in content_url:
+        # velog.io 는 title 을 크롤링하지 못하므로 직접 입력을 받는다. # TODO: 추후 SEO가 고쳐진다면 제거
+        if (
+            "notion." in content_url
+            or "oopy.io" in content_url
+            or "velog.io" in content_url
+        ):
             # 글 제목을 입력한 경우 통과.
             if (
                 view["state"]["values"]
-                .get("notion_title", {})
+                .get("manual_title_input", {})
                 .get("title_input", {})
                 .get("value")
             ):
                 return
             block_id = "content_url"
-            message = "노션은 하단의 `글 제목`을 필수로 입력해주세요. `공유 권한`도 꼭 확인해주세요."
+            message = (
+                "해당 블로그는 `글 제목`이 필수입니다. `공개 여부`도 꼭 확인해주세요."
+            )
             await ack(response_action="errors", errors={block_id: message})
             raise ValueError(message)
 
@@ -626,7 +637,9 @@ class SlackService:
             raise ValueError(message)
         if user.is_prev_pass:
             block_id = "description"
-            message = "직전 회차에 pass 를 사용했기 때문에 연속으로 pass 를 사용할 수 없어요."
+            message = (
+                "직전 회차에 pass 를 사용했기 때문에 연속으로 pass 를 사용할 수 없어요."
+            )
             await ack(response_action="errors", errors={block_id: message})
             raise ValueError(message)
 
