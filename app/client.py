@@ -53,7 +53,8 @@ class SpreadSheetClient:
 
     def upload(self, sheet_name: str, values: list[list[str]]) -> None:
         sheet = self._sheets[sheet_name]
-        sheet.append_rows(values)
+        for value in values:
+            sheet.append_row(value)
 
     def update(self, sheet_name: str, obj: StoreModel) -> None:
         """해당 객체 정보를 시트에 업데이트 합니다."""

@@ -41,11 +41,11 @@ class Store:
         values = self.read(table_name)
         self._client.upload(table_name, values)
 
-    def upload_queue(self, contents: str = "contents") -> None:
+    def upload_queue(self) -> None:
         """새로 추가된 queue 가 있다면 upload 합니다."""
         global content_upload_queue
         if content_upload_queue:
-            self._client.upload(contents, content_upload_queue)
+            self._client.upload("contents", content_upload_queue)
             log_event(
                 actor="system",
                 event="uploaded_contents",
@@ -120,9 +120,7 @@ class Store:
         global archive_message_update_queue
         if archive_message_update_queue:
             for values in archive_message_update_queue:
-                self._client.update_archive_message(
-                    sheet_name="archive_message", values=values
-                )
+                self._client.update_archive_message(sheet_name="archive_message", values=values)
             log_event(
                 actor="system",
                 event="updated_archive_message",
