@@ -1,6 +1,7 @@
 from slack_sdk.web.async_client import AsyncWebClient
 from slack_sdk.errors import SlackApiError
 
+from app.config import settings
 from typing import Any
 
 from app.slack.services import SlackService
@@ -54,9 +55,7 @@ async def trigger_command(
     )
 
 
-async def trigger_view(
-    ack, body, client, view, say, user_id: str, service: SlackService
-) -> None:
+async def trigger_view(ack, body, client, view, say, user_id: str, service: SlackService) -> None:
     """저장할 키워드 등록"""
     await ack()
 
@@ -114,8 +113,12 @@ async def handle_trigger_message(
     service: SlackService,
 ) -> None:
     channel_id = event["channel"]
-    is_message_changed = False
 
+    if channel_id == settings.FEEDBACK_CHANNEL:
+        await handle_feedback_response(client, event, service)
+        return None
+
+    is_message_changed = False
     if event.get("subtype") == "message_changed":
         is_message_changed = True
         message_changed_ts = event["event_ts"]
@@ -126,7 +129,6 @@ async def handle_trigger_message(
         time_difference = float(message_changed_ts) - float(event["ts"])
         if 0 <= time_difference <= 7:
             return None
-
     elif event.get("subtype") == "file_share":
         pass
     elif event.get("subtype"):
@@ -175,16 +177,12 @@ async def handle_trigger_message(
             # 이미 이모지 반응을 한 경우 패스합니다.
             pass
 
-    archive_messages = service.fetch_archive_messages(
-        channel_id, trigger.trigger_word, user_id
-    )
+    archive_messages = service.fetch_archive_messages(channel_id, trigger.trigger_word, user_id)
 
     if is_created:  # 새로운 메시지 or 기존 메시지에 트리거 단어를 추가한 메시지
         response_message = f"<@{user_id}>님의 {len(archive_messages)}번째 `{trigger.trigger_word}` 메시지를 저장했어요. 😉"
     else:
-        response_message = (
-            f"<@{user_id}>님의 `{trigger.trigger_word}` 메시지를 수정했어요. 😉"
-        )
+        response_message = f"<@{user_id}>님의 `{trigger.trigger_word}` 메시지를 수정했어요. 😉"
 
     await client.chat_postMessage(
         channel=channel_id,
@@ -206,3 +204,34 @@ def convert_user_id_to_name(message: str) -> str:
         message = message.replace(f"<@{user_id}>", name)
 
     return message
+
+
+async def handle_feedback_response(
+    client: AsyncWebClient,
+    event: dict[str, Any],
+    service: SlackService,
+) -> None:
+    thread_ts = event.get("thread_ts")
+    event_ts = event.get("event_ts")
+    user_id = event.get("user")
+    message = event.get("text")
+
+    if not (event["type"] == "message" and thread_ts and event_ts and user_id and message):
+        return None
+
+    feedback_request = service.get_feedback_request(thread_ts)
+    if not feedback_request:
+        return None
+
+    service.create_feedback_response(
+        ts=event_ts,
+        request_ts=feedback_request.ts,
+        user_id=user_id,
+        message=message,
+    )
+    feedback_responses = service.fetch_feedback_responses(user_id)
+    if len(feedback_responses) == 1:  # TODO: 추후 1회 이상 답변 시에도 알림을 보낼 수 있도록 변경
+        await client.chat_postMessage(  # TODO: 모달로 변경
+            channel=user_id,
+            text=f"<@{user_id}>님의 피드백에 답변을 달았어요. 😉",
+        )

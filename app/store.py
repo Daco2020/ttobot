@@ -12,6 +12,7 @@ trigger_message_upload_queue: list[list[str]] = []
 archive_message_upload_queue: list[list[str]] = []
 archive_message_update_queue: list[list[str]] = []
 feedback_request_upload_queue: list[list[str]] = []
+feedback_response_upload_queue: list[list[str]] = []
 
 
 class Store:
@@ -26,12 +27,8 @@ class Store:
         self.write("bookmark", values=self._client.get_values("bookmark"))
         self.write("trigger_message", values=self._client.get_values("trigger_message"))
         self.write("archive_message", values=self._client.get_values("archive_message"))
-        self.write(
-            "feedback_request", values=self._client.get_values("feedback_request")
-        )
-        self.write(
-            "feedback_response", values=self._client.get_values("feedback_response")
-        )
+        self.write("feedback_request", values=self._client.get_values("feedback_request"))
+        self.write("feedback_response", values=self._client.get_values("feedback_response"))
 
     def write(self, table_name: str, values: list[list[str]]) -> None:
         with open(f"store/{table_name}.csv", "w", newline="", encoding="utf-8") as f:
@@ -148,6 +145,18 @@ class Store:
                 body={"feedback_request_upload_queue": feedback_request_upload_queue},
             )
             feedback_request_upload_queue = []
+
+        global feedback_response_upload_queue
+        if feedback_response_upload_queue:
+            self._client.upload("feedback_response", feedback_response_upload_queue)
+            log_event(
+                actor="system",
+                event="uploaded_feedback_response",
+                type="community",
+                description=f"{len(feedback_response_upload_queue)}개 피드백 답변 업로드",
+                body={"feedback_response_upload_queue": feedback_response_upload_queue},
+            )
+            feedback_response_upload_queue = []
 
     def backup(self, table_name: str) -> None:
         values = self.read(table_name)

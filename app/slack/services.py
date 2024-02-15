@@ -592,6 +592,32 @@ class SlackService:
             return ""
         return feedback_message
 
+    def get_feedback_request(self, ts: str) -> models.FeedbackRequest | None:
+        """피드백 요청을 가져옵니다."""
+        feedback_request = self._user_repo.get_feedback_request(ts)
+        return feedback_request
+
+    def create_feedback_response(
+        self,
+        ts: str,
+        request_ts: str,
+        user_id: str,
+        message: str,
+    ) -> None:
+        """피드백 응답을 생성합니다."""
+        feedback_response = models.FeedbackResponse(
+            ts=ts,
+            request_ts=request_ts,
+            user_id=user_id,
+            message=message,
+        )
+        self._user_repo.create_feedback_response(feedback_response)
+        store.feedback_response_upload_queue.append(feedback_response.to_list_for_sheet())
+
+    def fetch_feedback_responses(self, user_id: str) -> list[models.FeedbackResponse]:
+        """피드백 응답을 가져옵니다."""
+        return self._user_repo.fetch_feedback_responses(user_id)
+
     def get_chat_text_by_feedback_request(self, content: models.Content) -> str:
         text = f"\n<@{content.user_id}>님이 *<{content.content_url}|{re.sub('<|>', '', content.title if content.title != 'title unknown.' else content.content_url)}>* 글에 피드백을 요청했어요."
         text += f"\n> 카테고리 : {content.category} "
