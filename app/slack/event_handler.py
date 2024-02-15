@@ -135,7 +135,8 @@ async def handle_error(error, body):
 
     # 관리자에게 에러를 알립니다.
     await app.client.chat_postMessage(
-        channel=settings.ADMIN_CHANNEL, text=f"🫢: {error=} 🕊️: {trace=} 👉🏼 💌: {body=}"
+        channel=settings.ADMIN_CHANNEL,
+        text=f"🫢: {error=} 🕊️: {trace=} 👉🏼 💌: {body=}",
     )
 
 

@@ -153,6 +153,11 @@ class Content(StoreModel):
         """생성일시를 date 객체로 반환합니다."""
         return self.dt_.date()
 
+    @field_validator("title", mode="before")
+    def get_title(cls, v: str) -> str:
+        """간혹 글 제목에 개행문자가 들어가는 경우가 있어서 개행문자를 공백으로 치환합니다."""
+        return v.replace("\n", " ")
+
     def to_list_for_csv(self) -> list[str]:
         return [
             self.user_id,
@@ -334,4 +339,59 @@ class ArchiveMessage(StoreModel):
             self.message,
             self.file_urls,
             self.updated_at,
+        ]
+
+
+class FeedbackRequest(StoreModel):
+    ts: str = ""
+    user_id: str
+    content_url: str
+    title: str
+    category: str
+    tags: str
+    message: str
+
+    def to_list_for_csv(self) -> list[str]:
+        return [
+            self.ts,
+            self.user_id,
+            self.content_url,
+            self.title,
+            self.category,
+            self.tags,
+            self.message,
+        ]
+
+    def to_list_for_sheet(self) -> list[str]:
+        return [
+            self.ts,
+            self.user_id,
+            self.content_url,
+            self.title,
+            self.category,
+            self.tags,
+            self.message,
+        ]
+
+
+class FeedbackResponse(StoreModel):
+    ts: str
+    request_ts: str
+    user_id: str
+    message: str
+
+    def to_list_for_csv(self) -> list[str]:
+        return [
+            self.ts,
+            self.request_ts,
+            self.user_id,
+            self.message,
+        ]
+
+    def to_list_for_sheet(self) -> list[str]:
+        return [
+            self.ts,
+            self.request_ts,
+            self.user_id,
+            self.message,
         ]

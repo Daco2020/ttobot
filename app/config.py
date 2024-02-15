@@ -17,6 +17,7 @@ class Settings(BaseSettings):
     ADMIN_IDS: list[str]
 
     SUPPORT_CHANNEL: str
+    FEEDBACK_CHANNEL: str
 
     class Config:
         env_file = ".env"

@@ -8,6 +8,7 @@ from slack_sdk.web.async_client import AsyncWebClient
 
 from app import models
 from app.slack.services import SlackService
+from app.config import settings
 
 
 async def submit_command(
@@ -24,7 +25,7 @@ async def submit_command(
 
 
 async def submit_view(
-    ack, body, client, view, say, user_id: str, service: SlackService
+    ack, body, client: AsyncWebClient, view, say, user_id: str, service: SlackService
 ) -> None:
     """글 제출 완료"""
     await ack()
@@ -33,10 +34,10 @@ async def submit_view(
 
     try:
         content = await service.create_submit_content(ack, body, view)
-
-        text = service.get_chat_message(content)
+        text = service.get_chat_text_by_content(content)
         await client.chat_postMessage(
             channel=channel_id,
+            text=text,
             blocks=[
                 {
                     "type": "section",
@@ -73,10 +74,27 @@ async def submit_view(
     except ValueError as e:
         raise e
     except Exception as e:
-        message = (
-            f"{service.user.name}({service.user.channel_name}) 님의 제출이 실패했어요. {str(e)}"
-        )
+        message = f"{service.user.name}({service.user.channel_name}) 님의 제출이 실패했어요. {str(e)}"
         raise BotException(message)
+
+    feedback_message = service.get_feedback_message(view)
+    if feedback_message:
+        res = await client.chat_postMessage(
+            channel=settings.FEEDBACK_CHANNEL,
+            unfurl_links=False,
+            unfurl_media=False,
+            text=service.get_chat_text_by_feedback_request(content),
+        )
+        feedback_request = await service.create_feedback_request(
+            content=content,
+            ts=res["ts"],
+            feedback_message=feedback_message,
+        )
+        await client.chat_postMessage(
+            channel=settings.FEEDBACK_CHANNEL,
+            text=f"🙏피드백 요청 메시지 : {feedback_request.message}",
+            thread_ts=feedback_request.ts,
+        )
 
 
 async def open_intro_modal(
@@ -137,7 +155,10 @@ async def edit_intro_view(
                     {
                         "type": "section",
                         "block_id": "required_section",
-                        "text": {"type": "mrkdwn", "text": "자신만의 개성있는 소개문구를 남겨주세요. 😉"},
+                        "text": {
+                            "type": "mrkdwn",
+                            "text": "자신만의 개성있는 소개문구를 남겨주세요. 😉",
+                        },
                     },
                     {
                         "type": "input",
@@ -360,12 +381,10 @@ async def pass_view(
 
         await client.chat_postMessage(
             channel=channel_id,
-            text=service.get_chat_message(content),
+            text=service.get_chat_text_by_content(content),
         )
     except Exception as e:
-        message = (
-            f"{service.user.name}({service.user.channel_name}) 님의 패스가 실패했어요. {str(e)}"
-        )
+        message = f"{service.user.name}({service.user.channel_name}) 님의 패스가 실패했어요. {str(e)}"
         raise BotException(message)
 
 
@@ -470,7 +489,10 @@ async def back_to_search_view(
             {
                 "type": "section",
                 "block_id": "description_section",
-                "text": {"type": "mrkdwn", "text": "원하는 조건의 글을 검색할 수 있어요."},
+                "text": {
+                    "type": "mrkdwn",
+                    "text": "원하는 조건의 글을 검색할 수 있어요.",
+                },
             },
             {
                 "type": "input",

@@ -9,8 +9,7 @@ from app.utils import tz_now_to_str
 
 
 class SlackRepository:
-    def __init__(self) -> None:
-        ...
+    def __init__(self) -> None: ...
 
     def get_user(self, user_id: str) -> models.User | None:
         """유저와 콘텐츠를 가져옵니다."""
@@ -39,9 +38,7 @@ class SlackRepository:
         with open("store/contents.csv") as f:
             reader = csv.DictReader(f)
             contents = [
-                models.Content(**content)
-                for content in reader
-                if content["user_id"] == user_id
+                models.Content(**content) for content in reader if content["user_id"] == user_id
             ]
             return sorted(contents, key=lambda content: content.dt_)
 
@@ -60,9 +57,7 @@ class SlackRepository:
         with open("store/contents.csv") as f:
             reader = csv.DictReader(f)
             contents = [
-                models.Content(**content)
-                for content in reader
-                if content["type"] == "submit"
+                models.Content(**content) for content in reader if content["type"] == "submit"
             ]
             return sorted(contents, key=lambda content: content.dt_, reverse=True)
 
@@ -227,3 +222,36 @@ class SlackRepository:
                 if row["ts"] == ts:
                     return models.ArchiveMessage(**row)
             return None
+
+    def create_feedback_request(
+        self,
+        feedback_request: models.FeedbackRequest,
+    ) -> None:
+        """피드백 요청을 생성합니다."""
+        with open("store/feedback_request.csv", "a", newline="", encoding="utf-8") as f:
+            writer = csv.writer(f, quoting=csv.QUOTE_ALL)
+            writer.writerow(feedback_request.to_list_for_csv())
+
+    def get_feedback_request(self, ts: str) -> models.FeedbackRequest | None:
+        """피드백 요청을 조회합니다."""
+        with open("store/feedback_request.csv") as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                if row["ts"] == ts:
+                    return models.FeedbackRequest(**row)
+            return None
+
+    def create_feedback_response(
+        self,
+        feedback_response: models.FeedbackResponse,
+    ) -> None:
+        """피드백 답변을 생성합니다."""
+        with open("store/feedback_response.csv", "a", newline="", encoding="utf-8") as f:
+            writer = csv.writer(f, quoting=csv.QUOTE_ALL)
+            writer.writerow(feedback_response.to_list_for_csv())
+
+    def fetch_feedback_responses(self, user_id: str) -> list[models.FeedbackResponse]:
+        """피드백 답변을 조회합니다."""
+        with open("store/feedback_response.csv") as f:
+            reader = csv.DictReader(f)
+            return [models.FeedbackResponse(**row) for row in reader if row["user_id"] == user_id]
