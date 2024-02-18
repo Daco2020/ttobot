@@ -318,7 +318,7 @@ class SlackService:
                             "action_id": "title_input",
                             "placeholder": {
                                 "type": "plain_text",
-                                "text": "해당 블로그는 `글 제목`이 필수입니다. `공개 여부`도 꼭 확인해주세요.",
+                                "text": "노션은 `글 제목`이 필수입니다. `공개 여부`도 꼭 확인해주세요.",
                             },
                             "multiline": False,
                         },
@@ -600,8 +600,7 @@ class SlackService:
             await ack(response_action="errors", errors={block_id: message})
             raise ValueError(message)
         # notion.so, notion.site, oopy.io 는 title 을 크롤링하지 못하므로 직접 입력을 받는다.
-        # velog.io 는 title 을 크롤링하지 못하므로 직접 입력을 받는다. # TODO: 추후 SEO가 고쳐진다면 제거
-        if "notion." in content_url or "oopy.io" in content_url or "velog.io" in content_url:
+        if "notion." in content_url or "oopy.io" in content_url or ".site" in content_url:
             # 글 제목을 입력한 경우 통과.
             if (
                 view["state"]["values"]
@@ -611,7 +610,7 @@ class SlackService:
             ):
                 return
             block_id = "content_url"
-            message = "해당 블로그는 `글 제목`이 필수입니다. `공개 여부`도 꼭 확인해주세요."
+            message = "하단의 `글 제목`을 입력해주세요. `공개 여부`도 꼭 확인해주세요."
             await ack(response_action="errors", errors={block_id: message})
             raise ValueError(message)
 
