@@ -17,7 +17,7 @@ class MessageRepository:
         user_id: str | None = None,
         search_word: str | None = None,
         descending: bool = True,
-    ) -> list[models.TriggerMessage]:
+    ) -> tuple[int, list[models.TriggerMessage]]:
         """조건에 맞는 트리거 메시지를 조회합니다."""
         df = pl.read_csv("store/trigger_message.csv")
 
@@ -31,9 +31,10 @@ class MessageRepository:
             df = df.filter(pl.fold(queries, lambda a, b: a & b))
 
         df = df.sort("created_at", descending=descending)
-        df = df.slice(offset, limit)
 
-        return [models.TriggerMessage(**row) for row in df.to_dicts()]
+        count = len(df)
+        data = [models.TriggerMessage(**row) for row in df.slice(offset, limit).to_dicts()]
+        return count, data
 
     def fetch_archive_messages(
         self,
@@ -46,7 +47,7 @@ class MessageRepository:
         order_by: ArchiveMessageSortEnum = ArchiveMessageSortEnum.TS,
         descending: bool = True,
         exclude_emoji: bool = True,
-    ) -> list[models.ArchiveMessage]:
+    ) -> tuple[int, list[models.ArchiveMessage]]:
         """조건에 맞는 아카이브 메시지를 조회합니다."""
         df = pl.read_csv("store/archive_message.csv")
 
@@ -62,23 +63,20 @@ class MessageRepository:
         if queries:
             combined_condition = reduce(lambda a, b: a & b, queries)
             df = df.filter(combined_condition)
-
         if order_by is not None:
             df = df.sort(order_by, descending=descending)
 
-        df = df.slice(offset, limit)
-
-        return [
+        count = len(df)
+        data = [
             models.ArchiveMessage(
                 ts=row["ts"],
                 channel_id=row["channel_id"],
                 trigger_word=row["trigger_word"],
                 user_id=row["user_id"],
-                message=(
-                    remove_emoji(row["message"]) if exclude_emoji else row["message"]
-                ),
+                message=(remove_emoji(row["message"]) if exclude_emoji else row["message"]),
                 file_urls=row["file_urls"],
                 updated_at=row["updated_at"],
             )
-            for row in df.to_dicts()
+            for row in df.slice(offset, limit).to_dicts()
         ]
+        return count, data
