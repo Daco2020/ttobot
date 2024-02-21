@@ -182,6 +182,14 @@ class SlackService:
                                 {
                                     "text": {
                                         "type": "plain_text",
+                                        "text": "코드트리 × 글또 블로그 챌린지",
+                                        "emoji": True,
+                                    },
+                                    "value": "코드트리 × 글또 블로그 챌린지",
+                                },
+                                {
+                                    "text": {
+                                        "type": "plain_text",
                                         "text": "프로젝트",
                                         "emoji": True,
                                     },
@@ -502,6 +510,13 @@ class SlackService:
                                         "text": "유데미 후기",
                                     },
                                     "value": "유데미 후기",
+                                },
+                                {
+                                    "text": {
+                                        "type": "plain_text",
+                                        "text": "코드트리 × 글또 블로그 챌린지",
+                                    },
+                                    "value": "코드트리 × 글또 블로그 챌린지",
                                 },
                                 {
                                     "text": {"type": "plain_text", "text": "기타"},

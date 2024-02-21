@@ -10,9 +10,7 @@ from app import models
 from app.slack.services import SlackService
 
 
-async def submit_command(
-    ack, body, say, client, user_id: str, service: SlackService
-) -> None:
+async def submit_command(ack, body, say, client, user_id: str, service: SlackService) -> None:
     """글 제출 시작"""
     await ack()
 
@@ -23,9 +21,7 @@ async def submit_command(
     )
 
 
-async def submit_view(
-    ack, body, client, view, say, user_id: str, service: SlackService
-) -> None:
+async def submit_view(ack, body, client, view, say, user_id: str, service: SlackService) -> None:
     """글 제출 완료"""
     await ack()
 
@@ -79,9 +75,7 @@ async def submit_view(
         raise BotException(message)
 
 
-async def open_intro_modal(
-    ack, body, client, view, user_id: str, service: SlackService
-) -> None:
+async def open_intro_modal(ack, body, client, view, user_id: str, service: SlackService) -> None:
     """다른 유저의 자기소개 확인"""
     await ack()
 
@@ -137,7 +131,10 @@ async def edit_intro_view(
                     {
                         "type": "section",
                         "block_id": "required_section",
-                        "text": {"type": "mrkdwn", "text": "자신만의 개성있는 소개문구를 남겨주세요. 😉"},
+                        "text": {
+                            "type": "mrkdwn",
+                            "text": "자신만의 개성있는 소개문구를 남겨주세요. 😉",
+                        },
                     },
                     {
                         "type": "input",
@@ -205,9 +202,7 @@ async def submit_intro_view(
     )
 
 
-async def contents_modal(
-    ack, body, client, view, user_id: str, service: SlackService
-) -> None:
+async def contents_modal(ack, body, client, view, user_id: str, service: SlackService) -> None:
     """다른 유저의 제출한 글 목록 확인"""
     await ack()
 
@@ -225,9 +220,7 @@ async def contents_modal(
     )
 
 
-async def bookmark_modal(
-    ack, body, client, view, user_id: str, service: SlackService
-) -> None:
+async def bookmark_modal(ack, body, client, view, user_id: str, service: SlackService) -> None:
     # TODO: 글 검색에서 넘어온 경우 북마크 저장 후 검색 모달로 돌아가야 함
     """북마크 저장 시작"""
     await ack()
@@ -247,9 +240,7 @@ async def bookmark_modal(
         await client.views_open(trigger_id=body["trigger_id"], view=view)
 
 
-def get_bookmark_view(
-    content_id: str, bookmark: models.Bookmark | None
-) -> dict[str, Any]:
+def get_bookmark_view(content_id: str, bookmark: models.Bookmark | None) -> dict[str, Any]:
     if bookmark is not None:
         # 이미 북마크가 되어 있다면 이를 사용자에게 알린다.
         view = {
@@ -305,9 +296,7 @@ def get_bookmark_view(
     return view
 
 
-async def bookmark_view(
-    ack, body, client, view, say, user_id: str, service: SlackService
-) -> None:
+async def bookmark_view(ack, body, client, view, say, user_id: str, service: SlackService) -> None:
     """북마크 저장 완료"""
     await ack()
 
@@ -334,9 +323,7 @@ async def bookmark_view(
     )
 
 
-async def pass_command(
-    ack, body, say, client, user_id: str, service: SlackService
-) -> None:
+async def pass_command(ack, body, say, client, user_id: str, service: SlackService) -> None:
     """글 패스 시작"""
     await ack()
 
@@ -347,9 +334,7 @@ async def pass_command(
     )
 
 
-async def pass_view(
-    ack, body, client, view, say, user_id: str, service: SlackService
-) -> None:
+async def pass_view(ack, body, client, view, say, user_id: str, service: SlackService) -> None:
     """글 패스 완료"""
     await ack()
 
@@ -369,18 +354,14 @@ async def pass_view(
         raise BotException(message)
 
 
-async def search_command(
-    ack, body, say, client, user_id: str, service: SlackService
-) -> None:
+async def search_command(ack, body, say, client, user_id: str, service: SlackService) -> None:
     """글 검색 시작"""
     await ack()
 
     await service.open_search_modal(body, client)
 
 
-async def submit_search(
-    ack, body, client, view, user_id: str, service: SlackService
-) -> None:
+async def submit_search(ack, body, client, view, user_id: str, service: SlackService) -> None:
     """글 검색 완료"""
     name = _get_name(body)
     category = _get_category(body)
@@ -457,9 +438,7 @@ def _fetch_blocks(contents: list[models.Content]) -> list[dict[str, Any]]:
     return blocks
 
 
-async def back_to_search_view(
-    ack, body, say, client, user_id: str, service: SlackService
-) -> None:
+async def back_to_search_view(ack, body, say, client, user_id: str, service: SlackService) -> None:
     """글 검색 다시 시작"""
     view = {
         "type": "modal",
@@ -470,7 +449,10 @@ async def back_to_search_view(
             {
                 "type": "section",
                 "block_id": "description_section",
-                "text": {"type": "mrkdwn", "text": "원하는 조건의 글을 검색할 수 있어요."},
+                "text": {
+                    "type": "mrkdwn",
+                    "text": "원하는 조건의 글을 검색할 수 있어요.",
+                },
             },
             {
                 "type": "input",
@@ -548,6 +530,20 @@ async def back_to_search_view(
                             "value": "일상 & 생각",
                         },
                         {
+                            "text": {
+                                "type": "plain_text",
+                                "text": "유데미 후기",
+                            },
+                            "value": "유데미 후기",
+                        },
+                        {
+                            "text": {
+                                "type": "plain_text",
+                                "text": "코드트리 × 글또 블로그 챌린지",
+                            },
+                            "value": "코드트리 × 글또 블로그 챌린지",
+                        },
+                        {
                             "text": {"type": "plain_text", "text": "기타"},
                             "value": "기타",
                         },
@@ -597,9 +593,7 @@ def _get_keyword(body) -> str:
     return keyword
 
 
-async def bookmark_command(
-    ack, body, say, client, user_id: str, service: SlackService
-) -> None:
+async def bookmark_command(ack, body, say, client, user_id: str, service: SlackService) -> None:
     """북마크 조회"""
     await ack()
 
@@ -767,9 +761,7 @@ def _fetch_bookmark_blocks(
             )
 
             note = [
-                bookmark.note
-                for bookmark in bookmarks
-                if content.content_id == bookmark.content_id
+                bookmark.note for bookmark in bookmarks if content.content_id == bookmark.content_id
             ][0]
 
             blocks.append(
