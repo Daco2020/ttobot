@@ -1,13 +1,13 @@
 import re
 from typing import Any
-from app.constants import URL_REGEX
+from app.constants import URL_REGEX, ContentCategoryEnum
 
 from app.logging import logger
 from app.constants import MAX_PASS_COUNT
 from app.slack.exception import BotException
 from app.slack.repositories import SlackRepository
 from app import store
-
+from app.slack.components import static_select
 
 import requests
 from bs4 import BeautifulSoup
@@ -170,72 +170,9 @@ class SlackService:
                                 "text": "글의 카테고리를 선택해주세요.",
                                 "emoji": True,
                             },
-                            "options": [
-                                {
-                                    "text": {
-                                        "type": "plain_text",
-                                        "text": "유데미 후기",
-                                        "emoji": True,
-                                    },
-                                    "value": "유데미 후기",
-                                },
-                                {
-                                    "text": {
-                                        "type": "plain_text",
-                                        "text": "코드트리 × 글또 블로그 챌린지",
-                                        "emoji": True,
-                                    },
-                                    "value": "코드트리 × 글또 블로그 챌린지",
-                                },
-                                {
-                                    "text": {
-                                        "type": "plain_text",
-                                        "text": "프로젝트",
-                                        "emoji": True,
-                                    },
-                                    "value": "프로젝트",
-                                },
-                                {
-                                    "text": {
-                                        "type": "plain_text",
-                                        "text": "기술 & 언어",
-                                        "emoji": True,
-                                    },
-                                    "value": "기술 & 언어",
-                                },
-                                {
-                                    "text": {
-                                        "type": "plain_text",
-                                        "text": "조직 & 문화",
-                                        "emoji": True,
-                                    },
-                                    "value": "조직 & 문화",
-                                },
-                                {
-                                    "text": {
-                                        "type": "plain_text",
-                                        "text": "취준 & 이직",
-                                        "emoji": True,
-                                    },
-                                    "value": "취준 & 이직",
-                                },
-                                {
-                                    "text": {
-                                        "type": "plain_text",
-                                        "text": "일상 & 생각",
-                                        "emoji": True,
-                                    },
-                                    "value": "일상 & 생각",
-                                },
-                                {
-                                    "text": {
-                                        "type": "plain_text",
-                                        "text": "기타",
-                                        "emoji": True,
-                                    },
-                                    "value": "기타",
-                                },
-                            ],
+                            "options": static_select.options(
+                                [category.value for category in ContentCategoryEnum]
+                            ),
                             "action_id": "static_select-category",
                         },
                     },
@@ -467,62 +404,9 @@ class SlackService:
                                 "text": {"type": "plain_text", "text": "전체"},
                                 "value": "전체",
                             },
-                            "options": [
-                                {
-                                    "text": {"type": "plain_text", "text": "전체"},
-                                    "value": "전체",
-                                },
-                                {
-                                    "text": {"type": "plain_text", "text": "프로젝트"},
-                                    "value": "프로젝트",
-                                },
-                                {
-                                    "text": {
-                                        "type": "plain_text",
-                                        "text": "기술 & 언어",
-                                    },
-                                    "value": "기술 & 언어",
-                                },
-                                {
-                                    "text": {
-                                        "type": "plain_text",
-                                        "text": "조직 & 문화",
-                                    },
-                                    "value": "조직 & 문화",
-                                },
-                                {
-                                    "text": {
-                                        "type": "plain_text",
-                                        "text": "취준 & 이직",
-                                    },
-                                    "value": "취준 & 이직",
-                                },
-                                {
-                                    "text": {
-                                        "type": "plain_text",
-                                        "text": "일상 & 생각",
-                                    },
-                                    "value": "일상 & 생각",
-                                },
-                                {
-                                    "text": {
-                                        "type": "plain_text",
-                                        "text": "유데미 후기",
-                                    },
-                                    "value": "유데미 후기",
-                                },
-                                {
-                                    "text": {
-                                        "type": "plain_text",
-                                        "text": "코드트리 × 글또 블로그 챌린지",
-                                    },
-                                    "value": "코드트리 × 글또 블로그 챌린지",
-                                },
-                                {
-                                    "text": {"type": "plain_text", "text": "기타"},
-                                    "value": "기타",
-                                },
-                            ],
+                            "options": static_select.options(
+                                [category.value for category in ContentCategoryEnum] + ["전체"]
+                            ),
                         },
                     },
                 ],

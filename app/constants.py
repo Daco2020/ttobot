@@ -64,6 +64,7 @@ CONTENTS_PER_PAGE = 20
 
 class ContentCategoryEnum(str, Enum):
     UDEMY = "유데미 후기"
+    CODETREE = "코드트리 × 글또 블로그 챌린지"
     PROJECT = "프로젝트"
     TECH = "기술 & 언어"
     CULTURE = "조직 & 문화"

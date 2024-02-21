@@ -2,7 +2,9 @@ import ast
 import re
 from typing import Any
 import orjson
-from app.constants import CONTENTS_PER_PAGE
+
+from app.slack.components import static_select
+from app.constants import CONTENTS_PER_PAGE, ContentCategoryEnum
 from app.slack.exception import BotException
 from slack_sdk.web.async_client import AsyncWebClient
 
@@ -504,50 +506,9 @@ async def back_to_search_view(ack, body, say, client, user_id: str, service: Sla
                         "text": {"type": "plain_text", "text": "전체"},
                         "value": "전체",
                     },
-                    "options": [
-                        {
-                            "text": {"type": "plain_text", "text": "전체"},
-                            "value": "전체",
-                        },
-                        {
-                            "text": {"type": "plain_text", "text": "프로젝트"},
-                            "value": "프로젝트",
-                        },
-                        {
-                            "text": {"type": "plain_text", "text": "기술 & 언어"},
-                            "value": "기술 & 언어",
-                        },
-                        {
-                            "text": {"type": "plain_text", "text": "조직 & 문화"},
-                            "value": "조직 & 문화",
-                        },
-                        {
-                            "text": {"type": "plain_text", "text": "취준 & 이직"},
-                            "value": "취준 & 이직",
-                        },
-                        {
-                            "text": {"type": "plain_text", "text": "일상 & 생각"},
-                            "value": "일상 & 생각",
-                        },
-                        {
-                            "text": {
-                                "type": "plain_text",
-                                "text": "유데미 후기",
-                            },
-                            "value": "유데미 후기",
-                        },
-                        {
-                            "text": {
-                                "type": "plain_text",
-                                "text": "코드트리 × 글또 블로그 챌린지",
-                            },
-                            "value": "코드트리 × 글또 블로그 챌린지",
-                        },
-                        {
-                            "text": {"type": "plain_text", "text": "기타"},
-                            "value": "기타",
-                        },
-                    ],
+                    "options": static_select.options(
+                        [category.value for category in ContentCategoryEnum] + ["전체"]
+                    ),
                 },
             },
         ],
