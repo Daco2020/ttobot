@@ -14,6 +14,11 @@ from app.repositories import UserRepository
 from app.utils import tz_now
 
 
+def login(response: Response, payload: dict[str, Any]):
+    token = encode_token(payload=payload, expires_delta=timedelta(days=1))
+    set_cookie(response=response, key="access_token", value=token)
+
+
 def set_cookie(
     response: Response,
     key: str,
@@ -46,11 +51,6 @@ def encode_token(
         settings.SECRET_KEY,
         algorithm=algorithm,
     )
-
-
-def login(response: Response, payload: dict[str, Any]):
-    token = encode_token(payload=payload, expires_delta=timedelta(days=1))
-    set_cookie(response=response, key="access_token", value=token)
 
 
 def decode_token(
