@@ -8,7 +8,6 @@ from app.auth import current_user
 from app.config import settings
 from fastapi.responses import RedirectResponse
 from slack_bolt.oauth.oauth_settings import OAuthSettings
-from slack_sdk.oauth.installation_store import FileInstallationStore
 from slack_sdk.oauth.state_store import FileOAuthStateStore
 from slack_bolt.oauth.oauth_flow import OAuthFlow
 
@@ -18,7 +17,6 @@ oauth_settings = OAuthSettings(
     client_id=settings.SLACK_CLIENT_ID,
     client_secret=settings.SLACK_CLIENT_SECRET,
     scopes=["channels:read", "groups:read", "chat:write"],
-    installation_store=FileInstallationStore(base_dir="./data/installations"),
     state_store=FileOAuthStateStore(expiration_seconds=600, base_dir="./data/states"),
     user_scopes=["identity.basic"],
     redirect_uri=f"{settings.DOMAIN}/slack/callback",
