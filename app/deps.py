@@ -1,7 +1,11 @@
-from app.repositories import MessageRepository
+from app.repositories import MessageRepository, UserRepository
 from app.services import AppService
 
 
-def get_app_service() -> AppService:
+def app_service() -> AppService:
     message_repo = MessageRepository()
     return AppService(message_repo)
+
+
+def user_repo() -> UserRepository:
+    return UserRepository()
