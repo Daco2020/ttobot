@@ -1,3 +1,4 @@
+from typing import cast
 from slack_bolt import BoltRequest
 from app import models
 from fastapi import APIRouter, Depends, Request, HTTPException
@@ -27,8 +28,8 @@ oauth_flow = OAuthFlow(settings=oauth_settings)
 
 
 @router.get("/slack/login")
-async def slack_login(request: BoltRequest):
-    state = oauth_flow.issue_new_state(request=request)
+async def slack_login(request: Request):
+    state = oauth_flow.issue_new_state(request=cast(BoltRequest, request))
     url = oauth_settings.authorize_url_generator.generate(state=state)
     return RedirectResponse(url=url)
 
