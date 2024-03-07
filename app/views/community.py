@@ -3,10 +3,9 @@ import polars as pl
 from starlette import status
 from fastapi import APIRouter, Depends, Query
 from app.constants import ArchiveMessageSortEnum, ContentCategoryEnum, ContentSortEnum
-from app.deps import get_app_service
+from app.deps import app_service
 from app import dto
 from app.services import AppService
-
 from app.utils import translate_keywords
 
 
@@ -98,7 +97,7 @@ async def fetch_trigger_messages(
     user_id: str | None = Query(default=None, description="유저의 슬랙 아이디"),
     search_word: str | None = Query(default=None, description="트리거 메시지 중 검색할 단어"),
     descending: bool = Query(default=True, description="내림차순 정렬 여부"),
-    service: AppService = Depends(get_app_service),
+    service: AppService = Depends(app_service),
 ) -> dto.TriggerMessageResponse:
     """조건에 맞는 트리거 메시지를 가져옵니다."""
     count, data = service.fetch_trigger_messages(
@@ -128,7 +127,7 @@ async def fetch_archive_messages(
     ),
     descending: bool = Query(default=True, description="내림차순 정렬 여부"),
     exclude_emoji: bool = Query(default=True, description="이모지 제외 여부"),
-    service: AppService = Depends(get_app_service),
+    service: AppService = Depends(app_service),
 ) -> dto.ArchiveMessageResponse:
     """조건에 맞는 아카이브 메시지를 가져옵니다."""
     count, data = service.fetch_archive_messages(
