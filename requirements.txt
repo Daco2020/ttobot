@@ -59,6 +59,7 @@ pycparser==2.21
 pydantic==2.6.1
 pydantic-settings==2.1.0
 pydantic_core==2.16.2
+PyJWT==2.8.0
 pyparsing==3.0.9
 pytest==7.4.0
 pytest-sugar==0.9.7
