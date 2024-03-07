@@ -19,7 +19,7 @@ oauth_settings = OAuthSettings(
     scopes=["channels:read", "groups:read", "chat:write"],
     state_store=FileOAuthStateStore(expiration_seconds=600, base_dir="./data/states"),
     user_scopes=["identity.basic"],
-    redirect_uri=f"{settings.DOMAIN}/slack/callback",
+    redirect_uri=f"{settings.DOMAIN}/v1/slack/callback",
 )
 
 oauth_flow = OAuthFlow(settings=oauth_settings)
