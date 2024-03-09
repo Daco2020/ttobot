@@ -10,9 +10,7 @@ async def handle_app_mention(ack, body, say, client) -> None:
     await ack()
 
 
-async def get_deposit(
-    ack, body, say, client, user_id: str, service: SlackService
-) -> None:
+async def get_deposit(ack, body, say, client, user_id: str, service: SlackService) -> None:
     """예치금을 조회합니다."""
     await ack()
 
@@ -33,7 +31,10 @@ async def get_deposit(
         trigger_id=body["trigger_id"],
         view={
             "type": "modal",
-            "title": {"type": "plain_text", "text": f"{service.user.name}님의 예치금 현황"},
+            "title": {
+                "type": "plain_text",
+                "text": f"{service.user.name}님의 예치금 현황",
+            },
             "blocks": [
                 {
                     "type": "section",
@@ -47,9 +48,7 @@ async def get_deposit(
     )
 
 
-async def history_command(
-    ack, body, say, client, user_id: str, service: SlackService
-) -> None:
+async def history_command(ack, body, say, client, user_id: str, service: SlackService) -> None:
     """제출 내역을 조회합니다."""
     await ack()
 
@@ -60,7 +59,10 @@ async def history_command(
         trigger_id=body["trigger_id"],
         view={
             "type": "modal",
-            "title": {"type": "plain_text", "text": f"{service.user.name}님의 제출 내역"},
+            "title": {
+                "type": "plain_text",
+                "text": f"{service.user.name}님의 제출 내역",
+            },
             "blocks": [
                 {
                     "type": "section",
@@ -78,9 +80,7 @@ async def history_command(
     )
 
 
-async def admin_command(
-    ack, body, say, client, user_id: str, service: SlackService
-) -> None:
+async def admin_command(ack, body, say, client, user_id: str, service: SlackService) -> None:
     """관리자 메뉴를 조회합니다."""
     await ack()
     # TODO: 추후 관리자 메뉴 추가
@@ -88,18 +88,14 @@ async def admin_command(
     if user_id not in settings.ADMIN_IDS:
         raise PermissionError("`/관리자` 명령어는 관리자만 호출할 수 있어요. 🤭")
     try:
-        await client.chat_postMessage(
-            channel=settings.ADMIN_CHANNEL, text="store pull 시작"
-        )
+        await client.chat_postMessage(channel=settings.ADMIN_CHANNEL, text="store pull 시작")
         sheet_client = SpreadSheetClient()
         store = Store(client=sheet_client)
         store.upload("logs")
         store.backup("contents")
         store.initialize_logs()
         store.pull()
-        await client.chat_postMessage(
-            channel=settings.ADMIN_CHANNEL, text="store pull 완료"
-        )
+        await client.chat_postMessage(channel=settings.ADMIN_CHANNEL, text="store pull 완료")
     except Exception as e:
         await client.chat_postMessage(channel=settings.ADMIN_CHANNEL, text=str(e))
 

@@ -1,4 +1,3 @@
-from typing import Any
 from zoneinfo import ZoneInfo
 from app.client import SpreadSheetClient
 from fastapi import FastAPI, Request
@@ -7,16 +6,32 @@ from apscheduler.triggers.interval import IntervalTrigger
 from app.config import settings
 from app.store import Store
 from app.slack import event_handler
+from app.views.community import router as community_router
+from app.views.login import router as login_router
 from slack_bolt.adapter.socket_mode.aiohttp import AsyncSocketModeHandler
+from fastapi.middleware.cors import CORSMiddleware
+
 
 app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 slack_handler = AsyncSocketModeHandler(event_handler.app, settings.APP_TOKEN)
 
 
 @app.get("/")
-async def health(request: Request) -> dict[str, Any]:
-    return {"health": True}
+async def health(request: Request) -> bool:
+    return True
 
+
+app.include_router(community_router, prefix="/v1")
+app.include_router(login_router, prefix="/v1")
 
 if settings.ENV == "prod":
 

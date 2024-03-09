@@ -1,13 +1,13 @@
 import re
 from typing import Any
-from app.constants import URL_REGEX
+from app.constants import URL_REGEX, ContentCategoryEnum
 
 from app.logging import logger
 from app.constants import MAX_PASS_COUNT
 from app.slack.exception import BotException
 from app.slack.repositories import SlackRepository
 from app import store
-
+from app.slack.components import static_select
 
 import requests
 from bs4 import BeautifulSoup
@@ -25,7 +25,10 @@ class SlackService:
         return self._user
 
     def fetch_contents(
-        self, keyword: str | None = None, name: str | None = None, category: str = "전체"
+        self,
+        keyword: str | None = None,
+        name: str | None = None,
+        category: str = "전체",
     ) -> list[models.Content]:
         """콘텐츠를 조건에 맞춰 가져옵니다."""
         if keyword:
@@ -101,7 +104,7 @@ class SlackService:
             if content.type == "submit":
                 message += f"\n{sumit_head}  |  "
                 message += f"{content.dt}  |  "
-                message += f"*<{content.content_url}|{re.sub('<|>', '', content.title)}>*"  # noqa E501
+                message += f"*<{content.content_url}|{re.sub('<|>', '', content.title)}>*"
             else:
                 message += f"\n{pass_head}  |  "
                 message += f"{content.dt}  |  "
@@ -116,7 +119,9 @@ class SlackService:
             if self._user.is_submit:
                 guide_message += f"\n({self._user.name} 님은 이미 {round}회차 글을 제출했어요)"
             else:
-                guide_message += f"\n({self._user.name} 님은 아직 {round}회차 글을 제출하지 않았어요)"
+                guide_message += (
+                    f"\n({self._user.name} 님은 아직 {round}회차 글을 제출하지 않았어요)"
+                )
         except BotException:
             guide_message = ""
         await client.views_open(
@@ -143,12 +148,20 @@ class SlackService:
                             "type": "url_text_input",
                             "action_id": "url_text_input-action",
                         },
-                        "label": {"type": "plain_text", "text": "글 링크", "emoji": True},
+                        "label": {
+                            "type": "plain_text",
+                            "text": "글 링크",
+                            "emoji": True,
+                        },
                     },
                     {
                         "type": "input",
                         "block_id": "category",
-                        "label": {"type": "plain_text", "text": "카테고리", "emoji": True},
+                        "label": {
+                            "type": "plain_text",
+                            "text": "카테고리",
+                            "emoji": True,
+                        },
                         "element": {
                             "type": "static_select",
                             "placeholder": {
@@ -156,71 +169,20 @@ class SlackService:
                                 "text": "글의 카테고리를 선택해주세요.",
                                 "emoji": True,
                             },
-                            "options": [
-                                {
-                                    "text": {
-                                        "type": "plain_text",
-                                        "text": "유데미 후기",
-                                        "emoji": True,
-                                    },
-                                    "value": "유데미 후기",
-                                },
-                                {
-                                    "text": {
-                                        "type": "plain_text",
-                                        "text": "프로젝트",
-                                        "emoji": True,
-                                    },
-                                    "value": "프로젝트",
-                                },
-                                {
-                                    "text": {
-                                        "type": "plain_text",
-                                        "text": "기술 & 언어",
-                                        "emoji": True,
-                                    },
-                                    "value": "기술 & 언어",
-                                },
-                                {
-                                    "text": {
-                                        "type": "plain_text",
-                                        "text": "조직 & 문화",
-                                        "emoji": True,
-                                    },
-                                    "value": "조직 & 문화",
-                                },
-                                {
-                                    "text": {
-                                        "type": "plain_text",
-                                        "text": "취준 & 이직",
-                                        "emoji": True,
-                                    },
-                                    "value": "취준 & 이직",
-                                },
-                                {
-                                    "text": {
-                                        "type": "plain_text",
-                                        "text": "일상 & 생각",
-                                        "emoji": True,
-                                    },
-                                    "value": "일상 & 생각",
-                                },
-                                {
-                                    "text": {
-                                        "type": "plain_text",
-                                        "text": "기타",
-                                        "emoji": True,
-                                    },
-                                    "value": "기타",
-                                },
-                            ],
+                            "options": static_select.options(
+                                [category.value for category in ContentCategoryEnum]
+                            ),
                             "action_id": "static_select-category",
                         },
                     },
                     {
                         "type": "input",
                         "block_id": "curation",
-                        "label": {"type": "plain_text", "text": "큐레이션", "emoji": True},
+                        "label": {
+                            "type": "plain_text",
+                            "text": "큐레이션",
+                            "emoji": True,
+                        },
                         "element": {
                             "type": "static_select",
                             "placeholder": {
@@ -289,7 +251,7 @@ class SlackService:
                     },
                     {
                         "type": "input",
-                        "block_id": "notion_title",
+                        "block_id": "manual_title_input",
                         "label": {
                             "type": "plain_text",
                             "text": "글 제목(직접 입력)",
@@ -300,7 +262,7 @@ class SlackService:
                             "action_id": "title_input",
                             "placeholder": {
                                 "type": "plain_text",
-                                "text": "노션으로 작성한 글은 `글 제목`이 필수입니다.",
+                                "text": "노션은 `글 제목`이 필수입니다. `공개 여부`도 꼭 확인해주세요.",
                             },
                             "multiline": False,
                         },
@@ -379,7 +341,10 @@ class SlackService:
                     {
                         "type": "section",
                         "block_id": "description_section",
-                        "text": {"type": "mrkdwn", "text": "원하는 조건의 글을 검색할 수 있어요."},
+                        "text": {
+                            "type": "mrkdwn",
+                            "text": "원하는 조건의 글을 검색할 수 있어요.",
+                        },
                     },
                     {
                         "type": "input",
@@ -422,49 +387,25 @@ class SlackService:
                     {
                         "type": "input",
                         "block_id": "category_search",
-                        "label": {"type": "plain_text", "text": "카테고리", "emoji": True},
+                        "label": {
+                            "type": "plain_text",
+                            "text": "카테고리",
+                            "emoji": True,
+                        },
                         "element": {
                             "type": "static_select",
                             "action_id": "chosen_category",
-                            "placeholder": {"type": "plain_text", "text": "카테고리 선택"},
+                            "placeholder": {
+                                "type": "plain_text",
+                                "text": "카테고리 선택",
+                            },
                             "initial_option": {
                                 "text": {"type": "plain_text", "text": "전체"},
                                 "value": "전체",
                             },
-                            "options": [
-                                {
-                                    "text": {"type": "plain_text", "text": "전체"},
-                                    "value": "전체",
-                                },
-                                {
-                                    "text": {"type": "plain_text", "text": "프로젝트"},
-                                    "value": "프로젝트",
-                                },
-                                {
-                                    "text": {"type": "plain_text", "text": "기술 & 언어"},
-                                    "value": "기술 & 언어",
-                                },
-                                {
-                                    "text": {"type": "plain_text", "text": "조직 & 문화"},
-                                    "value": "조직 & 문화",
-                                },
-                                {
-                                    "text": {"type": "plain_text", "text": "취준 & 이직"},
-                                    "value": "취준 & 이직",
-                                },
-                                {
-                                    "text": {"type": "plain_text", "text": "일상 & 생각"},
-                                    "value": "일상 & 생각",
-                                },
-                                {
-                                    "text": {"type": "plain_text", "text": "유데미 후기"},
-                                    "value": "유데미 후기",
-                                },
-                                {
-                                    "text": {"type": "plain_text", "text": "기타"},
-                                    "value": "기타",
-                                },
-                            ],
+                            "options": static_select.options(
+                                [category.value for category in ContentCategoryEnum] + ["전체"]
+                            ),
                         },
                     },
                 ],
@@ -472,9 +413,9 @@ class SlackService:
         )
 
     def _get_description(self, view) -> str:
-        description: str = view["state"]["values"]["description"][
-            "plain_text_input-action"
-        ]["value"]
+        description: str = view["state"]["values"]["description"]["plain_text_input-action"][
+            "value"
+        ]
         if not description:
             return ""
         return description
@@ -494,22 +435,20 @@ class SlackService:
         return category
 
     def _get_curation_flag(self, view) -> str:
-        curation_flag: str = view["state"]["values"]["curation"][
-            "static_select-curation"
-        ]["selected_option"]["value"]
+        curation_flag: str = view["state"]["values"]["curation"]["static_select-curation"][
+            "selected_option"
+        ]["value"]
         return curation_flag
 
     def _get_content_url(self, view) -> str:
         # 슬랙 앱이 구 버전일 경우 일부 block 이 사라져 키에러가 발생할 수 있음
-        content_url: str = view["state"]["values"]["content_url"][
-            "url_text_input-action"
-        ]["value"]
+        content_url: str = view["state"]["values"]["content_url"]["url_text_input-action"]["value"]
         return content_url
 
     def _get_title(self, view, url: str) -> str:
         # 노션은 title 태그가 없어서 직접 수동으로 받아 처리
-        if view["state"]["values"].get("notion_title"):
-            title: str = view["state"]["values"]["notion_title"]["title_input"]["value"]
+        if view["state"]["values"].get("manual_title_input"):
+            title: str = view["state"]["values"]["manual_title_input"]["title_input"]["value"]
             if title:
                 return title
         try:
@@ -529,9 +468,7 @@ class SlackService:
 
     def _tag_message(self, tag: str) -> str:
         tag_message = (
-            "\n태그 : " + " ".join([f"`{t.strip()}`" for t in tag.split(",")])
-            if tag
-            else ""
+            "\n태그 : " + " ".join([f"`{t.strip()}`" for t in tag.split(",")]) if tag else ""
         )
         return tag_message
 
@@ -543,9 +480,7 @@ class SlackService:
                 f"{self._user.name} 님의 코어 채널 <#{self._user.channel_id}> 에서 다시 시도해주세요."
             )
 
-    async def _validate_url(
-        self, view, ack, content_url: str, user: models.User
-    ) -> None:
+    async def _validate_url(self, view, ack, content_url: str, user: models.User) -> None:
         if not re.match(URL_REGEX, content_url):
             block_id = "content_url"
             message = "링크는 url 형식이어야 해요."
@@ -556,18 +491,24 @@ class SlackService:
             message = "이미 제출한 url 이에요."
             await ack(response_action="errors", errors={block_id: message})
             raise ValueError(message)
+        if "tistory.com/manage/posts" in content_url:
+            """티스토리 posts 페이지는 글 링크가 아니므로 제외합니다."""
+            block_id = "content_url"
+            message = "잠깐! 입력한 링크가 `글 링크`가 맞는지 확인해주세요."
+            await ack(response_action="errors", errors={block_id: message})
+            raise ValueError(message)
         # notion.so, notion.site, oopy.io 는 title 을 크롤링하지 못하므로 직접 입력을 받는다.
-        if "notion." in content_url or "oopy.io" in content_url:
+        if "notion." in content_url or "oopy.io" in content_url or ".site" in content_url:
             # 글 제목을 입력한 경우 통과.
             if (
                 view["state"]["values"]
-                .get("notion_title", {})
+                .get("manual_title_input", {})
                 .get("title_input", {})
                 .get("value")
             ):
                 return
             block_id = "content_url"
-            message = "노션 페이지는 하단의 `글 제목`을 필수로 입력해주세요."
+            message = "하단의 `글 제목`을 입력해주세요. `공개 여부`도 꼭 확인해주세요."
             await ack(response_action="errors", errors={block_id: message})
             raise ValueError(message)
 
@@ -579,13 +520,11 @@ class SlackService:
             raise ValueError(message)
         if user.is_prev_pass:
             block_id = "description"
-            message = "연속으로 pass 를 사용할 수 없어요."
+            message = "직전 회차에 pass 를 사용했기 때문에 연속으로 pass 를 사용할 수 없어요."
             await ack(response_action="errors", errors={block_id: message})
             raise ValueError(message)
 
-    def create_bookmark(
-        self, user_id: str, content_id: str, note: str = ""
-    ) -> models.Bookmark:
+    def create_bookmark(self, user_id: str, content_id: str, note: str = "") -> models.Bookmark:
         """북마크를 생성합니다."""
         bookmark = models.Bookmark(user_id=user_id, content_id=content_id, note=note)
         self._user_repo.create_bookmark(bookmark)
@@ -643,7 +582,7 @@ class SlackService:
         channel_id: str,
         trigger_word: str,
     ) -> models.TriggerMessage:
-        """트리거 메시지를 생성합니다."""
+        """키워드 메시지를 생성합니다."""
         trigger_message = models.TriggerMessage(
             user_id=user_id,
             channel_id=channel_id,
@@ -653,10 +592,8 @@ class SlackService:
         store.trigger_message_upload_queue.append(trigger_message.to_list_for_sheet())
         return trigger_message
 
-    def fetch_trigger_messages(
-        self, channel_id: str | None = None
-    ) -> list[models.TriggerMessage]:
-        """트리거 메시지를 가져옵니다."""
+    def fetch_trigger_messages(self, channel_id: str | None = None) -> list[models.TriggerMessage]:
+        """키워드 메시지를 가져옵니다."""
         triggers = self._user_repo.fetch_trigger_messages()
 
         if not channel_id:
@@ -664,10 +601,8 @@ class SlackService:
 
         return [tirgger for tirgger in triggers if tirgger.channel_id == channel_id]
 
-    def get_trigger_message(
-        self, channel_id: str, message: str
-    ) -> models.TriggerMessage | None:
-        """채널과 단어가 일치하는 트리거를 조회합니다."""
+    def get_trigger_message(self, channel_id: str, message: str) -> models.TriggerMessage | None:
+        """채널과 단어가 일치하는 키워드를 조회합니다."""
         triggers = self._user_repo.fetch_trigger_messages()
 
         for tirgger in triggers:
@@ -703,6 +638,7 @@ class SlackService:
     ) -> list[models.ArchiveMessage]:
         """아카이브 메시지를 가져옵니다."""
         return self._user_repo.fetch_archive_messages(channel_id, trigger_word, user_id)
+<<<<<<< HEAD
     
     # 리마인드 기능 추가 파트
     def create_remind_mesages(self, user_id: str) -> None:
@@ -711,3 +647,35 @@ class SlackService:
         message = f"글 제출 마감일이 벌써 내일..?"
         if self._user.check_remind:
             return message
+=======
+
+    def update_archive_message(
+        self,
+        ts: str,
+        channel_id: str,
+        message: str,
+        user_id: str,
+        trigger_word: str,
+        file_urls: list[str],
+    ) -> bool:
+        """아카이브 메시지를 수정 또는 생성합니다."""
+        if archive_message := self._user_repo.get_archive_message(ts):
+            self._user_repo.update_archive_message(ts, message)
+            store.archive_message_update_queue.append(archive_message.to_list_for_sheet())
+            is_created = False
+        else:
+            # 수정이 아닌, 기존 메시지에 키워드를 추가한 경우 새로 생성
+            archive_message = models.ArchiveMessage(
+                ts=ts,
+                channel_id=channel_id,
+                message=message,
+                user_id=user_id,
+                trigger_word=trigger_word,
+                file_urls=",".join(file_urls),
+            )
+            self._user_repo.create_archive_message(archive_message)
+            store.archive_message_upload_queue.append(archive_message.to_list_for_sheet())
+            is_created = True
+
+        return is_created
+>>>>>>> deed8355686ac80ca9ec680c9b7bce5dfb49244a

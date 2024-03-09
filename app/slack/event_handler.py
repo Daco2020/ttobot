@@ -14,6 +14,7 @@ from typing import Callable, cast
 from app.slack.contents import events as contents_events
 from app.slack.core import events as core_events
 from app.slack.community import events as community_events
+from app.slack.exception import BotException
 from app.slack.repositories import SlackRepository
 from app.slack.services import SlackService
 
@@ -77,13 +78,10 @@ async def inject_service_middleware(
         await next()
         return
 
-    # 사용자 정보가 없으면 안내 문구를 전송하고 관리자에게 알립니다.
-    await app.client.chat_postEphemeral(
-        channel=cast(str, channel_id),
-        user=cast(str, user_id),
-        text=f"🥲 아직 사용자 정보가 없어요...\
-            \n👉🏼 <#{settings.SUPPORT_CHANNEL}> 채널로 문의해주시면 도와드릴게요!",
-    )
+    if user_id is None:
+        # TODO: 추후 에러 코드 정의할 것
+        raise BotException("사용자 아이디가 없습니다.")
+
     message = (
         "🥲 사용자 정보를 추가해주세요. 👉🏼 "
         f"event: `{event}` "
@@ -114,9 +112,14 @@ async def handle_error(error, body):
     trace = traceback.format_exc()
     logger.debug(dict(body=body, error=trace))
 
-    # 단순 값 에러는 무시합니다.
+    # 단순 값 에러는 사용자에게 알리지 않습니다.
     if isinstance(error, ValueError):
         raise error
+
+    # 일부 봇은 user_id 를 가지지 않기 때문에 무시합니다.
+    if isinstance(error, BotException):
+        if error.message == "사용자 아이디가 없습니다.":
+            return
 
     # 사용자에게 에러를 알립니다.
     if re.search(r"[\u3131-\uD79D]", str(error)):
@@ -124,22 +127,24 @@ async def handle_error(error, body):
         message = str(error)
     else:
         message = "예기치 못한 오류가 발생했어요."
-    await app.client.views_open(
-        trigger_id=body["trigger_id"],
-        view={
-            "type": "modal",
-            "title": {"type": "plain_text", "text": "잠깐!"},
-            "blocks": [
-                {
-                    "type": "section",
-                    "text": {
-                        "type": "mrkdwn",
-                        "text": f"🥲 {message}\n\n👉🏼 문제가 해결되지 않는다면 <#{settings.SUPPORT_CHANNEL}> 채널로 문의해주세요! ",  # noqa E501
-                    },
-                }
-            ],
-        },
-    )
+
+    if trigger_id := body.get("trigger_id"):
+        await app.client.views_open(
+            trigger_id=trigger_id,
+            view={
+                "type": "modal",
+                "title": {"type": "plain_text", "text": "잠깐!"},
+                "blocks": [
+                    {
+                        "type": "section",
+                        "text": {
+                            "type": "mrkdwn",
+                            "text": f"🥲 {message}\n\n👉🏼 문제가 해결되지 않는다면 <#{settings.SUPPORT_CHANNEL}> 채널로 문의해주세요! ",  # noqa E501
+                        },
+                    }
+                ],
+            },
+        )
 
     # 관리자에게 에러를 알립니다.
     await app.client.chat_postMessage(
@@ -148,7 +153,7 @@ async def handle_error(error, body):
 
 
 # community
-app.command("/메시지트리거등록")(community_events.trigger_command)
+app.command("/저장키워드등록")(community_events.trigger_command)
 app.view("trigger_view")(community_events.trigger_view)
 
 
@@ -170,7 +175,6 @@ async def handle_message(
             await client.chat_postMessage(channel=settings.ADMIN_CHANNEL, text=message)
 
     await community_events.handle_trigger_message(client, event, service)
-    await ack()
 
 
 @app.event("member_joined_channel")
@@ -193,9 +197,12 @@ app.command("/검색")(contents_events.search_command)
 app.view("submit_search")(contents_events.submit_search)
 app.view("back_to_search_view")(contents_events.back_to_search_view)
 app.command("/북마크")(contents_events.bookmark_command)
-app.view("bookmark_search_view")(contents_events.bookmark_search_view)
 app.action("bookmark_overflow_action")(contents_events.open_overflow_action)
-app.view("bookmark_submit_search_view")(contents_events.bookmark_submit_search_view)
+app.action("next_bookmark_page_action")(contents_events.handle_bookmark_page)
+app.action("prev_bookmark_page_action")(contents_events.handle_bookmark_page)
+app.view("handle_bookmark_page_view")(contents_events.handle_bookmark_page)
+# app.view("bookmark_search_view")(contents_events.bookmark_search_view)
+# app.view("bookmark_submit_search_view")(contents_events.bookmark_submit_search_view)
 
 # core
 app.event("app_mention")(core_events.handle_app_mention)
@@ -220,14 +227,17 @@ event_descriptions = {
     "submit_search": "글 검색 완료",
     "back_to_search_view": "글 검색 다시 시작",
     "/북마크": "북마크 조회",
-    "bookmark_search_view": "북마크 검색 시작",
     "bookmark_overflow_action": "북마크 메뉴 선택",
-    "bookmark_submit_search_view": "북마크 검색 완료",
+    "next_bookmark_page_action": "다음 북마크 페이지",
+    "prev_bookmark_page_action": "이전 북마크 페이지",
+    "handle_bookmark_page_view": "북마크 페이지 이동",
+    # "bookmark_search_view": "북마크 검색 시작",
+    # "bookmark_submit_search_view": "북마크 검색 완료",
     "app_mention": "앱 멘션",
     "/예치금": "예치금 조회",
     "/제출내역": "제출내역 조회",
     "/관리자": "관리자 메뉴 조회",
     "/도움말": "도움말 조회",
-    "/메시지트리거등록": "메시지 트리거 등록 시작",
-    "/trigger_view": "메시지 트리거 등록 완료",
+    "/저장키워드등록": "저장할 키워드 등록 시작",
+    "/trigger_view": "저장할 키워드 등록 완료",
 }

@@ -1,4 +1,5 @@
 import datetime
+from enum import Enum
 from app.config import settings
 
 
@@ -57,3 +58,28 @@ HELP_TEXT = f"""
 > 이 외에 궁금한 사항이 있다면 <#{settings.SUPPORT_CHANNEL}> 채널로 문의해주세요! 🙌🏼
 > 또봇 코드가 궁금하다면 👉🏼 *<https://github.com/Daco2020/ttobot|또봇 깃허브>* 로 놀러오세요~ 🤗
 """
+
+
+CONTENTS_PER_PAGE = 20
+
+
+class ContentCategoryEnum(str, Enum):
+    UDEMY = "유데미 후기"
+    CODETREE = "코드트리 × 글또 블로그 챌린지"
+    PROJECT = "프로젝트"
+    TECH = "기술 & 언어"
+    CULTURE = "조직 & 문화"
+    JOB = "취준 & 이직"
+    DAILY = "일상 & 생각"
+    ETC = "기타"
+
+
+class ArchiveMessageSortEnum(str, Enum):
+    TS = "ts"  # timestamp 이며, 슬랙 메시지에서는 pk id 로 사용된다.
+    updated_at = "updated_at"
+
+
+class ContentSortEnum(str, Enum):
+    DT = "dt"
+    RELEVANCE = "relevance"
+    # LIKE = "like" # TODO: 추후 추가하기
