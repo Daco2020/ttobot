@@ -10,6 +10,7 @@ from app import store
 from app.slack.components import static_select
 
 import requests
+from requests.exceptions import MissingSchema
 from bs4 import BeautifulSoup
 
 from app import models
@@ -459,17 +460,22 @@ class SlackService:
             title: str = view["state"]["values"]["manual_title_input"]["title_input"]["value"]
             if title:
                 return title
-        response = requests.get(url)
-        if response.status_code == 404:
-            raise ValueError("비공개 글이거나, 링크를 찾을 수 없어요.")
         try:
+            response = requests.get(url)
+            if response.status_code == 404:
+                raise ValueError("비공개 글이거나, 링크를 찾을 수 없어요.")
             soup = BeautifulSoup(response.text, "html.parser")
             title = soup.find("title").text  # type: ignore
             result = title.strip()
             return result
+        except ValueError as e:
+            if isinstance(e, MissingSchema):
+                # MissingSchema 는 ValueError 를 상속하기 때문에 추가로 핸들링합니다.
+                raise ValueError("`글 제목`을 찾을 수 없습니다. 모달 하단에 직접 입력해주세요.")
+            raise e
         except Exception as e:
             logger.debug(str(e))
-            raise ValueError("`글 제목`을 찾을 수 없습니다. 모달 하단에 직접 입력해주세요.")
+            raise ValueError("알 수 없는 에러가 발생했어요. 다시 시도해주세요.")
 
     def _description_message(self, description: str) -> str:
         description_message = f"\n\n💬 '{description}'\n" if description else ""
