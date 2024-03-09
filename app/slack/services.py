@@ -66,9 +66,12 @@ class SlackService:
             tags=self._get_tags(view),
             curation_flag=self._get_curation_flag(view),
         )
+        return content
+
+    async def update_user_content(self, content: models.Content) -> None:
+        """유저의 콘텐츠를 업데이트합니다."""
         self._user.contents.append(content)
         self._user_repo.update(self._user)
-        return content
 
     async def create_pass_content(self, ack, body, view) -> models.Content:
         """패스 콘텐츠를 생성합니다."""
@@ -79,8 +82,6 @@ class SlackService:
             description=self._get_description(view),
             type="pass",
         )
-        self._user.contents.append(content)
-        self._user_repo.update(self._user)
         return content
 
     def get_chat_message(self, content: models.Content) -> str:

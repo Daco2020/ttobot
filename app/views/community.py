@@ -47,6 +47,7 @@ async def fetch_contents(
             "dt",
             "category",
             "tags",
+            "ts",
         ],
     )
     if category:

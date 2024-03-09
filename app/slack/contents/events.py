@@ -26,21 +26,18 @@ async def submit_command(ack, body, say, client, user_id: str, service: SlackSer
 async def submit_view(ack, body, client, view, say, user_id: str, service: SlackService) -> None:
     """글 제출 완료"""
     await ack()
-
     channel_id = view["private_metadata"]
 
     try:
         content = await service.create_submit_content(ack, body, view)
-
-        text = service.get_chat_message(content)
-        await client.chat_postMessage(
+        message = await client.chat_postMessage(
             channel=channel_id,
             blocks=[
                 {
                     "type": "section",
                     "text": {
                         "type": "mrkdwn",
-                        "text": text,
+                        "text": service.get_chat_message(content),
                     },
                 },
                 {
@@ -68,6 +65,8 @@ async def submit_view(ack, body, client, view, say, user_id: str, service: Slack
                 },
             ],
         )
+        content.ts = message.get("ts", "")
+        await service.update_user_content(content)
     except ValueError as e:
         raise e
     except Exception as e:
@@ -344,11 +343,12 @@ async def pass_view(ack, body, client, view, say, user_id: str, service: SlackSe
 
     try:
         content = await service.create_pass_content(ack, body, view)
-
-        await client.chat_postMessage(
+        message = await client.chat_postMessage(
             channel=channel_id,
             text=service.get_chat_message(content),
         )
+        content.ts = message.get("ts", "")
+        await service.update_user_content(content)
     except Exception as e:
         message = (
             f"{service.user.name}({service.user.channel_name}) 님의 패스가 실패했어요. {str(e)}"
