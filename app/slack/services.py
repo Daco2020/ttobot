@@ -475,7 +475,7 @@ class SlackService:
             raise e
         except Exception as e:
             logger.debug(str(e))
-            raise ValueError("알 수 없는 에러가 발생했어요. 다시 시도해주세요.")
+            raise ValueError("링크에 문제가 발생했어요. 링크 확인 후 다시 시도해주세요.")
 
     def _description_message(self, description: str) -> str:
         description_message = f"\n\n💬 '{description}'\n" if description else ""
