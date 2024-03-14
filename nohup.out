@@ -1,0 +1,118 @@
+INFO:     Started server process [5307]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:3389 (Press CTRL+C to quit)
+INFO:     127.0.0.1:34246 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:34246 - "GET /favicon.ico HTTP/1.1" 404 Not Found
+2024-01-22 07:35:24.854 | INFO     | app.logging:log_event:56 - {"actor":"U06EV0G3QUA","event":"submit_view","type":"view_submission","description":"글 제출 완료","timestamp":"2024-01-22 16:35:24","body":{"type":"view_submission","team":{"id":"T02H44D7Q7Q","domain":"w1633937462-oer292127"},"user":{"id":"U06EV0G3QUA","username":"ycseong07","name":"ycseong07","team_id":"T02H44D7Q7Q"},"api_app_id":"A04FR5433K9","token":"LIPWQffkqMZONS4FThH1LMZD","trigger_id":"6492910586135.2582149262262.c8ec535160aec32caae3c85b09b08f04","view":{"id":"V06FL70VC4Q","team_id":"T02H44D7Q7Q","type":"modal","blocks":[{"type":"section","block_id":"required_section","text":{"type":"mrkdwn","text":"\n\n현재 회차는 5회차, 마감일은 2024-02-04 이에요.\n(성연찬 님은 아직 5회차 글을 제출하지 않았어요)","verbatim":false}},{"type":"input","block_id":"content_url","label":{"type":"plain_text","text":"글 링크","emoji":true},"optional":false,"dispatch_action":false,"element":{"type":"url_text_input","action_id":"url_text_input-action"}},{"type":"input","block_id":"category","label":{"type":"plain_text","text":"카테고리","emoji":true},"optional":false,"dispatch_action":false,"element":{"type":"static_select","action_id":"static_select-category","placeholder":{"type":"plain_text","text":"글의 카테고리를 선택해주세요.","emoji":true},"options":[{"text":{"type":"plain_text","text":"유데미 후기","emoji":true},"value":"유데미 후기"},{"text":{"type":"plain_text","text":"프로젝트","emoji":true},"value":"프로젝트"},{"text":{"type":"plain_text","text":"기술 & 언어","emoji":true},"value":"기술 & 언어"},{"text":{"type":"plain_text","text":"조직 & 문화","emoji":true},"value":"조직 & 문화"},{"text":{"type":"plain_text","text":"취준 & 이직","emoji":true},"value":"취준 & 이직"},{"text":{"type":"plain_text","text":"일상 & 생각","emoji":true},"value":"일상 & 생각"},{"text":{"type":"plain_text","text":"기타","emoji":true},"value":"기타"}]}},{"type":"input","block_id":"curation","label":{"type":"plain_text","text":"큐레이션","emoji":true},"optional":false,"dispatch_action":false,"element":{"type":"static_select","action_id":"static_select-curation","placeholder":{"type":"plain_text","text":"글을 큐레이션 대상에 포함할까요?","emoji":true},"options":[{"text":{"type":"plain_text","text":"큐레이션 대상이 되고 싶어요!","emoji":true},"value":"Y"},{"text":{"type":"plain_text","text":"아직은 부끄러워요~","emoji":true},"value":"N"}]}},{"type":"divider","block_id":"kbM/j"},{"type":"input","block_id":"tag","label":{"type":"plain_text","text":"태그","emoji":true},"optional":true,"dispatch_action":false,"element":{"type":"plain_text_input","action_id":"dreamy_input","placeholder":{"type":"plain_text","text":"태그1,태그2,태그3, ... ","emoji":true},"multiline":false,"dispatch_action_config":{"trigger_actions_on":["on_enter_pressed"]}}},{"type":"input","block_id":"description","label":{"type":"plain_text","text":"하고 싶은 말","emoji":true},"optional":true,"dispatch_action":false,"element":{"type":"plain_text_input","action_id":"plain_text_input-action","placeholder":{"type":"plain_text","text":"하고 싶은 말이 있다면 남겨주세요.","emoji":true},"multiline":true,"dispatch_action_config":{"trigger_actions_on":["on_enter_pressed"]}}},{"type":"input","block_id":"notion_title","label":{"type":"plain_text","text":"글 제목(직접 입력)","emoji":true},"optional":true,"dispatch_action":false,"element":{"type":"plain_text_input","action_id":"title_input","placeholder":{"type":"plain_text","text":"노션으로 작성한 글은 `글 제목`이 필수입니다.","emoji":true},"multiline":false,"dispatch_action_config":{"trigger_actions_on":["on_enter_pressed"]}}}],"private_metadata":"C04GXJTHHCZ","callback_id":"submit_view","state":{"values":{"content_url":{"url_text_input-action":{"type":"url_text_input","value":"a.to"}},"category":{"static_select-category":{"type":"static_select","selected_option":{"text":{"type":"plain_text","text":"유데미 후기","emoji":true},"value":"유데미 후기"}}},"curation":{"static_select-curation":{"type":"static_select","selected_option":{"text":{"type":"plain_text","text":"큐레이션 대상이 되고 싶어요!","emoji":true},"value":"Y"}}},"tag":{"dreamy_input":{"type":"plain_text_input","value":null}},"description":{"plain_text_input-action":{"type":"plain_text_input","value":"asd"}},"notion_title":{"title_input":{"type":"plain_text_input","value":null}}}},"hash":"1705908913.s4X99TPg","title":{"type":"plain_text","text":"또봇","emoji":true},"clear_on_close":false,"notify_on_close":false,"close":null,"submit":{"type":"plain_text","text":"제출","emoji":true},"previous_view_id":null,"root_view_id":"V06FL70VC4Q","app_id":"A04FR5433K9","external_id":"","app_installed_team_id":"T02H44D7Q7Q","bot_id":"B04GJBSU0SD"},"response_urls":[],"is_enterprise_install":false,"enterprise":null}}
+2024-01-22 07:35:24.899 | DEBUG    | app.slack.services:_get_title:524 - Invalid URL 'a.to': No scheme supplied. Perhaps you meant http://a.to?
+/home/vscode/.local/lib/python3.11/site-packages/slack_sdk/web/internal_utils.py:290: UserWarning: The top-level `text` argument is missing in the request payload for a chat.postMessage call - It's a best practice to always provide a `text` argument when posting a message. The `text` argument is used in places where content cannot be rendered such as: system push notifications, assistive technology such as screen readers, etc.
+  warnings.warn(missing_text_message, UserWarning)
+INFO:     Started server process [30207]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:3389 (Press CTRL+C to quit)
+INFO:     127.0.0.1:38688 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:38688 - "GET /favicon.ico HTTP/1.1" 404 Not Found
+Traceback (most recent call last):
+  File "/Users/ychan/git_repos/ttobot/.venv/bin/uvicorn", line 8, in <module>
+    sys.exit(main())
+  File "/Users/ychan/git_repos/ttobot/.venv/lib/python3.9/site-packages/click/core.py", line 1130, in __call__
+    return self.main(*args, **kwargs)
+  File "/Users/ychan/git_repos/ttobot/.venv/lib/python3.9/site-packages/click/core.py", line 1055, in main
+    rv = self.invoke(ctx)
+  File "/Users/ychan/git_repos/ttobot/.venv/lib/python3.9/site-packages/click/core.py", line 1404, in invoke
+    return ctx.invoke(self.callback, **ctx.params)
+  File "/Users/ychan/git_repos/ttobot/.venv/lib/python3.9/site-packages/click/core.py", line 760, in invoke
+    return __callback(*args, **kwargs)
+  File "/Users/ychan/git_repos/ttobot/.venv/lib/python3.9/site-packages/uvicorn/main.py", line 404, in main
+    run(
+  File "/Users/ychan/git_repos/ttobot/.venv/lib/python3.9/site-packages/uvicorn/main.py", line 569, in run
+    server.run()
+  File "/Users/ychan/git_repos/ttobot/.venv/lib/python3.9/site-packages/uvicorn/server.py", line 60, in run
+    return asyncio.run(self.serve(sockets=sockets))
+  File "/opt/homebrew/Cellar/python@3.9/3.9.18_1/Frameworks/Python.framework/Versions/3.9/lib/python3.9/asyncio/runners.py", line 44, in run
+    return loop.run_until_complete(main)
+  File "/opt/homebrew/Cellar/python@3.9/3.9.18_1/Frameworks/Python.framework/Versions/3.9/lib/python3.9/asyncio/base_events.py", line 647, in run_until_complete
+    return future.result()
+  File "/Users/ychan/git_repos/ttobot/.venv/lib/python3.9/site-packages/uvicorn/server.py", line 67, in serve
+    config.load()
+  File "/Users/ychan/git_repos/ttobot/.venv/lib/python3.9/site-packages/uvicorn/config.py", line 477, in load
+    self.loaded_app = import_from_string(self.app)
+  File "/Users/ychan/git_repos/ttobot/.venv/lib/python3.9/site-packages/uvicorn/importer.py", line 21, in import_from_string
+    module = importlib.import_module(module_str)
+  File "/opt/homebrew/Cellar/python@3.9/3.9.18_1/Frameworks/Python.framework/Versions/3.9/lib/python3.9/importlib/__init__.py", line 127, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+  File "<frozen importlib._bootstrap>", line 1030, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1007, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 986, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 680, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 850, in exec_module
+  File "<frozen importlib._bootstrap>", line 228, in _call_with_frames_removed
+  File "/Users/ychan/git_repos/ttobot/./app/__init__.py", line 2, in <module>
+    from app.client import SpreadSheetClient
+  File "/Users/ychan/git_repos/ttobot/./app/client.py", line 1, in <module>
+    from app.logging import logger
+  File "/Users/ychan/git_repos/ttobot/./app/logging.py", line 23, in <module>
+    def default(obj: Any) -> str | list[Any] | dict[str, Any]:
+TypeError: unsupported operand type(s) for |: 'type' and 'types.GenericAlias'
+nohup: uvicorn: No such file or directory
+INFO:     Started server process [53464]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:3389 (Press CTRL+C to quit)
+Failed to check the current session (s_309836109) or reconnect to the server (error: ClientConnectorError, message: Cannot connect to host www.slack.com:443 ssl:default [nodename nor servname provided, or not known])
+Failed to check the current session (s_309836109) or reconnect to the server (error: ClientConnectorError, message: Cannot connect to host www.slack.com:443 ssl:default [nodename nor servname provided, or not known])
+Failed to check the current session (s_309836109) or reconnect to the server (error: ClientConnectorError, message: Cannot connect to host www.slack.com:443 ssl:default [nodename nor servname provided, or not known])
+Failed to check the current session (s_309836109) or reconnect to the server (error: ClientConnectorError, message: Cannot connect to host www.slack.com:443 ssl:default [nodename nor servname provided, or not known])
+Failed to check the current session (s_309836109) or reconnect to the server (error: ClientConnectorError, message: Cannot connect to host www.slack.com:443 ssl:default [nodename nor servname provided, or not known])
+Failed to check the current session (s_309836109) or reconnect to the server (error: ClientConnectorError, message: Cannot connect to host www.slack.com:443 ssl:default [nodename nor servname provided, or not known])
+Failed to check the current session (s_309836109) or reconnect to the server (error: ClientConnectorError, message: Cannot connect to host www.slack.com:443 ssl:default [nodename nor servname provided, or not known])
+Failed to check the current session (s_368783469) or reconnect to the server (error: ClientConnectorError, message: Cannot connect to host www.slack.com:443 ssl:default [nodename nor servname provided, or not known])
+Failed to check the current session (s_368783469) or reconnect to the server (error: ClientConnectorError, message: Cannot connect to host www.slack.com:443 ssl:default [nodename nor servname provided, or not known])
+Failed to check the current session (s_368783469) or reconnect to the server (error: ClientConnectorError, message: Cannot connect to host www.slack.com:443 ssl:default [nodename nor servname provided, or not known])
+Failed to check the current session (s_368783469) or reconnect to the server (error: ClientConnectorError, message: Cannot connect to host www.slack.com:443 ssl:default [nodename nor servname provided, or not known])
+Failed to check the current session (s_368783469) or reconnect to the server (error: ClientConnectorError, message: Cannot connect to host www.slack.com:443 ssl:default [nodename nor servname provided, or not known])
+Failed to check the current session (s_368783469) or reconnect to the server (error: ClientConnectorError, message: Cannot connect to host www.slack.com:443 ssl:default [nodename nor servname provided, or not known])
+Failed to check the current session (s_368783469) or reconnect to the server (error: ClientConnectorError, message: Cannot connect to host wss-primary.slack.com:443 ssl:default [Network is unreachable])
+Failed to check the current session (s_368783469) or reconnect to the server (error: ClientConnectorError, message: Cannot connect to host www.slack.com:443 ssl:default [nodename nor servname provided, or not known])
+Failed to check the current session (s_368783469) or reconnect to the server (error: ClientConnectorError, message: Cannot connect to host www.slack.com:443 ssl:default [nodename nor servname provided, or not known])
+Failed to check the current session (s_368783469) or reconnect to the server (error: ClientConnectorError, message: Cannot connect to host www.slack.com:443 ssl:default [nodename nor servname provided, or not known])
+Failed to check the current session (s_368783469) or reconnect to the server (error: ClientConnectorError, message: Cannot connect to host www.slack.com:443 ssl:default [nodename nor servname provided, or not known])
+Failed to check the current session (s_368783469) or reconnect to the server (error: ClientConnectorError, message: Cannot connect to host www.slack.com:443 ssl:default [nodename nor servname provided, or not known])
+Failed to check the current session (s_368783469) or reconnect to the server (error: ClientConnectorError, message: Cannot connect to host www.slack.com:443 ssl:default [nodename nor servname provided, or not known])
+Failed to check the current session (s_368705533) or reconnect to the server (error: ClientConnectorError, message: Cannot connect to host www.slack.com:443 ssl:default [nodename nor servname provided, or not known])
+Failed to check the current session (s_368686625) or reconnect to the server (error: ClientConnectorError, message: Cannot connect to host www.slack.com:443 ssl:default [nodename nor servname provided, or not known])
+Failed to check the current session (s_368693677) or reconnect to the server (error: ClientConnectorError, message: Cannot connect to host www.slack.com:443 ssl:default [nodename nor servname provided, or not known])
+Failed to check the current session (s_368704881) or reconnect to the server (error: ClientConnectorError, message: Cannot connect to host www.slack.com:443 ssl:default [nodename nor servname provided, or not known])
+Failed to check the current session (s_368704881) or reconnect to the server (error: ClientConnectorError, message: Cannot connect to host www.slack.com:443 ssl:default [nodename nor servname provided, or not known])
+Failed to check the current session (s_368704881) or reconnect to the server (error: ClientConnectorError, message: Cannot connect to host www.slack.com:443 ssl:default [nodename nor servname provided, or not known])
+Failed to check the current session (s_368704881) or reconnect to the server (error: ClientConnectorError, message: Cannot connect to host www.slack.com:443 ssl:default [nodename nor servname provided, or not known])
+Failed to check the current session (s_368704881) or reconnect to the server (error: ClientConnectorError, message: Cannot connect to host www.slack.com:443 ssl:default [nodename nor servname provided, or not known])
+Failed to run message listeners: Cannot write to closing transport, session: s_368689809
+Traceback (most recent call last):
+  File "/Users/ychan/git_repos/ttobot/.venv/lib/python3.11/site-packages/slack_sdk/socket_mode/async_client.py", line 142, in run_message_listeners
+    await self.connect_to_new_endpoint(force=True)
+  File "/Users/ychan/git_repos/ttobot/.venv/lib/python3.11/site-packages/slack_sdk/socket_mode/async_client.py", line 80, in connect_to_new_endpoint
+    await self.connect()
+  File "/Users/ychan/git_repos/ttobot/.venv/lib/python3.11/site-packages/slack_sdk/socket_mode/aiohttp/__init__.py", line 367, in connect
+    await self.current_session.ping(f"sdk-ping-pong:{t}")
+  File "/Users/ychan/git_repos/ttobot/.venv/lib/python3.11/site-packages/aiohttp/client_ws.py", line 143, in ping
+    await self._writer.ping(message)
+  File "/Users/ychan/git_repos/ttobot/.venv/lib/python3.11/site-packages/aiohttp/http_websocket.py", line 676, in ping
+    await self._send_frame(message, WSMsgType.PING)
+  File "/Users/ychan/git_repos/ttobot/.venv/lib/python3.11/site-packages/aiohttp/http_websocket.py", line 646, in _send_frame
+    self._write(header + mask + message)
+  File "/Users/ychan/git_repos/ttobot/.venv/lib/python3.11/site-packages/aiohttp/http_websocket.py", line 663, in _write
+    raise ConnectionResetError("Cannot write to closing transport")
+ConnectionResetError: Cannot write to closing transport
+Task exception was never retrieved
+future: <Task finished name='Task-238' coro=<WebSocketWriter.ping() done, defined at /Users/ychan/git_repos/ttobot/.venv/lib/python3.11/site-packages/aiohttp/http_websocket.py:672> exception=ConnectionResetError('Cannot write to closing transport')>
+Traceback (most recent call last):
+  File "/Users/ychan/git_repos/ttobot/.venv/lib/python3.11/site-packages/aiohttp/http_websocket.py", line 676, in ping
+    await self._send_frame(message, WSMsgType.PING)
+  File "/Users/ychan/git_repos/ttobot/.venv/lib/python3.11/site-packages/aiohttp/http_websocket.py", line 646, in _send_frame
+    self._write(header + mask + message)
+  File "/Users/ychan/git_repos/ttobot/.venv/lib/python3.11/site-packages/aiohttp/http_websocket.py", line 663, in _write
+    raise ConnectionResetError("Cannot write to closing transport")
+ConnectionResetError: Cannot write to closing transport

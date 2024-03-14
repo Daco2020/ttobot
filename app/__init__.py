@@ -1,5 +1,6 @@
 from zoneinfo import ZoneInfo
 from app.client import SpreadSheetClient
+from app.slack.repositories import SlackRepository
 from fastapi import FastAPI, Request
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.interval import IntervalTrigger
@@ -10,9 +11,16 @@ from app.views.community import router as community_router
 from app.views.login import router as login_router
 from slack_bolt.adapter.socket_mode.aiohttp import AsyncSocketModeHandler
 from fastapi.middleware.cors import CORSMiddleware
+from app.slack.services import SlackRemindService, SlackService
+from app.constants import DUE_DATES
 
 
 app = FastAPI()
+
+from slack_bolt.async_app import AsyncApp
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+# slack_app = AsyncApp(token=settings.BOT_TOKEN)
+slack_app = event_handler.app
 
 app.add_middleware(
     CORSMiddleware,
@@ -48,7 +56,17 @@ if settings.ENV == "prod":
 
         trigger = IntervalTrigger(minutes=10, timezone=ZoneInfo("Asia/Seoul"))
         schedule.add_job(upload_logs, trigger=trigger, args=[store])
+
         schedule.start()
+        
+        # 리마인드 스케줄러(비동기)
+        remind_schedule = AsyncIOScheduler()
+
+        remind_trigger = IntervalTrigger(seconds=10, start_date=DUE_DATES[0], end_date=DUE_DATES[10], timezone="Asia/Seoul")
+        remind_schedule.add_job(remind_job, trigger=remind_trigger, args=[slack_app])
+        
+        remind_schedule.start()
+
 
         # 슬랙 소켓 모드 실행
         await slack_handler.connect_async()
@@ -59,6 +77,12 @@ if settings.ENV == "prod":
     def upload_logs(store: Store) -> None:
         store.upload("logs")
         store.initialize_logs()
+
+    async def remind_job(app: AsyncApp) -> None:
+        # 서비스 함수를 호출
+        user_repo = SlackRepository()
+        slack_service = SlackRemindService(user_repo=user_repo)
+        await slack_service.remind_job(app)
 
     @app.on_event("shutdown")
     async def shutdown():
