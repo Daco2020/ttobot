@@ -700,7 +700,7 @@ class SlackRemindService:
         remind_messages = self.generate_remind_messages(users) 
 
         for user_id, message in remind_messages:
-            await app.client.chat_postMessage(channel="U06EV0G3QUA", text=message) #수정
+            await app.client.chat_postMessage(channel=user_id, text=message)
 
     def generate_remind_messages(self, users: List[User]) -> List[Tuple[str, str]]:
         """매 제출일 9시에 글을 제출하지 않은 유저에게 보낼 메시지를 생성합니다."""
