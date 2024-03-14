@@ -18,11 +18,6 @@ class SlackRepository:
             user.contents = self._fetch_contents(user_id)
             return user
         return None
-    
-    # 리마인드 추가부분
-    def fetch_users(self) -> list[dict[str, Any]]:
-        """Public 메서드로 모든 유저를 가져옵니다."""
-        return self._fetch_users()
 
     def _get_user(self, user_id: str) -> models.User | None:
         """유저를 가져옵니다."""
