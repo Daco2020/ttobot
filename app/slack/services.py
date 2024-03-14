@@ -10,6 +10,7 @@ from app import store
 from app.slack.components import static_select
 
 import requests
+from requests.exceptions import MissingSchema
 from bs4 import BeautifulSoup
 
 from app import models
@@ -53,11 +54,18 @@ class SlackService:
     async def create_submit_content(self, ack, body, view) -> models.Content:
         """제출 콘텐츠를 생성합니다."""
         content_url = self._get_content_url(view)
-        await self._validate_url(view, ack, content_url, self._user)
+
+        try:
+            self._validate_url(view, content_url, self._user)
+            title = self._get_title(view, content_url)
+        except ValueError as e:
+            await ack(response_action="errors", errors={"content_url": str(e)})
+            raise e
+
         content = models.Content(
             user_id=body["user"]["id"],
             username=body["user"]["username"],
-            title=self._get_title(view, content_url),
+            title=title,
             content_url=content_url,
             category=self._get_category(view),
             description=self._get_description(view),
@@ -65,9 +73,12 @@ class SlackService:
             tags=self._get_tags(view),
             curation_flag=self._get_curation_flag(view),
         )
+        return content
+
+    async def update_user_content(self, content: models.Content) -> None:
+        """유저의 콘텐츠를 업데이트합니다."""
         self._user.contents.append(content)
         self._user_repo.update(self._user)
-        return content
 
     async def create_pass_content(self, ack, body, view) -> models.Content:
         """패스 콘텐츠를 생성합니다."""
@@ -78,8 +89,6 @@ class SlackService:
             description=self._get_description(view),
             type="pass",
         )
-        self._user.contents.append(content)
-        self._user_repo.update(self._user)
         return content
 
     def get_chat_message(self, content: models.Content) -> str:
@@ -262,7 +271,7 @@ class SlackService:
                             "action_id": "title_input",
                             "placeholder": {
                                 "type": "plain_text",
-                                "text": "노션은 `글 제목`이 필수입니다. `공개 여부`도 꼭 확인해주세요.",
+                                "text": "`글 제목`을 직접 입력합니다.",
                             },
                             "multiline": False,
                         },
@@ -446,21 +455,26 @@ class SlackService:
         return content_url
 
     def _get_title(self, view, url: str) -> str:
-        # 노션은 title 태그가 없어서 직접 수동으로 받아 처리
         if view["state"]["values"].get("manual_title_input"):
             title: str = view["state"]["values"]["manual_title_input"]["title_input"]["value"]
             if title:
                 return title
         try:
             response = requests.get(url)
+            if response.status_code == 404:
+                raise ValueError("비공개 글이거나, 링크를 찾을 수 없어요.")
             soup = BeautifulSoup(response.text, "html.parser")
-            # TODO: title 태그가 없는 경우 핸들링 필요
             title = soup.find("title").text  # type: ignore
             result = title.strip()
             return result
+        except ValueError as e:
+            if isinstance(e, MissingSchema):
+                # MissingSchema 는 ValueError 를 상속하기 때문에 추가로 핸들링합니다.
+                raise ValueError("`글 제목`을 찾을 수 없습니다. 모달 하단에 직접 입력해주세요.")
+            raise e
         except Exception as e:
             logger.debug(str(e))
-            return "title unknown."
+            raise ValueError("링크에 문제가 발생했어요. 링크 확인 후 다시 시도해주세요.")
 
     def _description_message(self, description: str) -> str:
         description_message = f"\n\n💬 '{description}'\n" if description else ""
@@ -480,25 +494,16 @@ class SlackService:
                 f"{self._user.name} 님의 코어 채널 <#{self._user.channel_id}> 에서 다시 시도해주세요."
             )
 
-    async def _validate_url(self, view, ack, content_url: str, user: models.User) -> None:
+    def _validate_url(self, view, content_url: str, user: models.User) -> None:
         if not re.match(URL_REGEX, content_url):
-            block_id = "content_url"
-            message = "링크는 url 형식이어야 해요."
-            await ack(response_action="errors", errors={block_id: message})
-            raise ValueError(message)
+            raise ValueError("링크는 url 형식이어야 해요.")
         if content_url in user.content_urls:
-            block_id = "content_url"
-            message = "이미 제출한 url 이에요."
-            await ack(response_action="errors", errors={block_id: message})
-            raise ValueError(message)
+            raise ValueError("이미 제출한 url 이에요.")
         if "tistory.com/manage/posts" in content_url:
-            """티스토리 posts 페이지는 글 링크가 아니므로 제외합니다."""
-            block_id = "content_url"
-            message = "잠깐! 입력한 링크가 `글 링크`가 맞는지 확인해주세요."
-            await ack(response_action="errors", errors={block_id: message})
-            raise ValueError(message)
-        # notion.so, notion.site, oopy.io 는 title 을 크롤링하지 못하므로 직접 입력을 받는다.
+            # 티스토리 posts 페이지는 글 링크가 아니므로 제외합니다.
+            raise ValueError("잠깐! 입력한 링크가 `글 링크`가 맞는지 확인해주세요.")
         if "notion." in content_url or "oopy.io" in content_url or ".site" in content_url:
+            # notion.so, notion.site, oopy.io 는 title 을 크롤링하지 못하므로 직접 입력을 받는다.
             # 글 제목을 입력한 경우 통과.
             if (
                 view["state"]["values"]
@@ -506,11 +511,8 @@ class SlackService:
                 .get("title_input", {})
                 .get("value")
             ):
-                return
-            block_id = "content_url"
-            message = "하단의 `글 제목`을 입력해주세요. `공개 여부`도 꼭 확인해주세요."
-            await ack(response_action="errors", errors={block_id: message})
-            raise ValueError(message)
+                return None
+            raise ValueError("노션은 `글 제목`을 모달 하단에 직접 입력해주세요.")
 
     async def _validate_pass(self, ack, user: models.User) -> None:
         if user.pass_count >= MAX_PASS_COUNT:
