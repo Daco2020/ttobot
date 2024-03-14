@@ -222,6 +222,3 @@ secret.json
 db
 store
 .python-version
-
-# Ignore the nohup.out file
-nohup.out

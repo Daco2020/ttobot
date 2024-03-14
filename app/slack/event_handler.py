@@ -88,7 +88,7 @@ async def inject_service_middleware(
         f"channel: <#{channel_id}> "
         f"user_id: {user_id}"
     )
-    await app.client.chat_postMessage(channel=settings.ADMIN_CHANNEL, text=message) # 리마인드 참고
+    await app.client.chat_postMessage(channel=settings.ADMIN_CHANNEL, text=message)
     logger.error(message)
 
 
