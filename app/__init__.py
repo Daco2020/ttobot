@@ -11,15 +11,14 @@ from app.views.community import router as community_router
 from app.views.login import router as login_router
 from slack_bolt.adapter.socket_mode.aiohttp import AsyncSocketModeHandler
 from fastapi.middleware.cors import CORSMiddleware
-from app.slack.services import SlackRemindService, SlackService
+
+from slack_bolt.async_app import AsyncApp
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from app.slack.services import SlackRemindService
 from app.constants import DUE_DATES
 
 
 app = FastAPI()
-
-from slack_bolt.async_app import AsyncApp
-from apscheduler.schedulers.asyncio import AsyncIOScheduler
-# slack_app = AsyncApp(token=settings.BOT_TOKEN)
 slack_app = event_handler.app
 
 app.add_middleware(
