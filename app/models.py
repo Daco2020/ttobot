@@ -62,7 +62,7 @@ class User(BaseModel):
         """유저의 모든 콘텐츠를 반환합니다."""
         return self.contents
 
-    def get_due_date(self) -> tuple[int, datetime.date]:
+    def get_due_date(self) -> tuple[int, datetime.date]: # 리마인드 참고
         """현재 회차와 마감일을 반환합니다."""
         now_date = tz_now().date()
         for i, due_date in enumerate(DUE_DATES):
@@ -72,7 +72,7 @@ class User(BaseModel):
         raise BotException("글또 활동 기간이 아니에요.")
 
     @property
-    def is_submit(self) -> bool:
+    def is_submit(self) -> bool: # 리마인드 참고
         """현재 회차의 제출여부를 반환합니다."""
         try:
             recent_content = self.recent_content
@@ -100,7 +100,6 @@ class User(BaseModel):
             self.channel_id,
             self.intro,
         ]
-
 
 class StoreModel(BaseModel):
     ...
