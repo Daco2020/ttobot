@@ -706,8 +706,8 @@ class SlackRemindService:
         """매 제출일 9시에 글을 제출하지 않은 유저에게 보낼 메시지를 생성합니다."""
         remind_messages = []
         remind_dt = [datetime.combine(due_date, time(9, 0)) for due_date in DUE_DATES]
-        # is_remind_time = any(tz_now() <= remind_time for remind_time in remind_dt)
-        is_remind_time = True
+        current_date = tz_now().date()
+        is_remind_time = any(current_date <= remind_time.date() for remind_time in remind_dt)  
 
         if is_remind_time:
             for user in users:

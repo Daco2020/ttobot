@@ -61,8 +61,10 @@ if settings.ENV == "prod":
         
         # 리마인드 스케줄러 (비동기)
         remind_schedule = AsyncIOScheduler()
-        remind_schedule.add_job(remind_job, "interval", seconds=10, args=[slack_app])
-        # schedule.add_job(remind_job, 'interval', weeks=2, start_date=DUE_DATES[0], end_date=DUE_DATES[10], timezone="Asia/Seoul")
+
+        remind_trigger = IntervalTrigger(seconds=10, start_date=DUE_DATES[0], end_date=DUE_DATES[9], timezone="Asia/Seoul")
+        remind_schedule.add_job(remind_job, trigger=remind_trigger, args=[slack_app])
+        
         remind_schedule.start()
 
 
@@ -81,14 +83,6 @@ if settings.ENV == "prod":
         user_repo = SlackRepository()
         slack_service = SlackRemindService(user_repo=user_repo)
         await slack_service.remind_job(app)
-        # await remind_job_async(app)
-    
-    # async def remind_job_async(app: AsyncApp) -> None:
-    #     try:
-    #         response = await app.client.chat_postMessage(channel="U06EV0G3QUA", text="asd")
-    #         print("Message sent successfully", response)
-    #     except Exception as e:
-    #         print("Error sending message:", e)
 
     @app.on_event("shutdown")
     async def shutdown():
