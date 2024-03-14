@@ -223,8 +223,5 @@ db
 store
 .python-version
 
-# Docker  Configuration
-.devcontainer/
-
 # Ignore the nohup.out file
 nohup.out

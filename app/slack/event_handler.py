@@ -90,19 +90,6 @@ async def inject_service_middleware(
     )
     await app.client.chat_postMessage(channel=settings.ADMIN_CHANNEL, text=message) # 리마인드 참고
     logger.error(message)
-    
-    # 리마인드 기능 추가 파트
-    remind_messages = SlackService.create_remind_mesages(
-        user_id = cast(str, user_id)
-        )
-
-    if event == "message" and user_id:
-        await app.client.chat_postEphemeral(
-            channel=channel_id,
-            user=user_id,
-            text=remind_messages,
-        )
-
 
 
 @app.error
