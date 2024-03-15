@@ -11,15 +11,15 @@ from app.views.community import router as community_router
 from app.views.login import router as login_router
 from slack_bolt.adapter.socket_mode.aiohttp import AsyncSocketModeHandler
 from fastapi.middleware.cors import CORSMiddleware
-
-from slack_bolt.async_app import AsyncApp
-from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from app.slack.services import SlackRemindService
 from app.constants import DUE_DATES
 
+from slack_bolt.async_app import AsyncApp
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from app.slack.event_handler import app as slack_app
+from datetime import datetime, time
 
 app = FastAPI()
-slack_app = event_handler.app
 
 app.add_middleware(
     CORSMiddleware,
@@ -61,7 +61,11 @@ if settings.ENV == "prod":
         # 리마인드 스케줄러(비동기)
         remind_schedule = AsyncIOScheduler()
 
-        remind_trigger = IntervalTrigger(seconds=10, start_date=DUE_DATES[0], end_date=DUE_DATES[10], timezone="Asia/Seoul")
+        first_remind_date = datetime.combine(DUE_DATES[0], time(9, 0), tzinfo=ZoneInfo("Asia/Seoul"))
+        last_remind_date = datetime.combine(DUE_DATES[10], time(9, 0), tzinfo=ZoneInfo("Asia/Seoul"))
+
+
+        remind_trigger = IntervalTrigger(weeks=2, start_date=first_remind_date, end_date=last_remind_date, timezone="Asia/Seoul")
         remind_schedule.add_job(remind_job, trigger=remind_trigger, args=[slack_app])
         
         remind_schedule.start()

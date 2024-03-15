@@ -1,5 +1,5 @@
 import re
-from typing import Any, List, Tuple, Callable, cast
+from typing import Any, List, Tuple
 from app.constants import URL_REGEX, ContentCategoryEnum
 from app.logging import logger
 from app.constants import MAX_PASS_COUNT
@@ -9,7 +9,6 @@ from app import store
 from app.slack.components import static_select
 
 from app.models import User
-from app.services import AppService
 from app.constants import DUE_DATES
 from datetime import datetime, time
 from app.utils import tz_now
@@ -21,9 +20,6 @@ from bs4 import BeautifulSoup
 from app import models
 
 from slack_bolt.async_app import AsyncApp
-from slack_bolt.request import BoltRequest
-from slack_bolt.response import BoltResponse
-from app.config import settings
 
 class SlackService:
     def __init__(self, user_repo: SlackRepository, user: models.User) -> None:
@@ -700,18 +696,18 @@ class SlackRemindService:
         remind_messages = self.generate_remind_messages(users) 
 
         for user_id, message in remind_messages:
-            await app.client.chat_postMessage(channel="U04L8HF2QH1", text=message) # 글또 9기 채널의 성연찬(U04L8HF2QH1)에게 DM 테스트 후 "channel = user_id" 로 변경
+            await app.client.chat_postMessage(channel=user_id, text=message)
 
     def generate_remind_messages(self, users: List[User]) -> List[Tuple[str, str]]:
         """매 제출일 9시에 글을 제출하지 않은 유저에게 보낼 메시지를 생성합니다."""
         remind_messages = []
         remind_dt = [datetime.combine(due_date, time(9, 0)) for due_date in DUE_DATES]
         current_date = tz_now().date()
-        is_remind_time = any(current_date <= remind_time.date() for remind_time in remind_dt)  
+        is_remind_time = any(current_date == remind_time.date() for remind_time in remind_dt) 
 
         if is_remind_time:
             for user in users:
-                if not user.is_prev_pass and not user.is_submit:
+                if  not user.is_submit:
                     text = self.create_message_for_user(user)
                     remind_messages.append((user.user_id, text))
 
@@ -719,8 +715,6 @@ class SlackRemindService:
 
     def create_message_for_user(self, user: User) -> str:
         """사용자별 커스텀 메시지를 생성합니다."""
-        return f"""
-        📢 {user.name}님, 아직 이번 회차 글을 제출하지 않으셨어요.
-        글또는 완벽한 글을 제출해야하는 커뮤니티가 아니라, 글쓰는 습관을 기르기 위해 존재하는 커뮤니티에요. 그러니 잘 써야한다는 부담은 내려두셔도 좋습니다.
-        오늘 시간을 내서 글을 완성해 제출해보는건 어떨까요? 내 아이디어가 누군가에게 도움이 되는 멋진 경험을 해볼 수 있는 기회이니까요!
-        """
+        return f"""📢 {user.name}님, 아직 이번 회차 글을 제출하지 않으셨어요.
+글또는 완벽한 글을 제출해야하는 커뮤니티가 아니라, 글쓰는 습관을 기르기 위해 존재하는 커뮤니티에요. 그러니 잘 써야한다는 부담은 내려두셔도 좋습니다.
+오늘 시간을 내서 글을 완성해 제출해보는건 어떨까요? 내 아이디어가 누군가에게 도움이 되는 멋진 경험을 해볼 수 있는 기회이니까요!"""
