@@ -10,7 +10,6 @@ from app.slack.components import static_select
 
 from app.models import User
 from app.constants import DUE_DATES
-from datetime import datetime, time
 from app.utils import tz_now
 
 import requests
@@ -20,6 +19,7 @@ from bs4 import BeautifulSoup
 from app import models
 
 from slack_bolt.async_app import AsyncApp
+
 
 class SlackService:
     def __init__(self, user_repo: SlackRepository, user: models.User) -> None:
@@ -646,7 +646,7 @@ class SlackService:
     ) -> list[models.ArchiveMessage]:
         """아카이브 메시지를 가져옵니다."""
         return self._user_repo.fetch_archive_messages(channel_id, trigger_word, user_id)
-    
+
     def update_archive_message(
         self,
         ts: str,
@@ -677,12 +677,11 @@ class SlackService:
 
         return is_created
 
-    
-
     def fetch_users(self) -> list[models.User]:
         users = [models.User(**user) for user in self._user_repo._fetch_users()]
         return users
-    
+
+
 class SlackRemindService:
 
     def __init__(self, user_repo: SlackRepository) -> None:
@@ -692,29 +691,28 @@ class SlackRemindService:
         """사용자에게 리마인드 메시지를 전송합니다."""
         user_dicts = self._user_repo.fetch_users()
         users = [models.User(**user_dict) for user_dict in user_dicts]
-        remind_messages = self.generate_remind_messages(users) 
+        remind_messages = self.generate_remind_messages(users)
 
         for user_id, message in remind_messages:
             await app.client.chat_postMessage(channel=user_id, text=message)
 
     def generate_remind_messages(self, users: List[User]) -> List[Tuple[str, str]]:
         """매 제출일 9시에 글을 제출하지 않은 유저에게 보낼 메시지를 생성합니다."""
-        remind_messages = []
-        remind_dt = [datetime.combine(due_date, time(9, 0)) for due_date in DUE_DATES]
         current_date = tz_now().date()
-        is_remind_time = any(current_date == remind_time.date() for remind_time in remind_dt) 
+        is_reminder_due = any(current_date == due_date for due_date in DUE_DATES)
 
-        if is_remind_time:
-            for user in users:
-                if  not user.is_submit:
-                    text = self.create_message_for_user(user)
-                    remind_messages.append((user.user_id, text))
+        if not is_reminder_due:
+            return []
 
-        return remind_messages
-    
+        return [
+            (user.user_id, self.create_message_for_user(user))
+            for user in users
+            if not user.is_submit
+        ]
+
     def create_message_for_user(self, user: User) -> str:
         """사용자별 리마인드 메시지를 생성합니다."""
         return f"""📢 {user.name}님, 오늘은 글 제출일입니다! 
-        글또는 완벽한 글을 제출해야하는 커뮤니티가 아니라, 글쓰는 습관을 기르기 위해 운영하는 커뮤니티입니다. 
-        완벽한 글을 써야한다는 부담은 내려두셔도 좋아요. 오늘 시간을 내서 글을 완성해 제출해보는건 어떨까요? 
-        내 생각이 누군가에게 도움이 되는 멋진 경험을 해볼 수 있는 기회이니까요!"""
+글또는 완벽한 글을 제출하는 커뮤니티가 아니라, 글쓰는 습관을 기르기 위해 운영하는 커뮤니티입니다. 
+완벽한 글을 써야한다는 부담은 내려놓아도 좋아요. 오늘 시간을 내서 글을 완성해 제출해보는건 어떨까요? 
+내 생각이 누군가에게 도움이 되는 멋진 경험을 해볼 수 있는 기회이니까요!"""
