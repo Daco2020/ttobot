@@ -676,14 +676,13 @@ class SlackService:
             is_created = True
 
         return is_created
+
     
 
     def fetch_users(self) -> list[models.User]:
         users = [models.User(**user) for user in self._user_repo._fetch_users()]
         return users
     
-
-# 리마인드 추가부분
 class SlackRemindService:
 
     def __init__(self, user_repo: SlackRepository) -> None:
@@ -712,9 +711,10 @@ class SlackRemindService:
                     remind_messages.append((user.user_id, text))
 
         return remind_messages
-
+    
     def create_message_for_user(self, user: User) -> str:
-        """사용자별 커스텀 메시지를 생성합니다."""
-        return f"""📢 {user.name}님, 아직 이번 회차 글을 제출하지 않으셨어요.
-글또는 완벽한 글을 제출해야하는 커뮤니티가 아니라, 글쓰는 습관을 기르기 위해 존재하는 커뮤니티에요. 그러니 잘 써야한다는 부담은 내려두셔도 좋습니다.
-오늘 시간을 내서 글을 완성해 제출해보는건 어떨까요? 내 아이디어가 누군가에게 도움이 되는 멋진 경험을 해볼 수 있는 기회이니까요!"""
+        """사용자별 리마인드 메시지를 생성합니다."""
+        return f"""📢 {user.name}님, 오늘은 글 제출일입니다! 
+        글또는 완벽한 글을 제출해야하는 커뮤니티가 아니라, 글쓰는 습관을 기르기 위해 운영하는 커뮤니티입니다. 
+        완벽한 글을 써야한다는 부담은 내려두셔도 좋아요. 오늘 시간을 내서 글을 완성해 제출해보는건 어떨까요? 
+        내 생각이 누군가에게 도움이 되는 멋진 경험을 해볼 수 있는 기회이니까요!"""
