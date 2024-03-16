@@ -675,6 +675,8 @@ class SlackService:
             store.archive_message_upload_queue.append(archive_message.to_list_for_sheet())
             is_created = True
 
+        return is_created
+
     
 
     def fetch_users(self) -> list[models.User]:
