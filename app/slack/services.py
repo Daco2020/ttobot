@@ -1,3 +1,4 @@
+import asyncio
 import re
 from typing import Any, List, Tuple
 from app.constants import URL_REGEX, ContentCategoryEnum
@@ -695,6 +696,9 @@ class SlackRemindService:
 
         for user_id, message in remind_messages:
             await app.client.chat_postMessage(channel=user_id, text=message)
+            # 슬랙은 메시지 전송을 초당 1개를 권장하기 때문에 1초 대기합니다.
+            # 참고문서: https://api.slack.com/methods/chat.postMessage#rate_limiting
+            await asyncio.sleep(1)
 
     def generate_remind_messages(self, users: List[User]) -> List[Tuple[str, str]]:
         """매 제출일 9시에 글을 제출하지 않은 유저에게 보낼 메시지를 생성합니다."""
@@ -707,12 +711,11 @@ class SlackRemindService:
         return [
             (user.user_id, self.create_message_for_user(user))
             for user in users
-            if not user.is_submit
+            if not user.is_submit and user.intro not in ["-", "8기 참여자"]
         ]
 
     def create_message_for_user(self, user: User) -> str:
         """사용자별 리마인드 메시지를 생성합니다."""
-        return f"""📢 {user.name}님, 오늘은 글 제출일입니다! 
-글또는 완벽한 글을 제출하는 커뮤니티가 아니라, 글쓰는 습관을 기르기 위해 운영하는 커뮤니티입니다. 
-완벽한 글을 써야한다는 부담은 내려놓아도 좋아요. 오늘 시간을 내서 글을 완성해 제출해보는건 어떨까요? 
-내 생각이 누군가에게 도움이 되는 멋진 경험을 해볼 수 있는 기회이니까요!"""
+        return f"""오늘은 글또 제출 마감일이에요.
+지난 2주 동안 배우고 경험한 것들을 자정까지 나눠주세요.
+{user.name} 님의 이야기를 기다릴게요!🙂"""
