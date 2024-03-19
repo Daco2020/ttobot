@@ -691,7 +691,7 @@ class SlackRemindService:
         for user in users:
             if user.is_submit:
                 continue
-            if user.intro in ["-", "8기 참여자"]:
+            if user.intro in ["-", "8기 참여자"]:  # TODO: 추후 유저에 'type' 속성을 추가할 것
                 continue
 
             await slack_app.client.chat_postMessage(
