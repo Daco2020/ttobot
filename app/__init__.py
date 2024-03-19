@@ -59,7 +59,7 @@ if settings.ENV == "prod":
 
         # 리마인드 스케줄러(비동기)
         first_remind_date = datetime.combine(
-            DUE_DATES[0], time(hour=11, minute=0), tzinfo=ZoneInfo("Asia/Seoul")
+            DUE_DATES[0], time(hour=10, minute=0), tzinfo=ZoneInfo("Asia/Seoul")
         )
         last_remind_date = datetime.combine(
             DUE_DATES[10], time(hour=10, minute=0), tzinfo=ZoneInfo("Asia/Seoul")
