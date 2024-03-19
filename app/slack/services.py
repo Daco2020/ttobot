@@ -685,7 +685,7 @@ class SlackRemindService:
     def __init__(self, user_repo: SlackRepository) -> None:
         self._user_repo = user_repo
 
-    async def remind_job(self, slack_app: AsyncApp) -> None:
+    async def send_reminder_message_to_user(self, slack_app: AsyncApp) -> None:
         """사용자에게 리마인드 메시지를 전송합니다."""
         users = self._user_repo.fetch_users()
         for user in users:
