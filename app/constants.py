@@ -82,3 +82,8 @@ class ContentSortEnum(str, Enum):
     DT = "dt"
     RELEVANCE = "relevance"
     # LIKE = "like" # TODO: 추후 추가하기
+
+
+remind_message = """오늘은 글또 제출 마감일이에요.
+지난 2주 동안 배우고 경험한 것들을 자정까지 나눠주세요.
+{user_name} 님의 이야기를 기다릴게요!🙂"""

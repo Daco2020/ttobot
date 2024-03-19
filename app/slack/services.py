@@ -1,23 +1,20 @@
 import asyncio
 import re
-from typing import Any, List, Tuple
+from typing import Any
 from app.constants import URL_REGEX, ContentCategoryEnum
 from app.logging import logger
 from app.constants import MAX_PASS_COUNT
 from app.slack.exception import BotException
 from app.slack.repositories import SlackRepository
-from app import store
 from app.slack.components import static_select
-
-from app.models import User
-from app.constants import DUE_DATES
-from app.utils import tz_now
+from app.constants import remind_message
+from app import models
+from app import store
 
 import requests
 from requests.exceptions import MissingSchema
 from bs4 import BeautifulSoup
 
-from app import models
 
 from slack_bolt.async_app import AsyncApp
 
@@ -688,34 +685,19 @@ class SlackRemindService:
     def __init__(self, user_repo: SlackRepository) -> None:
         self._user_repo = user_repo
 
-    async def remind_job(self, app: AsyncApp) -> None:
+    async def remind_job(self, slack_app: AsyncApp) -> None:
         """사용자에게 리마인드 메시지를 전송합니다."""
-        user_dicts = self._user_repo.fetch_users()
-        users = [models.User(**user_dict) for user_dict in user_dicts]
-        remind_messages = self.generate_remind_messages(users)
+        users = self._user_repo.fetch_users()
+        for user in users:
+            if user.is_submit:
+                continue
+            if user.intro in ["-", "8기 참여자"]:
+                continue
 
-        for user_id, message in remind_messages:
-            await app.client.chat_postMessage(channel=user_id, text=message)
+            await slack_app.client.chat_postMessage(
+                channel=user.user_id,
+                text=remind_message.format(user_name=user.name),
+            )
+            await asyncio.sleep(1)
             # 슬랙은 메시지 전송을 초당 1개를 권장하기 때문에 1초 대기합니다.
             # 참고문서: https://api.slack.com/methods/chat.postMessage#rate_limiting
-            await asyncio.sleep(1)
-
-    def generate_remind_messages(self, users: List[User]) -> List[Tuple[str, str]]:
-        """매 제출일 9시에 글을 제출하지 않은 유저에게 보낼 메시지를 생성합니다."""
-        current_date = tz_now().date()
-        is_reminder_due = any(current_date == due_date for due_date in DUE_DATES)
-
-        if not is_reminder_due:
-            return []
-
-        return [
-            (user.user_id, self.create_message_for_user(user))
-            for user in users
-            if not user.is_submit and user.intro not in ["-", "8기 참여자"]
-        ]
-
-    def create_message_for_user(self, user: User) -> str:
-        """사용자별 리마인드 메시지를 생성합니다."""
-        return f"""오늘은 글또 제출 마감일이에요.
-지난 2주 동안 배우고 경험한 것들을 자정까지 나눠주세요.
-{user.name} 님의 이야기를 기다릴게요!🙂"""

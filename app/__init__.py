@@ -6,7 +6,6 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 from app.config import settings
 from app.store import Store
-from app.slack import event_handler
 from app.views.community import router as community_router
 from app.views.login import router as login_router
 from slack_bolt.adapter.socket_mode.aiohttp import AsyncSocketModeHandler
@@ -29,7 +28,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-slack_handler = AsyncSocketModeHandler(event_handler.app, settings.APP_TOKEN)
+slack_handler = AsyncSocketModeHandler(slack_app, settings.APP_TOKEN)
 
 
 @app.get("/")
@@ -84,11 +83,11 @@ if settings.ENV == "prod":
         store.upload("logs")
         store.initialize_logs()
 
-    async def remind_job(app: AsyncApp) -> None:
+    async def remind_job(slack_app: AsyncApp) -> None:
         # 서비스 함수를 호출
         user_repo = SlackRepository()
         slack_service = SlackRemindService(user_repo=user_repo)
-        await slack_service.remind_job(app)
+        await slack_service.remind_job(slack_app)
 
     @app.on_event("shutdown")
     async def shutdown():
