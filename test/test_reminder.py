@@ -7,14 +7,14 @@ import pytest
 from pytest_mock import MockerFixture
 from app.models import Content, User
 from app.slack.repositories import SlackRepository
-from app.slack.services import SlackRemindService
+from app.slack.services import SlackReminderService
 from app.utils import tz_now
 from test.conftest import FakeSlackApp
 
 
 @pytest.mark.asyncio
 async def test_send_reminder_message_to_user(
-    slack_remind_service: SlackRemindService,
+    slack_remind_service: SlackReminderService,
     slack_app: FakeSlackApp,
     mocker: MockerFixture,
 ) -> None:

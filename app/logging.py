@@ -32,7 +32,7 @@ def default(obj: Any) -> str | list[Any] | dict[str, Any]:
     elif isinstance(obj, bytes):
         return obj.decode("utf-8")
     elif isinstance(obj, BaseModel):
-        return obj.dict()
+        return obj.model_dump()
     else:
         return "This object cannot be serialized."
 

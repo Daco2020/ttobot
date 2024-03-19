@@ -10,7 +10,7 @@ from app.views.community import router as community_router
 from app.views.login import router as login_router
 from slack_bolt.adapter.socket_mode.aiohttp import AsyncSocketModeHandler
 from fastapi.middleware.cors import CORSMiddleware
-from app.slack.services import SlackRemindService
+from app.slack.services import SlackReminderService
 from app.constants import DUE_DATES
 
 from slack_bolt.async_app import AsyncApp
@@ -84,7 +84,7 @@ if settings.ENV == "prod":
         store.initialize_logs()
 
     async def remind_job(slack_app: AsyncApp) -> None:
-        slack_service = SlackRemindService(user_repo=SlackRepository())
+        slack_service = SlackReminderService(user_repo=SlackRepository())
         await slack_service.send_reminder_message_to_user(slack_app)
 
     @app.on_event("shutdown")

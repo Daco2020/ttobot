@@ -1,7 +1,7 @@
 import pytest
 
 from app.slack.repositories import SlackRepository
-from app.slack.services import SlackRemindService
+from app.slack.services import SlackReminderService
 
 
 @pytest.fixture
@@ -10,8 +10,8 @@ def slack_repo() -> SlackRepository:
 
 
 @pytest.fixture
-def slack_remind_service(slack_repo: SlackRepository) -> SlackRemindService:
-    return SlackRemindService(slack_repo)
+def slack_remind_service(slack_repo: SlackRepository) -> SlackReminderService:
+    return SlackReminderService(slack_repo)
 
 
 class FakeAsyncWebClient:

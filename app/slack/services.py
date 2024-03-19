@@ -2,7 +2,7 @@ import asyncio
 import re
 from typing import Any
 from app.constants import URL_REGEX, ContentCategoryEnum
-from app.logging import logger
+from app.logging import log_event, logger
 from app.constants import MAX_PASS_COUNT
 from app.slack.exception import BotException
 from app.slack.repositories import SlackRepository
@@ -680,8 +680,7 @@ class SlackService:
         return users
 
 
-class SlackRemindService:
-
+class SlackReminderService:
     def __init__(self, user_repo: SlackRepository) -> None:
         self._user_repo = user_repo
 
@@ -693,6 +692,13 @@ class SlackRemindService:
                 continue
             if user.intro in ["-", "8기 참여자"]:  # TODO: 추후 유저에 'type' 속성을 추가할 것
                 continue
+
+            log_event(
+                actor="slack_remind_service",
+                event="send_reminder_message_to_user",
+                type="reminder",
+                description=f"{user.name} 님에게 리마인드 메시지를 전송합니다.",
+            )
 
             await slack_app.client.chat_postMessage(
                 channel=user.user_id,
