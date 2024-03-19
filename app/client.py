@@ -45,7 +45,11 @@ class SpreadSheetClient:
         # TODO: 추후 백업 시트를 자동 생성할 수 있도록 변경 필요
         sheet = self._sheets["backup"]
         sheet.clear()
-        sheet.append_rows(values)
+
+        batch_size = 1000
+        for i in range(0, len(values), batch_size):
+            batch = values[i : i + batch_size]
+            sheet.append_rows(batch)
 
     def clear(self, sheet_name: str) -> None:
         """해당 시트의 모든 데이터를 삭제합니다."""
