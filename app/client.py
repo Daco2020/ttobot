@@ -45,20 +45,22 @@ class SpreadSheetClient:
         # TODO: 추후 백업 시트를 자동 생성할 수 있도록 변경 필요
         sheet = self._sheets["backup"]
         sheet.clear()
-
-        batch_size = 1000
-        for i in range(0, len(values), batch_size):
-            batch = values[i : i + batch_size]
-            sheet.append_rows(batch)
+        self._batch_append_rows(values, sheet, batch_size=1000)
 
     def clear(self, sheet_name: str) -> None:
         """해당 시트의 모든 데이터를 삭제합니다."""
         self._sheets[sheet_name].clear()
 
     def upload(self, sheet_name: str, values: list[list[str]]) -> None:
+        """해당 시트에 데이터를 하나씩 업로드 합니다."""
         sheet = self._sheets[sheet_name]
         for value in values:
             sheet.append_row(value)
+
+    def bulk_upload(self, sheet_name: str, values: list[list[str]]) -> None:
+        """해당 시트에 데이터를 업로드 합니다."""
+        sheet = self._sheets[sheet_name]
+        self._batch_append_rows(values, sheet, batch_size=1000)
 
     def update(self, sheet_name: str, obj: StoreModel) -> None:
         """해당 객체 정보를 시트에 업데이트 합니다."""
@@ -120,3 +122,13 @@ class SpreadSheetClient:
             logger.error(f"시트에 해당 값이 존재하지 않습니다. {values}")
 
         sheet.update(f"A{row_number}:G{row_number}", [values])
+
+    def _batch_append_rows(
+        self,
+        values: list[list[str]],
+        sheet: Worksheet,
+        batch_size: int,
+    ) -> None:
+        for i in range(0, len(values), batch_size):
+            batch = values[i : i + batch_size]
+            sheet.append_rows(batch)

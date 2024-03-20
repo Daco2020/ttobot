@@ -9,8 +9,7 @@ from app.utils import tz_now_to_str
 
 
 class SlackRepository:
-    def __init__(self) -> None:
-        ...
+    def __init__(self) -> None: ...
 
     def get_user(self, user_id: str) -> models.User | None:
         """유저와 콘텐츠를 가져옵니다."""
@@ -18,10 +17,13 @@ class SlackRepository:
             user.contents = self._fetch_contents(user_id)
             return user
         return None
-    
-    def fetch_users(self) -> list[dict[str, Any]]:
-        """Public 메서드로 모든 유저를 가져옵니다."""
-        return self._fetch_users()
+
+    def fetch_users(self) -> list[models.User]:
+        """모든 유저를 가져옵니다."""
+        users = [models.User(**user) for user in self._fetch_users()]
+        for user in users:
+            user.contents = self._fetch_contents(user.user_id)
+        return users
 
     def _get_user(self, user_id: str) -> models.User | None:
         """유저를 가져옵니다."""
@@ -43,11 +45,9 @@ class SlackRepository:
         with open("store/contents.csv") as f:
             reader = csv.DictReader(f)
             contents = [
-                models.Content(**content)
-                for content in reader
-                if content["user_id"] == user_id
+                models.Content(**content) for content in reader if content["user_id"] == user_id
             ]
-            return sorted(contents, key=lambda content: content.dt_)
+            return contents
 
     def update(self, user: models.User) -> None:
         """유저의 콘텐츠를 업데이트합니다."""
@@ -64,9 +64,7 @@ class SlackRepository:
         with open("store/contents.csv") as f:
             reader = csv.DictReader(f)
             contents = [
-                models.Content(**content)
-                for content in reader
-                if content["type"] == "submit"
+                models.Content(**content) for content in reader if content["type"] == "submit"
             ]
             return sorted(contents, key=lambda content: content.dt_, reverse=True)
 

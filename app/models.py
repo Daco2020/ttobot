@@ -20,6 +20,11 @@ class User(BaseModel):
     deposit: str = ""
     contents: list[Content] = []
 
+    @field_validator("contents", mode="before")
+    def get_contents(cls, v: list[Content]) -> list[Content]:
+        """콘텐츠를 생성일시 오름차순으로 정렬하여 반환합니다."""
+        return sorted(v, key=lambda content: content.dt_)
+
     @property
     def pass_count(self) -> int:
         """pass 횟수를 반환합니다."""

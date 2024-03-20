@@ -41,6 +41,10 @@ class Store:
         values = self.read(table_name)
         self._client.upload(table_name, values)
 
+    def bulk_upload(self, table_name: str) -> None:
+        values = self.read(table_name)
+        self._client.bulk_upload(table_name, values)
+
     def upload_queue(self) -> None:
         """새로 추가된 queue 가 있다면 upload 합니다."""
         global content_upload_queue
