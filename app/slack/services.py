@@ -694,7 +694,7 @@ class SlackReminderService:
                 continue
 
             log_event(
-                actor="slack_remind_service",
+                actor="slack_reminder_service",
                 event="send_reminder_message_to_user",
                 type="reminder",
                 description=f"{user.name} 님에게 리마인드 메시지를 전송합니다.",

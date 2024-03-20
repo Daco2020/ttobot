@@ -91,7 +91,7 @@ async def admin_command(ack, body, say, client, user_id: str, service: SlackServ
         await client.chat_postMessage(channel=settings.ADMIN_CHANNEL, text="store pull 시작")
         sheet_client = SpreadSheetClient()
         store = Store(client=sheet_client)
-        store.upload("logs")
+        store.bulk_upload("logs")
         store.backup("contents")
         store.initialize_logs()
         store.pull()

@@ -80,7 +80,7 @@ if settings.ENV == "prod":
         store.upload_queue()
 
     def upload_logs(store: Store) -> None:
-        store.upload("logs")
+        store.bulk_upload("logs")
         store.initialize_logs()
 
     async def remind_job(slack_app: AsyncApp) -> None:
@@ -91,7 +91,7 @@ if settings.ENV == "prod":
     async def shutdown():
         # 서버 저장소 업로드
         store = Store(client=SpreadSheetClient())
-        store.upload("logs")
+        store.bulk_upload("logs")
         store.upload_queue()
 
 else:
