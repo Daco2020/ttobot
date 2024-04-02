@@ -86,7 +86,7 @@ class SlackService:
 
     async def create_pass_content(self, ack, body, view) -> models.Content:
         """패스 콘텐츠를 생성합니다."""
-        await self._validate_pass(ack, self._user)
+        await self._validate_pass()
         content = models.Content(
             user_id=body["user"]["id"],
             username=body["user"]["username"],
@@ -160,6 +160,11 @@ class SlackService:
                         "element": {
                             "type": "url_text_input",
                             "action_id": "url_text_input-action",
+                            "placeholder": {
+                                "type": "plain_text",
+                                "text": "노션은 하단의 `글 제목`을 필수로 입력해주세요.",
+                                "emoji": True,
+                            },
                         },
                         "label": {
                             "type": "plain_text",
@@ -287,6 +292,7 @@ class SlackService:
     async def open_pass_modal(self, body, client, view_name: str) -> None:
         """패스 모달을 띄웁니다."""
         self._check_channel(body["channel_id"])
+        await self._validate_pass()
 
         pass_count = self._user.pass_count
         round, due_date = self._user.get_due_date()
@@ -516,19 +522,15 @@ class SlackService:
                 .get("value")
             ):
                 return None
-            raise ValueError("노션은 `글 제목`을 모달 하단에 직접 입력해주세요.")
+            raise ValueError("노션은 하단의 `글 제목`을 필수로 입력해주세요.")
 
-    async def _validate_pass(self, ack, user: models.User) -> None:
-        if user.pass_count >= MAX_PASS_COUNT:
-            block_id = "description"
+    async def _validate_pass(self) -> None:
+        if self._user.pass_count >= MAX_PASS_COUNT:
             message = "사용할 수 있는 pass 가 없어요."
-            await ack(response_action="errors", errors={block_id: message})
-            raise ValueError(message)
-        if user.is_prev_pass:
-            block_id = "description"
+            raise BotException(message)
+        if self._user.is_prev_pass:
             message = "직전 회차에 pass 를 사용했기 때문에 연속으로 pass 를 사용할 수 없어요."
-            await ack(response_action="errors", errors={block_id: message})
-            raise ValueError(message)
+            raise BotException(message)
 
     def create_bookmark(self, user_id: str, content_id: str, note: str = "") -> models.Bookmark:
         """북마크를 생성합니다."""

@@ -22,9 +22,7 @@ app = AsyncApp(token=settings.BOT_TOKEN)
 
 
 @app.middleware
-async def log_event_middleware(
-    req: BoltRequest, resp: BoltResponse, next: Callable
-) -> None:
+async def log_event_middleware(req: BoltRequest, resp: BoltResponse, next: Callable) -> None:
     """이벤트를 로그로 남깁니다."""
     body = req.body
     if body.get("command"):
@@ -58,9 +56,7 @@ async def log_event_middleware(
 
 
 @app.middleware
-async def inject_service_middleware(
-    req: BoltRequest, resp: BoltResponse, next: Callable
-) -> None:
+async def inject_service_middleware(req: BoltRequest, resp: BoltResponse, next: Callable) -> None:
     """서비스 객체를 주입합니다."""
     event = req.context.get("event")
     user_id = req.context.user_id
@@ -126,7 +122,7 @@ async def handle_error(error, body):
                         "type": "section",
                         "text": {
                             "type": "mrkdwn",
-                            "text": f"🥲 {message}\n\n👉🏼 문제가 해결되지 않는다면 <#{settings.SUPPORT_CHANNEL}> 채널로 문의해주세요! ",  # noqa E501
+                            "text": f"🥲 {message}\n\n👉🏼 궁금한 사항은 <#{settings.SUPPORT_CHANNEL}> 채널로 문의해주세요.",  # noqa E501
                         },
                     }
                 ],
@@ -145,9 +141,7 @@ app.view("trigger_view")(community_events.trigger_view)
 
 
 @app.event("message")
-async def handle_message(
-    ack, body, client: AsyncWebClient, service: SlackService
-) -> None:
+async def handle_message(ack, body, client: AsyncWebClient, service: SlackService) -> None:
     await ack()
 
     event = body.get("event", {})
