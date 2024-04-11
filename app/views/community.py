@@ -50,6 +50,14 @@ async def fetch_contents(
             "ts",
         ],
     )
+
+    if keyword == "전체보기":
+        # '전체보기'는 최신순으로 정렬하여 반환
+        contents = contents_df.unique(subset=["content_url"]).sort(["dt"], descending=descending)
+        count = len(contents)
+        data = contents.slice(offset, limit).to_dicts()
+        return dto.ContentResponse(count=count, data=data)
+
     if category:
         contents_df = contents_df.filter(contents_df["category"] == category)
 
@@ -75,7 +83,7 @@ async def fetch_contents(
         combined_df.unique(subset=["content_url"])
         .join(grouped_df, on="content_url", how="inner")
         .join(users_df, on="user_id", how="inner")
-        .sort([order_by, "dt"], descending=[True, descending])
+        .sort([order_by, "dt"], descending=[descending, True])
     )
 
     count = len(contents)
