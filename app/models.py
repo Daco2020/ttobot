@@ -12,13 +12,14 @@ from app.utils import slack_link_to_markdown, tz_now, tz_now_to_str
 
 
 class User(BaseModel):
-    user_id: str
-    name: str
-    channel_name: str
-    channel_id: str
-    intro: str
-    deposit: str = ""
-    contents: list[Content] = []
+    user_id: str  # 슬랙 아이디
+    name: str  # 이름
+    channel_name: str  # 코어채널 이름
+    channel_id: str  # 코어채널 아이디
+    intro: str  # 자기소개
+    deposit: str = ""  # 예치금
+    cohort: str = ""  # 기수
+    contents: list[Content] = []  # 제출한 콘텐츠
 
     @field_validator("contents", mode="before")
     def get_contents(cls, v: list[Content]) -> list[Content]:
@@ -104,6 +105,7 @@ class User(BaseModel):
             self.name,
             self.channel_id,
             self.intro,
+            self.cohort,
         ]
 
 

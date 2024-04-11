@@ -38,18 +38,20 @@ async def test_send_reminder_message_to_user(
             User(
                 user_id="리마인드 비대상1",
                 name="슬랙봇",
-                channel_name="test_channel",
+                channel_name="슬랙봇",
                 channel_id="test_channel_id",
                 intro="-",  # bot
                 contents=[],
+                cohort="9기",
             ),
             User(
                 user_id="리마인드 비대상2",
                 name="장득현",
                 channel_name="test_channel",
                 channel_id="test_channel_id",
-                intro="8기 참여자",  # 지난 기수 참여자
+                intro="",
                 contents=[],
+                cohort="8기",  # 지난 기수 참여자
             ),
             User(
                 user_id="리마인드 비대상3",
@@ -65,6 +67,7 @@ async def test_send_reminder_message_to_user(
                         type="submit",
                     ),
                 ],
+                cohort="9기",
             ),
             User(
                 user_id="리마인드 대상1",
@@ -73,6 +76,7 @@ async def test_send_reminder_message_to_user(
                 channel_id="test_channel_id",
                 intro="안녕하세요. 덕순입니다.",
                 contents=[],  # 제출하지 않은 경우
+                cohort="9기",
             ),
             User(
                 user_id="리마인드 대상2",
@@ -88,6 +92,7 @@ async def test_send_reminder_message_to_user(
                         type="submit",
                     ),
                 ],
+                cohort="9기",
             ),
         ],
     )

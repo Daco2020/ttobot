@@ -102,7 +102,7 @@ class SpreadSheetClient:
         if not target_record:
             logger.error(f"시트에 해당 값이 존재하지 않습니다. {values}")
 
-        sheet.update(f"A{row_number}:E{row_number}", [values])
+        sheet.update(f"A{row_number}:F{row_number}", [values])
 
     def update_archive_message(self, sheet_name: str, values: list[str]) -> None:
         """아카이브 메시지 정보를 시트에 업데이트 합니다."""

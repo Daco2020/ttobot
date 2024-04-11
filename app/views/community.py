@@ -33,10 +33,7 @@ async def fetch_contents(
     # 원본 데이터 불러오기
     users_df = pl.read_csv(
         "store/users.csv",
-        columns=[
-            "user_id",
-            "name",
-        ],
+        columns=["user_id", "name", "cohort"],
     )
     contents_df = pl.read_csv(
         "store/contents.csv",

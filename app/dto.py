@@ -31,6 +31,7 @@ class ContentResponse(BaseModel):
                     "tags": "python,코딩테스트",
                     "relevance": 1,
                     "name": "김현준",
+                    "cohort": "9기",
                 }
             ]
         ],

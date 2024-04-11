@@ -692,7 +692,9 @@ class SlackReminderService:
         for user in users:
             if user.is_submit:
                 continue
-            if user.intro in ["-", "8기 참여자"]:  # TODO: 추후 유저에 'type' 속성을 추가할 것
+            if user.cohort == "8기":
+                continue
+            if user.channel_name == "슬랙봇":
                 continue
 
             log_event(
