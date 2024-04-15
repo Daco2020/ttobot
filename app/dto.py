@@ -29,9 +29,9 @@ class ContentResponse(BaseModel):
                     "dt": "2024-02-04 23:31:09",
                     "category": "기술 & 언어",
                     "tags": "python,코딩테스트",
-                    "relevance": 1,
                     "name": "김현준",
                     "cohort": "9기",
+                    "relevance": 1,
                 }
             ]
         ],
