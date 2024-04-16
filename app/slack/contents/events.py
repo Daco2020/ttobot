@@ -5,7 +5,7 @@ import orjson
 
 from app.slack.components import static_select
 from app.constants import CONTENTS_PER_PAGE, ContentCategoryEnum
-from app.slack.exception import BotException
+from app.slack.exception import BotException, ClientException
 from slack_sdk.web.async_client import AsyncWebClient
 
 from app import models
@@ -25,11 +25,22 @@ async def submit_command(ack, body, say, client, user_id: str, service: SlackSer
 
 async def submit_view(ack, body, client, view, say, user_id: str, service: SlackService) -> None:
     """글 제출 완료"""
-    await ack()
+    # 슬랙 앱이 구 버전일 경우 일부 block 이 사라져 키에러가 발생할 수 있음
+    content_url = view["state"]["values"]["content_url"]["url_text_input-action"]["value"]
     channel_id = view["private_metadata"]
 
     try:
-        content = await service.create_submit_content(ack, body, view)
+        service.validate_url(view, content_url)
+        title = await service.get_title(view, content_url)
+    except (ValueError, ClientException) as e:
+        # 참고: ack 로 에러를 반환할 경우, 그전에 ack() 를 호출하지 않아야 한다.
+        await ack(response_action="errors", errors={"content_url": str(e)})
+        raise e
+
+    await ack()
+
+    try:
+        content = await service.create_submit_content(title, content_url, view)
         message = await client.chat_postMessage(
             channel=channel_id,
             blocks=[
@@ -67,8 +78,6 @@ async def submit_view(ack, body, client, view, say, user_id: str, service: Slack
         )
         content.ts = message.get("ts", "")
         await service.update_user_content(content)
-    except ValueError as e:
-        raise e
     except Exception as e:
         message = (
             f"{service.user.name}({service.user.channel_name}) 님의 제출이 실패했어요. {str(e)}"

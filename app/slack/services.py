@@ -1,18 +1,18 @@
 import asyncio
 import re
 from typing import Any
+
+import httpx
 from app.constants import URL_REGEX, ContentCategoryEnum
 from app.logging import log_event, logger
 from app.constants import MAX_PASS_COUNT
-from app.slack.exception import BotException
+from app.slack.exception import BotException, ClientException
 from app.slack.repositories import SlackRepository
 from app.slack.components import static_select
 from app.constants import remind_message
 from app import models
 from app import store
 
-import requests
-from requests.exceptions import MissingSchema
 from bs4 import BeautifulSoup
 
 
@@ -55,20 +55,13 @@ class SlackService:
         user = self._user_repo.get_user(user_id)
         return user  # type: ignore
 
-    async def create_submit_content(self, ack, body, view) -> models.Content:
+    async def create_submit_content(
+        self, title: str, content_url: str, view: dict[str, Any]
+    ) -> models.Content:
         """제출 콘텐츠를 생성합니다."""
-        content_url = self._get_content_url(view)
-
-        try:
-            self._validate_url(view, content_url, self._user)
-            title = self._get_title(view, content_url)
-        except ValueError as e:
-            await ack(response_action="errors", errors={"content_url": str(e)})
-            raise e
-
         content = models.Content(
-            user_id=body["user"]["id"],
-            username=body["user"]["username"],
+            user_id=self._user.user_id,
+            username=self._user.name,
             title=title,
             content_url=content_url,
             category=self._get_category(view),
@@ -162,7 +155,7 @@ class SlackService:
                             "action_id": "url_text_input-action",
                             "placeholder": {
                                 "type": "plain_text",
-                                "text": "노션은 하단의 `글 제목`을 필수로 입력해주세요.",
+                                "text": "노션은 하단의 '글 제목'을 필수로 입력해주세요.",
                                 "emoji": True,
                             },
                         },
@@ -280,7 +273,7 @@ class SlackService:
                             "action_id": "title_input",
                             "placeholder": {
                                 "type": "plain_text",
-                                "text": "`글 제목`을 직접 입력합니다.",
+                                "text": "'글 제목'을 직접 입력합니다.",
                             },
                             "multiline": False,
                         },
@@ -459,32 +452,32 @@ class SlackService:
         ]["value"]
         return curation_flag
 
-    def _get_content_url(self, view) -> str:
-        # 슬랙 앱이 구 버전일 경우 일부 block 이 사라져 키에러가 발생할 수 있음
-        content_url: str = view["state"]["values"]["content_url"]["url_text_input-action"]["value"]
-        return content_url
+    async def get_title(self, view, url: str) -> str:
 
-    def _get_title(self, view, url: str) -> str:
-        if view["state"]["values"].get("manual_title_input"):
-            title: str = view["state"]["values"]["manual_title_input"]["title_input"]["value"]
-            if title:
-                return title
         try:
-            response = requests.get(url)
-            if response.status_code == 404:
-                raise ValueError("비공개 글이거나, 링크를 찾을 수 없어요.")
+            async with httpx.AsyncClient() as client:
+                response = await client.get(url)
+                if response.status_code == 404:
+                    raise ClientException("비공개 글이거나, url 를 찾을 수 없어요.")
+
+            # 제목을 직접 입력한 경우에는 status_code만 확인 후에 return
+            title_input = view["state"]["values"]["manual_title_input"]["title_input"]["value"]
+            if title_input:
+                return title_input
+
             soup = BeautifulSoup(response.text, "html.parser")
-            title = soup.find("title").text  # type: ignore
-            result = title.strip()
-            return result
-        except ValueError as e:
-            if isinstance(e, MissingSchema):
-                # MissingSchema 는 ValueError 를 상속하기 때문에 추가로 핸들링합니다.
-                raise ValueError("`글 제목`을 찾을 수 없습니다. 모달 하단에 직접 입력해주세요.")
+            title = soup.find("title")
+            if not title:
+                raise ClientException(
+                    "'글 제목'을 찾을 수 없습니다. 모달 하단에 직접 입력해주세요."
+                )
+            return title.text.strip()
+
+        except ClientException as e:
             raise e
         except Exception as e:
             logger.debug(str(e))
-            raise ValueError("링크에 문제가 발생했어요. 링크 확인 후 다시 시도해주세요.")
+            raise ClientException("url 에 문제가 있어요. 확인 후 다시 시도해주세요.")
 
     def _description_message(self, description: str) -> str:
         description_message = f"\n\n💬 '{description}'\n" if description else ""
@@ -504,14 +497,14 @@ class SlackService:
                 f"{self._user.name} 님의 코어 채널 <#{self._user.channel_id}> 에서 다시 시도해주세요."
             )
 
-    def _validate_url(self, view, content_url: str, user: models.User) -> None:
+    def validate_url(self, view, content_url: str) -> None:
         if not re.match(URL_REGEX, content_url):
             raise ValueError("링크는 url 형식이어야 해요.")
-        if content_url in user.content_urls:
+        if content_url in self._user.content_urls:
             raise ValueError("이미 제출한 url 이에요.")
         if "tistory.com/manage/posts" in content_url:
             # 티스토리 posts 페이지는 글 링크가 아니므로 제외합니다.
-            raise ValueError("잠깐! 입력한 링크가 `글 링크`가 맞는지 확인해주세요.")
+            raise ValueError("잠깐! 입력한 링크가 '글 링크'가 맞는지 확인해주세요.")
         if "notion." in content_url or "oopy.io" in content_url or ".site" in content_url:
             # notion.so, notion.site, oopy.io 는 title 을 크롤링하지 못하므로 직접 입력을 받는다.
             # 글 제목을 입력한 경우 통과.
@@ -522,7 +515,7 @@ class SlackService:
                 .get("value")
             ):
                 return None
-            raise ValueError("노션은 하단의 `글 제목`을 필수로 입력해주세요.")
+            raise ValueError("노션은 하단의 '글 제목'을 필수로 입력해주세요.")
 
     async def _validate_pass(self) -> None:
         if self._user.pass_count >= MAX_PASS_COUNT:
