@@ -56,12 +56,12 @@ class SlackService:
         return user  # type: ignore
 
     async def create_submit_content(
-        self, title: str, content_url: str, view: dict[str, Any]
+        self, title: str, content_url: str, username: str, view: dict[str, Any]
     ) -> models.Content:
         """제출 콘텐츠를 생성합니다."""
         content = models.Content(
             user_id=self._user.user_id,
-            username=self._user.name,
+            username=username,
             title=title,
             content_url=content_url,
             category=self._get_category(view),

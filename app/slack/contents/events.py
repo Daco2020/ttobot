@@ -28,6 +28,7 @@ async def submit_view(ack, body, client, view, say, user_id: str, service: Slack
     # 슬랙 앱이 구 버전일 경우 일부 block 이 사라져 키에러가 발생할 수 있음
     content_url = view["state"]["values"]["content_url"]["url_text_input-action"]["value"]
     channel_id = view["private_metadata"]
+    username = body["user"]["username"]
 
     try:
         service.validate_url(view, content_url)
@@ -40,9 +41,10 @@ async def submit_view(ack, body, client, view, say, user_id: str, service: Slack
     await ack()
 
     try:
-        content = await service.create_submit_content(title, content_url, view)
+        content = await service.create_submit_content(title, content_url, username, view)
         message = await client.chat_postMessage(
             channel=channel_id,
+            text="글 제출 완료",
             blocks=[
                 {
                     "type": "section",
