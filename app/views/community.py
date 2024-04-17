@@ -63,7 +63,9 @@ async def fetch_contents(
 
     # 키워드 추출, TODO: 명사 단위로 쪼개서 검색하기
     keywords = [
-        keyword for keyword in keyword.replace(",", " ").replace("/", " ").split(" ") if keyword
+        keyword.lower()
+        for keyword in keyword.replace(",", " ").replace("/", " ").split(" ")
+        if keyword
     ]
     keywords.extend(translate_keywords(keywords))
 
