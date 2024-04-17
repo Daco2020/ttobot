@@ -176,6 +176,7 @@ app.command("/패스")(contents_events.pass_command)
 app.view("pass_view")(contents_events.pass_view)
 app.command("/검색")(contents_events.search_command)
 app.view("submit_search")(contents_events.submit_search)
+app.action("web_search")(contents_events.submit_search)
 app.view("back_to_search_view")(contents_events.back_to_search_view)
 app.command("/북마크")(contents_events.bookmark_command)
 app.action("bookmark_overflow_action")(contents_events.open_overflow_action)
@@ -206,6 +207,7 @@ event_descriptions = {
     "pass_view": "글 패스 완료",
     "/검색": "글 검색 시작",
     "submit_search": "글 검색 완료",
+    "web_search": "웹 검색 시작",
     "back_to_search_view": "글 검색 다시 시작",
     "/북마크": "북마크 조회",
     "bookmark_overflow_action": "북마크 메뉴 선택",

@@ -392,11 +392,16 @@ async def submit_search(ack, body, client, view, user_id: str, service: SlackSer
                     "type": "plain_text",
                     "text": f"총 {len(contents)} 개의 글이 있어요. 🔍",
                 },
-                "submit": {"type": "plain_text", "text": "다시 찾기"},
+                "submit": {"type": "plain_text", "text": "다시 검색"},
                 "blocks": _fetch_blocks(contents),
             },
         }
     )
+
+
+async def web_search(ack, body, client, view, user_id: str, service: SlackService) -> None:
+    """웹 검색 시작"""
+    await ack()
 
 
 def _fetch_blocks(contents: list[models.Content]) -> list[dict[str, Any]]:
@@ -457,7 +462,7 @@ async def back_to_search_view(ack, body, say, client, user_id: str, service: Sla
         "type": "modal",
         "callback_id": "submit_search",
         "title": {"type": "plain_text", "text": "글 검색 🔍"},
-        "submit": {"type": "plain_text", "text": "찾기"},
+        "submit": {"type": "plain_text", "text": "검색"},
         "blocks": [
             {
                 "type": "section",
@@ -520,6 +525,23 @@ async def back_to_search_view(ack, body, say, client, user_id: str, service: Sla
                     "options": static_select.options(
                         [category.value for category in ContentCategoryEnum] + ["전체"]
                     ),
+                },
+            },
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": "웹으로 검색하시려면 [웹 검색] 버튼을 눌러주세요.",
+                },
+                "accessory": {
+                    "type": "button",
+                    "action_id": "web_search",
+                    "text": {
+                        "type": "plain_text",
+                        "text": "웹 검색",
+                    },
+                    "url": "https://vvd.bz/d2HG",
+                    "style": "primary",
                 },
             },
         ],
