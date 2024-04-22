@@ -42,9 +42,11 @@ async def submit_view(ack, body, client, view, say, user_id: str, service: Slack
 
     try:
         content = await service.create_submit_content(title, content_url, username, view)
+        # 해당 text 는 슬랙 활동 탭에서 표시되는 메시지이며, 누가 어떤 링크를 제출했는지 확인합니다.
+        text = f"*<@{content.user_id}>님 제출 완료.* 링크 : *<{content.content_url}|{re.sub('<|>', '', title if content.title != 'title unknown.' else content.content_url)}>*"
         message = await client.chat_postMessage(
             channel=channel_id,
-            text="글 제출 완료",
+            text=text,
             blocks=[
                 {
                     "type": "section",
