@@ -109,11 +109,15 @@ class SlackService:
             pass_head = f"▶️  {round}회차 패스"
             if content.type == "submit":
                 message += f"\n{sumit_head}  |  "
-                message += f"{content.dt}  |  "
-                message += f"*<{content.content_url}|{re.sub('<|>', '', content.title)}>*"
+                message += f"{content.dt}"
+                message += f"\n:point_right::skin-tone-2: {content.title}\n"
+
+                # 슬랙 모달은 3000자까지만 허용하기 때문에 url을 제외하여 문자 길이를 줄임.
+                # message += f"*<{content.content_url}|{re.sub('<|>', '', content.title)}>*"
+
             else:
                 message += f"\n{pass_head}  |  "
-                message += f"{content.dt}  |  "
+                message += f"{content.dt}\n"
         return message or "제출 내역이 없어요."
 
     async def open_submit_modal(self, body, client, view_name: str) -> None:
