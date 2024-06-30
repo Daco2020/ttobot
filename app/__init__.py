@@ -58,20 +58,21 @@ if settings.ENV == "prod":
         schedule.start()
 
         # 리마인드 스케줄러(비동기)
-        first_remind_date = datetime.combine(
-            DUE_DATES[0], time(hour=10, minute=0), tzinfo=ZoneInfo("Asia/Seoul")
-        )
-        last_remind_date = datetime.combine(
-            DUE_DATES[10], time(hour=10, minute=0), tzinfo=ZoneInfo("Asia/Seoul")
-        )
+        # TODO: 추후 10기에 활성화
+        # first_remind_date = datetime.combine(
+        #     DUE_DATES[0], time(hour=10, minute=0), tzinfo=ZoneInfo("Asia/Seoul")
+        # )
+        # last_remind_date = datetime.combine(
+        #     DUE_DATES[10], time(hour=10, minute=0), tzinfo=ZoneInfo("Asia/Seoul")
+        # )
 
-        async_schedule = AsyncIOScheduler()
-        remind_trigger = IntervalTrigger(
-            weeks=2, start_date=first_remind_date, end_date=last_remind_date, timezone="Asia/Seoul"
-        )
-        async_schedule.add_job(remind_job, trigger=remind_trigger, args=[slack_app])
+        # async_schedule = AsyncIOScheduler()
+        # remind_trigger = IntervalTrigger(
+        #     weeks=2, start_date=first_remind_date, end_date=last_remind_date, timezone="Asia/Seoul"
+        # )
+        # async_schedule.add_job(remind_job, trigger=remind_trigger, args=[slack_app])
 
-        async_schedule.start()
+        # async_schedule.start()
 
         # 슬랙 소켓 모드 실행
         await slack_handler.connect_async()
