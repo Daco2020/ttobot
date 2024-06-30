@@ -68,7 +68,7 @@ class SlackService:
             description=self._get_description(view),
             type="submit",
             tags=self._get_tags(view),
-            curation_flag=self._get_curation_flag(view),
+            # curation_flag=self._get_curation_flag(view), # TODO: 방학기간에는 제거, 10기에 활성화 필요
         )
         return content
 
@@ -123,17 +123,12 @@ class SlackService:
     async def open_submit_modal(self, body, client, view_name: str) -> None:
         """제출 모달을 띄웁니다."""
         self._check_channel(body["channel_id"])
-        try:
-            round, due_date = self._user.get_due_date()
-            guide_message = f"\n\n현재 회차는 {round}회차, 마감일은 {due_date} 이에요."
-            if self._user.is_submit:
-                guide_message += f"\n({self._user.name} 님은 이미 {round}회차 글을 제출했어요)"
-            else:
-                guide_message += (
-                    f"\n({self._user.name} 님은 아직 {round}회차 글을 제출하지 않았어요)"
-                )
-        except BotException:
-            guide_message = ""
+        round, due_date = self._user.get_due_date()
+        guide_message = f"\n\n현재 회차는 {round}회차, 마감일은 {due_date} 이에요."
+        if self._user.is_submit:
+            guide_message += f"\n({self._user.name} 님은 이미 {round}회차 글을 제출했어요)"
+        else:
+            guide_message += f"\n({self._user.name} 님은 아직 {round}회차 글을 제출하지 않았어요)"
         await client.views_open(
             trigger_id=body["trigger_id"],
             view={
@@ -694,6 +689,9 @@ class SlackService:
     def fetch_users(self) -> list[models.User]:
         users = [models.User(**user) for user in self._user_repo._fetch_users()]
         return users
+
+    def get_content_by_ts(self, ts: str) -> models.Content:
+        return self._user_repo.get_content_by_ts(ts)  # type: ignore
 
 
 class SlackReminderService:

@@ -229,3 +229,12 @@ class SlackRepository:
                 if row["ts"] == ts:
                     return models.ArchiveMessage(**row)
             return None
+
+    def get_content_by_ts(self, ts: str) -> models.Content | None:
+        """ts로 콘텐츠를 조회합니다."""
+        with open("store/contents.csv") as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                if row["ts"] == ts:
+                    return models.Content(**row)
+            return None

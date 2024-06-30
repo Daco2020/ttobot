@@ -131,7 +131,8 @@ async def handle_error(error, body):
 
     # 관리자에게 에러를 알립니다.
     await app.client.chat_postMessage(
-        channel=settings.ADMIN_CHANNEL, text=f"🫢: {error=} 🕊️: {trace=} 👉🏼 💌: {body=}"
+        channel=settings.ADMIN_CHANNEL,
+        text=f"🫢: {error=} 🕊️: {trace=} 👉🏼 💌: {body=}",
     )
 
 
@@ -167,6 +168,7 @@ async def handle_member_joined_channel(ack, body) -> None:
 app.command("/제출")(contents_events.submit_command)
 app.view("submit_view")(contents_events.submit_view)
 app.action("intro_modal")(contents_events.open_intro_modal)
+app.action("forward_message")(contents_events.forward_message)
 app.view("edit_intro_view")(contents_events.edit_intro_view)
 app.view("submit_intro_view")(contents_events.submit_intro_view)
 app.action("contents_modal")(contents_events.contents_modal)
@@ -198,6 +200,7 @@ event_descriptions = {
     "/제출": "글 제출 시작",
     "submit_view": "글 제출 완료",
     "intro_modal": "다른 유저의 자기소개 확인",
+    "forward_message": "다른 채널로 메시지 전송",
     "edit_intro_view": "자기소개 수정 시작",
     "submit_intro_view": "자기소개 수정 완료",
     "contents_modal": "다른 유저의 제출한 글 목록 확인",

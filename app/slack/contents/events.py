@@ -1,6 +1,8 @@
 import ast
+import asyncio
 import re
 from typing import Any
+import requests
 import orjson
 
 from app.slack.components import static_select
@@ -16,14 +18,134 @@ async def submit_command(ack, body, say, client, user_id: str, service: SlackSer
     """글 제출 시작"""
     await ack()
 
-    await service.open_submit_modal(
-        body=body,
-        client=client,
-        view_name="submit_view",
+    # await service.open_submit_modal(
+    #     body=body,
+    #     client=client,
+    #     view_name="submit_view",
+    # )
+
+    # TODO: 방학용 제출 모달
+    service._check_channel(body["channel_id"])
+    await client.views_open(
+        trigger_id=body["trigger_id"],
+        view={
+            "type": "modal",
+            "private_metadata": body["channel_id"],
+            "callback_id": "submit_view",
+            "title": {"type": "plain_text", "text": "또봇"},
+            "submit": {"type": "plain_text", "text": "제출"},
+            "blocks": [
+                {
+                    "type": "section",
+                    "block_id": "required_section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": "글또 방학기간에도 글을 제출할 수 있어요.😊",
+                    },
+                },
+                {
+                    "type": "input",
+                    "block_id": "content_url",
+                    "element": {
+                        "type": "url_text_input",
+                        "action_id": "url_text_input-action",
+                        "placeholder": {
+                            "type": "plain_text",
+                            "text": "노션은 하단의 '글 제목'을 필수로 입력해주세요.",
+                            "emoji": True,
+                        },
+                    },
+                    "label": {
+                        "type": "plain_text",
+                        "text": "글 링크",
+                        "emoji": True,
+                    },
+                },
+                {
+                    "type": "input",
+                    "block_id": "category",
+                    "label": {
+                        "type": "plain_text",
+                        "text": "카테고리",
+                        "emoji": True,
+                    },
+                    "element": {
+                        "type": "static_select",
+                        "placeholder": {
+                            "type": "plain_text",
+                            "text": "글의 카테고리를 선택해주세요.",
+                            "emoji": True,
+                        },
+                        "options": static_select.options(
+                            [category.value for category in ContentCategoryEnum]
+                        ),
+                        "action_id": "static_select-category",
+                    },
+                },
+                {"type": "divider"},
+                {
+                    "type": "input",
+                    "block_id": "tag",
+                    "label": {
+                        "type": "plain_text",
+                        "text": "태그",
+                    },
+                    "optional": True,
+                    "element": {
+                        "type": "plain_text_input",
+                        "action_id": "dreamy_input",
+                        "placeholder": {
+                            "type": "plain_text",
+                            "text": "태그1,태그2,태그3, ... ",
+                        },
+                        "multiline": False,
+                    },
+                },
+                {
+                    "type": "input",
+                    "block_id": "description",
+                    "optional": True,
+                    "element": {
+                        "type": "plain_text_input",
+                        "action_id": "plain_text_input-action",
+                        "placeholder": {
+                            "type": "plain_text",
+                            "text": "하고 싶은 말이 있다면 남겨주세요.",
+                        },
+                        "multiline": True,
+                    },
+                    "label": {
+                        "type": "plain_text",
+                        "text": "하고 싶은 말",
+                        "emoji": True,
+                    },
+                },
+                {
+                    "type": "input",
+                    "block_id": "manual_title_input",
+                    "label": {
+                        "type": "plain_text",
+                        "text": "글 제목(직접 입력)",
+                    },
+                    "optional": True,
+                    "element": {
+                        "type": "plain_text_input",
+                        "action_id": "title_input",
+                        "placeholder": {
+                            "type": "plain_text",
+                            "text": "'글 제목'을 직접 입력합니다.",
+                        },
+                        "multiline": False,
+                    },
+                },
+            ],
+        },
     )
 
 
-async def submit_view(ack, body, client, view, say, user_id: str, service: SlackService) -> None:
+async def submit_view(
+    ack, body, client: AsyncWebClient, view, say, user_id: str, service: SlackService
+) -> None:
     """글 제출 완료"""
     # 슬랙 앱이 구 버전일 경우 일부 block 이 사라져 키에러가 발생할 수 있음
     content_url = view["state"]["values"]["content_url"]["url_text_input-action"]["value"]
@@ -82,11 +204,76 @@ async def submit_view(ack, body, client, view, say, user_id: str, service: Slack
         )
         content.ts = message.get("ts", "")
         await service.update_user_content(content)
-    except Exception as e:
-        message = (
-            f"{service.user.name}({service.user.channel_name}) 님의 제출이 실패했어요. {str(e)}"
+
+        # TODO: 방학기간에 담소에도 글을 보낼지에 대한 메시지 전송 로직
+        # 2초 대기하는 이유는 메시지 보다 더 먼저 전송 될 수 있기 때문임
+        await asyncio.sleep(2)
+        await client.chat_postEphemeral(
+            user=user_id,
+            channel=channel_id,
+            text="여러분의 소중한 글을 더 많은 분들에게 보여드리고 싶어요. 자유로운 담소에도 전송하시겠어요?",
+            blocks=[
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": "🤗여러분의 소중한 글을 더 많은 분들에게 보여드리고 싶어요. \n자유로운 담소 채널에도 전송하시겠어요?",
+                    },
+                },
+                {
+                    "type": "actions",
+                    "elements": [
+                        {
+                            "type": "button",
+                            "text": {
+                                "type": "plain_text",
+                                "text": "전송하기",
+                            },
+                            "action_id": "forward_message",
+                            "value": content.ts,
+                            "style": "primary",
+                        }
+                    ],
+                },
+            ],
         )
-        raise BotException(message)
+
+    except Exception as e:
+        message = f"{service.user.name}({service.user.channel_name}) 님의 제출이 실패했어요. {str(e)}"  # type: ignore
+        raise BotException(message)  # type: ignore
+
+
+async def forward_message(
+    ack, body, client: AsyncWebClient, view, user_id: str, service: SlackService
+) -> None:
+    # TODO: 방학기간에 담소에도 글을 보낼지에 대한 메시지 전송 로직
+    await ack()
+
+    content_ts = body["actions"][0]["value"]
+    source_channel = body["channel"]["id"]
+    # target_channel = "C05J4FGB154"  # 자유로운 담소 채널 ID 테스트용
+    target_channel = "C0672HTT36C"  # 자유로운 담소 채널 ID 운영용
+
+    permalink_response = await client.chat_getPermalink(
+        channel=source_channel, message_ts=content_ts
+    )
+    permalink = permalink_response["permalink"]
+    content = service.get_content_by_ts(content_ts)
+
+    # 담소 채널에 보내는 메시지
+    text = f"<@{content.user_id}>님이 글을 공유했어요! \n👉 *<{permalink}|{content.title}>*"
+    await client.chat_postMessage(channel=target_channel, text=text)
+
+    # 나에게만 표시 메시지 수정하는 요청(slack bolt 에서는 지원하지 않음)
+    requests.post(
+        body["response_url"],
+        json={
+            "response_type": "ephemeral",
+            "text": f"<#{target_channel}> 에 전송되었어요. 📨",
+            "replace_original": True,
+            # "delete_original": True, # 삭제도 가능
+        },
+    )
 
 
 async def open_intro_modal(ack, body, client, view, user_id: str, service: SlackService) -> None:
