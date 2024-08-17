@@ -13,7 +13,6 @@ from typing import Callable, cast
 
 from app.slack.contents import events as contents_events
 from app.slack.core import events as core_events
-from app.slack.community import events as community_events
 from app.slack.exception import BotException
 from app.slack.repositories import SlackRepository
 from app.slack.services import SlackService
@@ -22,7 +21,11 @@ app = AsyncApp(token=settings.BOT_TOKEN)
 
 
 @app.middleware
-async def log_event_middleware(req: BoltRequest, resp: BoltResponse, next: Callable) -> None:
+async def log_event_middleware(
+    req: BoltRequest,
+    resp: BoltResponse,
+    next: Callable,
+) -> None:
     """이벤트를 로그로 남깁니다."""
     body = req.body
     if body.get("command"):
@@ -56,7 +59,11 @@ async def log_event_middleware(req: BoltRequest, resp: BoltResponse, next: Calla
 
 
 @app.middleware
-async def inject_service_middleware(req: BoltRequest, resp: BoltResponse, next: Callable) -> None:
+async def inject_service_middleware(
+    req: BoltRequest,
+    resp: BoltResponse,
+    next: Callable,
+) -> None:
     """서비스 객체를 주입합니다."""
     event = req.context.get("event")
     user_id = req.context.user_id
@@ -136,13 +143,13 @@ async def handle_error(error, body):
     )
 
 
-# community
-app.command("/저장키워드등록")(community_events.trigger_command)
-app.view("trigger_view")(community_events.trigger_view)
-
-
 @app.event("message")
-async def handle_message(ack, body, client: AsyncWebClient, service: SlackService) -> None:
+async def handle_message(
+    ack,
+    body,
+    client: AsyncWebClient,
+    service: SlackService,
+) -> None:
     await ack()
 
     event = body.get("event", {})
@@ -156,13 +163,14 @@ async def handle_message(ack, body, client: AsyncWebClient, service: SlackServic
             message = f"👋🏼 <#{user.channel_id}>채널의 {user.name}님이 <#{channel_id}>을 남겼어요."
             await client.chat_postMessage(channel=settings.ADMIN_CHANNEL, text=message)
 
-    await community_events.handle_trigger_message(client, event, service)
-
 
 @app.event("member_joined_channel")
 async def handle_member_joined_channel(ack, body) -> None:
     await ack()
 
+
+# community
+# TODO: 추후 community 기능 구현
 
 # contents
 app.command("/제출")(contents_events.submit_command)
@@ -185,8 +193,6 @@ app.action("bookmark_overflow_action")(contents_events.open_overflow_action)
 app.action("next_bookmark_page_action")(contents_events.handle_bookmark_page)
 app.action("prev_bookmark_page_action")(contents_events.handle_bookmark_page)
 app.view("handle_bookmark_page_view")(contents_events.handle_bookmark_page)
-# app.view("bookmark_search_view")(contents_events.bookmark_search_view)
-# app.view("bookmark_submit_search_view")(contents_events.bookmark_submit_search_view)
 
 # core
 app.event("app_mention")(core_events.handle_app_mention)
@@ -217,13 +223,9 @@ event_descriptions = {
     "next_bookmark_page_action": "다음 북마크 페이지",
     "prev_bookmark_page_action": "이전 북마크 페이지",
     "handle_bookmark_page_view": "북마크 페이지 이동",
-    # "bookmark_search_view": "북마크 검색 시작",
-    # "bookmark_submit_search_view": "북마크 검색 완료",
     "app_mention": "앱 멘션",
     "/예치금": "예치금 조회",
     "/제출내역": "제출내역 조회",
     "/관리자": "관리자 메뉴 조회",
     "/도움말": "도움말 조회",
-    "/저장키워드등록": "저장할 키워드 등록 시작",
-    "/trigger_view": "저장할 키워드 등록 완료",
 }

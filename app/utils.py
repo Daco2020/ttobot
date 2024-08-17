@@ -1,3 +1,4 @@
+import csv
 import regex as re
 import datetime
 
@@ -52,3 +53,18 @@ def slack_link_to_markdown(text):
     """Slack 링크를 마크다운 링크로 변환합니다."""
     pattern = re.compile(r"<(http[s]?://[^\|]+)\|([^\>]+)>")
     return pattern.sub(r"[\2](\1)", text)
+
+
+def convert_user_id_to_name(message: str) -> str:
+    """슬랙 메시지에서 user_id를 name으로 변경합니다."""
+    with open("store/users.csv") as f:
+        reader = csv.DictReader(f)
+        user_dict = {row["user_id"]: row["name"] for row in reader}
+
+    user_ids = re.findall("<@([A-Z0-9]+)>", message)
+
+    for user_id in user_ids:
+        name = user_dict.get(user_id, user_id)
+        message = message.replace(f"<@{user_id}>", name)
+
+    return message
