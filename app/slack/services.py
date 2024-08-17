@@ -126,9 +126,13 @@ class SlackService:
         round, due_date = self._user.get_due_date()
         guide_message = f"\n\n현재 회차는 {round}회차, 마감일은 {due_date} 이에요."
         if self._user.is_submit:
-            guide_message += f"\n({self._user.name} 님은 이미 {round}회차 글을 제출했어요)"
+            guide_message += (
+                f"\n({self._user.name} 님은 이미 {round}회차 글을 제출했어요)"
+            )
         else:
-            guide_message += f"\n({self._user.name} 님은 아직 {round}회차 글을 제출하지 않았어요)"
+            guide_message += (
+                f"\n({self._user.name} 님은 아직 {round}회차 글을 제출하지 않았어요)"
+            )
         await client.views_open(
             trigger_id=body["trigger_id"],
             view={
@@ -415,7 +419,8 @@ class SlackService:
                                 "value": "전체",
                             },
                             "options": static_select.options(
-                                [category.value for category in ContentCategoryEnum] + ["전체"]
+                                [category.value for category in ContentCategoryEnum]
+                                + ["전체"]
                             ),
                         },
                     },
@@ -441,9 +446,9 @@ class SlackService:
         )
 
     def _get_description(self, view) -> str:
-        description: str = view["state"]["values"]["description"]["plain_text_input-action"][
-            "value"
-        ]
+        description: str = view["state"]["values"]["description"][
+            "plain_text_input-action"
+        ]["value"]
         if not description:
             return ""
         return description
@@ -463,9 +468,9 @@ class SlackService:
         return category
 
     def _get_curation_flag(self, view) -> str:
-        curation_flag: str = view["state"]["values"]["curation"]["static_select-curation"][
-            "selected_option"
-        ]["value"]
+        curation_flag: str = view["state"]["values"]["curation"][
+            "static_select-curation"
+        ]["selected_option"]["value"]
         return curation_flag
 
     async def get_title(self, view, url: str) -> str:
@@ -477,7 +482,9 @@ class SlackService:
                     raise ClientException("비공개 글이거나, url 를 찾을 수 없어요.")
 
             # 제목을 직접 입력한 경우에는 status_code만 확인 후에 return
-            title_input = view["state"]["values"]["manual_title_input"]["title_input"]["value"]
+            title_input = view["state"]["values"]["manual_title_input"]["title_input"][
+                "value"
+            ]
             if title_input:
                 return title_input
 
@@ -501,7 +508,9 @@ class SlackService:
 
     def _tag_message(self, tag: str) -> str:
         tag_message = (
-            "\n태그 : " + " ".join([f"`{t.strip()}`" for t in tag.split(",")]) if tag else ""
+            "\n태그 : " + " ".join([f"`{t.strip()}`" for t in tag.split(",")])
+            if tag
+            else ""
         )
         return tag_message
 
@@ -521,7 +530,11 @@ class SlackService:
         if "tistory.com/manage/posts" in content_url:
             # 티스토리 posts 페이지는 글 링크가 아니므로 제외합니다.
             raise ValueError("잠깐! 입력한 링크가 '글 링크'가 맞는지 확인해주세요.")
-        if "notion." in content_url or "oopy.io" in content_url or ".site" in content_url:
+        if (
+            "notion." in content_url
+            or "oopy.io" in content_url
+            or ".site" in content_url
+        ):
             # notion.so, notion.site, oopy.io 는 title 을 크롤링하지 못하므로 직접 입력을 받는다.
             # 글 제목을 입력한 경우 통과.
             if (
@@ -538,10 +551,14 @@ class SlackService:
             message = "사용할 수 있는 pass 가 없어요."
             raise BotException(message)
         if self._user.is_prev_pass:
-            message = "직전 회차에 pass 를 사용했기 때문에 연속으로 pass 를 사용할 수 없어요."
+            message = (
+                "직전 회차에 pass 를 사용했기 때문에 연속으로 pass 를 사용할 수 없어요."
+            )
             raise BotException(message)
 
-    def create_bookmark(self, user_id: str, content_id: str, note: str = "") -> models.Bookmark:
+    def create_bookmark(
+        self, user_id: str, content_id: str, note: str = ""
+    ) -> models.Bookmark:
         """북마크를 생성합니다."""
         bookmark = models.Bookmark(user_id=user_id, content_id=content_id, note=note)
         self._user_repo.create_bookmark(bookmark)
@@ -592,99 +609,6 @@ class SlackService:
         if self._user.user_id != user_id:
             raise BotException("본인의 자기소개만 수정할 수 있습니다.")
         self._user_repo.update_user(user_id, new_intro)
-
-    def create_trigger_message(
-        self,
-        user_id: str,
-        channel_id: str,
-        trigger_word: str,
-    ) -> models.TriggerMessage:
-        """키워드 메시지를 생성합니다."""
-        trigger_message = models.TriggerMessage(
-            user_id=user_id,
-            channel_id=channel_id,
-            trigger_word=trigger_word,
-        )
-        self._user_repo.create_trigger_message(trigger_message)
-        store.trigger_message_upload_queue.append(trigger_message.to_list_for_sheet())
-        return trigger_message
-
-    def fetch_trigger_messages(self, channel_id: str | None = None) -> list[models.TriggerMessage]:
-        """키워드 메시지를 가져옵니다."""
-        triggers = self._user_repo.fetch_trigger_messages()
-
-        if not channel_id:
-            return triggers
-
-        return [tirgger for tirgger in triggers if tirgger.channel_id == channel_id]
-
-    def get_trigger_message(self, channel_id: str, message: str) -> models.TriggerMessage | None:
-        """채널과 단어가 일치하는 키워드를 조회합니다."""
-        triggers = self._user_repo.fetch_trigger_messages()
-
-        for tirgger in triggers:
-            if channel_id == tirgger.channel_id and tirgger.trigger_word in message:
-                return tirgger
-
-        return None
-
-    def create_archive_message(
-        self,
-        ts: str,
-        channel_id: str,
-        message: str,
-        user_id: str,
-        trigger_word: str,
-        file_urls: list[str],
-    ) -> models.ArchiveMessage:
-        """아카이브 메시지를 생성합니다."""
-        archive_message = models.ArchiveMessage(
-            ts=ts,
-            channel_id=channel_id,
-            message=message,
-            user_id=user_id,
-            trigger_word=trigger_word,
-            file_urls=",".join(file_urls),
-        )
-        self._user_repo.create_archive_message(archive_message)
-        store.archive_message_upload_queue.append(archive_message.to_list_for_sheet())
-        return archive_message
-
-    def fetch_archive_messages(
-        self, channel_id: str, trigger_word: str, user_id: str
-    ) -> list[models.ArchiveMessage]:
-        """아카이브 메시지를 가져옵니다."""
-        return self._user_repo.fetch_archive_messages(channel_id, trigger_word, user_id)
-
-    def update_archive_message(
-        self,
-        ts: str,
-        channel_id: str,
-        message: str,
-        user_id: str,
-        trigger_word: str,
-        file_urls: list[str],
-    ) -> bool:
-        """아카이브 메시지를 수정 또는 생성합니다."""
-        if archive_message := self._user_repo.get_archive_message(ts):
-            self._user_repo.update_archive_message(ts, message)
-            store.archive_message_update_queue.append(archive_message.to_list_for_sheet())
-            is_created = False
-        else:
-            # 수정이 아닌, 기존 메시지에 키워드를 추가한 경우 새로 생성
-            archive_message = models.ArchiveMessage(
-                ts=ts,
-                channel_id=channel_id,
-                message=message,
-                user_id=user_id,
-                trigger_word=trigger_word,
-                file_urls=",".join(file_urls),
-            )
-            self._user_repo.create_archive_message(archive_message)
-            store.archive_message_upload_queue.append(archive_message.to_list_for_sheet())
-            is_created = True
-
-        return is_created
 
     def fetch_users(self) -> list[models.User]:
         users = [models.User(**user) for user in self._user_repo._fetch_users()]

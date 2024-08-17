@@ -6,12 +6,14 @@ import requests
 import orjson
 
 from app.slack.components import static_select
-from app.constants import CONTENTS_PER_PAGE, ContentCategoryEnum
+from app.constants import ContentCategoryEnum
 from app.slack.exception import BotException, ClientException
 from slack_sdk.web.async_client import AsyncWebClient
 
 from app import models
 from app.slack.services import SlackService
+
+CONTENTS_PER_PAGE = 20
 
 
 async def submit_command(

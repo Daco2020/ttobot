@@ -1,7 +1,5 @@
 from typing import Any, TypedDict
 
-from app.models import ArchiveMessage, TriggerMessage
-
 from pydantic import BaseModel, Field
 
 
@@ -36,13 +34,3 @@ class ContentResponse(BaseModel):
             ]
         ],
     )
-
-
-class TriggerMessageResponse(BaseModel):
-    count: int = Field(..., description="조건에 맞는 트리거 메시지의 총 개수", examples=[1])
-    data: list[TriggerMessage] = Field(..., description="조회된 트리거 메시지의 배열")
-
-
-class ArchiveMessageResponse(BaseModel):
-    count: int = Field(..., description="조건에 맞는 아카이브 메시지의 총 개수", examples=[1])
-    data: list[ArchiveMessage] = Field(..., description="조회된 아카이브 메시지의 배열")

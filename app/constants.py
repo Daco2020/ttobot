@@ -59,24 +59,13 @@ HELP_TEXT = f"""
 """
 
 
-CONTENTS_PER_PAGE = 20
-
-
 class ContentCategoryEnum(str, Enum):
-    UDEMY = "유데미 후기"
-    PARTICIPATION_REVIEW = "글또 참여 후기"
-    CODETREE = "코드트리 × 글또 블로그 챌린지"
     PROJECT = "프로젝트"
     TECH = "기술 & 언어"
     CULTURE = "조직 & 문화"
     JOB = "취준 & 이직"
     DAILY = "일상 & 생각"
     ETC = "기타"
-
-
-class ArchiveMessageSortEnum(str, Enum):
-    TS = "ts"  # timestamp 이며, 슬랙 메시지에서는 pk id 로 사용된다.
-    updated_at = "updated_at"
 
 
 class ContentSortEnum(str, Enum):

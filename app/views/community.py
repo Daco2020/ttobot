@@ -1,11 +1,9 @@
 import polars as pl
 
 from starlette import status
-from fastapi import APIRouter, Depends, Query
-from app.constants import ArchiveMessageSortEnum, ContentCategoryEnum, ContentSortEnum
-from app.deps import app_service
+from fastapi import APIRouter, Query
+from app.constants import ContentCategoryEnum, ContentSortEnum
 from app import dto
-from app.services import AppService
 from app.utils import translate_keywords
 
 
@@ -49,13 +47,20 @@ async def fetch_contents(
         ],
     )
 
-    joined_df = contents_df.unique(subset=["content_url"]).join(users_df, on="user_id", how="inner")
+    joined_df = contents_df.unique(subset=["content_url"]).join(
+        users_df, on="user_id", how="inner"
+    )
 
     if keyword == "전체보기":
         # '전체보기'는 최신순으로 정렬하여 반환
         contents = joined_df.sort(["dt"], descending=descending)
         count = len(contents)
-        data = list(map(lambda x: {**x, "relevance": 0}, contents.slice(offset, limit).to_dicts()))
+        data = list(
+            map(
+                lambda x: {**x, "relevance": 0},
+                contents.slice(offset, limit).to_dicts(),
+            )
+        )
         return dto.ContentResponse(count=count, data=data)
 
     if category:
@@ -71,7 +76,9 @@ async def fetch_contents(
 
     # 키워드 매칭
     matched_dfs = [
-        joined_df.filter(joined_df.apply(lambda row: match_keyword(keyword, row)).to_series())
+        joined_df.filter(
+            joined_df.apply(lambda row: match_keyword(keyword, row)).to_series()
+        )
         for keyword in set(keywords)
     ]
     if not matched_dfs:
@@ -92,61 +99,3 @@ async def fetch_contents(
 
 def match_keyword(keyword: str, row: tuple) -> bool:
     return keyword in f"{row[1]},{row[5]},{row[7]}".lower()  # title, tags, name
-
-
-@router.get(
-    "/community/trigger_messages",
-    status_code=status.HTTP_200_OK,
-    response_model=dto.TriggerMessageResponse,
-)
-async def fetch_trigger_messages(
-    offset: int = 0,
-    limit: int = Query(default=50, le=50),
-    user_id: str | None = Query(default=None, description="유저의 슬랙 아이디"),
-    search_word: str | None = Query(default=None, description="트리거 메시지 중 검색할 단어"),
-    descending: bool = Query(default=True, description="내림차순 정렬 여부"),
-    service: AppService = Depends(app_service),
-) -> dto.TriggerMessageResponse:
-    """조건에 맞는 트리거 메시지를 가져옵니다."""
-    count, data = service.fetch_trigger_messages(
-        offset=offset,
-        limit=limit,
-        user_id=user_id,
-        search_word=search_word,
-        descending=descending,
-    )
-    return dto.TriggerMessageResponse(count=count, data=data)
-
-
-@router.get(
-    "/community/archive_messages",
-    status_code=status.HTTP_200_OK,
-    response_model=dto.ArchiveMessageResponse,
-)
-async def fetch_archive_messages(
-    offset: int = 0,
-    limit: int = Query(default=50, le=50),
-    ts: str | None = Query(default=None, description="메시지 생성 타임스탬프"),
-    user_id: str | None = Query(default=None, description="유저의 슬랙 아이디"),
-    search_word: str | None = Query(default=None, description="아카이브 메시지 중 검색할 단어"),
-    trigger_word: str | None = Query(default=None, description="트리거 단어"),
-    order_by: ArchiveMessageSortEnum = Query(
-        default=ArchiveMessageSortEnum.TS, description="정렬 기준"
-    ),
-    descending: bool = Query(default=True, description="내림차순 정렬 여부"),
-    exclude_emoji: bool = Query(default=True, description="이모지 제외 여부"),
-    service: AppService = Depends(app_service),
-) -> dto.ArchiveMessageResponse:
-    """조건에 맞는 아카이브 메시지를 가져옵니다."""
-    count, data = service.fetch_archive_messages(
-        offset=offset,
-        limit=limit,
-        ts=ts,
-        user_id=user_id,
-        search_word=search_word,
-        trigger_word=trigger_word,
-        order_by=order_by,
-        descending=descending,
-        exclude_emoji=exclude_emoji,
-    )
-    return dto.ArchiveMessageResponse(count=count, data=data)

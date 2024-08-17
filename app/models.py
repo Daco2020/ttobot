@@ -8,7 +8,7 @@ import datetime
 from app.constants import DUE_DATES
 from app.slack.exception import BotException
 
-from app.utils import slack_link_to_markdown, tz_now, tz_now_to_str
+from app.utils import tz_now, tz_now_to_str
 
 
 class User(BaseModel):
@@ -229,119 +229,5 @@ class Bookmark(StoreModel):
             self.note,
             self.status,
             self.created_at,
-            self.updated_at,
-        ]
-
-
-class TriggerMessage(StoreModel):
-    user_id: str = Field(
-        ...,
-        description="유저의 슬랙 아이디",
-        examples=["U01UJ9MUADT"],
-    )
-    channel_id: str = Field(
-        ...,
-        description="채널 아이디",
-        examples=["C01B4PVGLVB"],
-    )
-    trigger_word: str = Field(
-        ...,
-        description="트리거 단어",
-        examples=["$인사이트"],
-    )
-    created_at: str = Field(
-        default_factory=tz_now_to_str,
-        description="생성 일시",
-        examples=["2021-03-16 00:00:00"],
-    )
-
-    def to_list_for_csv(self) -> list[str]:
-        return [
-            self.user_id,
-            self.channel_id,
-            self.trigger_word,
-            self.created_at,
-        ]
-
-    def to_list_for_sheet(self) -> list[str]:
-        return [
-            self.user_id,
-            self.channel_id,
-            self.trigger_word,
-            self.created_at,
-        ]
-
-
-class ArchiveMessage(StoreModel):
-    ts: str = Field(
-        ...,
-        description="메시지 생성 타임스탬프",
-        examples=["1615844583.000100"],
-    )
-    channel_id: str = Field(
-        ...,
-        description="채널 아이디",
-        examples=["C01B4PVGLVB"],
-    )
-    trigger_word: str = Field(
-        ...,
-        description="트리거 단어",
-        examples=["$인사이트"],
-    )
-    user_id: str = Field(
-        ...,
-        description="유저의 슬랙 아이디",
-        examples=["U01UJ9MUADT"],
-    )
-    message: str = Field(
-        ...,
-        description="슬랙 메시지",
-        examples=["안녕하세요!"],
-    )
-    file_urls: str = Field(
-        ...,
-        description="첨부한 파일 url",
-        examples=["https://image1.jpg,https://image2.jpg,https://image3.jpg"],
-    )
-    updated_at: str = Field(
-        default_factory=tz_now_to_str,
-        description="업데이트 일시",
-        examples=["2021-03-16 00:00:00"],
-    )
-
-    @field_validator("ts", mode="before")
-    def get_ts(cls, v: str | float) -> str:
-        return str(v)
-
-    @field_validator("message", mode="before")
-    def get_message(cls, v: str) -> str:
-        return (
-            slack_link_to_markdown(v)
-            .replace("\n", "<br>")
-            .replace("&lt;", "<")
-            .replace("&gt;", ">")
-            .replace("&nbsp;", " ")
-            .replace("&amp;", "&")
-        )
-
-    def to_list_for_csv(self) -> list[str]:
-        return [
-            self.ts,
-            self.channel_id,
-            self.trigger_word,
-            self.user_id,
-            self.message,
-            self.file_urls,
-            self.updated_at,
-        ]
-
-    def to_list_for_sheet(self) -> list[str]:
-        return [
-            self.ts,
-            self.channel_id,
-            self.trigger_word,
-            self.user_id,
-            self.message,
-            self.file_urls,
             self.updated_at,
         ]
