@@ -225,3 +225,4 @@ store
 
 # Ignore nohup.out
 nohup.out
+.ruff_cache
