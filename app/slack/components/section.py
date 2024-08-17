@@ -1,11 +1,28 @@
 from typing import Any, TypedDict
 
+from app.slack.components.types import (
+    DatePickerAccessory,
+    MrkdwnText,
+    PlainText,
+    SectionButtonAccessory,
+    SectionCheckboxAccessory,
+    SectionLinkButtonAccessory,
+    SectionMrkdwnText,
+    SectionMultiConversationsSelectAccessory,
+    SectionMultiStaticSelectAccessory,
+    SectionPlainText,
+    SectionRadioButtonsAccessory,
+    SectionStaticSelectAccessory,
+    SectionUsersSelectAccessory,
+    TimePickerAccessory,
+)
+
 
 def section(
     *,
-    text: dict[str, Any],
+    text: PlainText | MrkdwnText,
     accessory: dict[str, Any] | None = None,
-):
+) -> Any:
     """
     섹션 블록을 생성합니다.
 
@@ -36,16 +53,10 @@ def section(
     return section
 
 
-class PlainText(TypedDict):
-    type: str
-    text: str
-    emoji: bool
-
-
 def plain_text(
     *,
     text: str,
-) -> PlainText:
+) -> SectionPlainText:
     """
     # Example
     {
@@ -57,22 +68,19 @@ def plain_text(
         },
     }
     """
-    return {
-        "type": "plain_text",
-        "text": text,
-        "emoji": True,
-    }
-
-
-class MrkdwnText(TypedDict):
-    type: str
-    text: str
+    return section(
+        text={
+            "type": "plain_text",
+            "text": text,
+            "emoji": True,
+        }
+    )
 
 
 def mrkdwn_text(
     *,
     text: str,
-) -> MrkdwnText:
+) -> SectionMrkdwnText:
     """
     # Example
     {
@@ -83,23 +91,20 @@ def mrkdwn_text(
         },
     }
     """
-    return {
-        "type": "mrkdwn",
-        "text": text,
-    }
-
-
-class UsersSelectAccessory(TypedDict):
-    type: str
-    placeholder: dict[str, Any]
-    action_id: str
+    return section(
+        text={
+            "type": "mrkdwn",
+            "text": text,
+        }
+    )
 
 
 def users_select_accessory(
     *,
+    text: PlainText | MrkdwnText,
     placeholder_text: str,
     action_id: str,
-) -> UsersSelectAccessory:
+) -> SectionUsersSelectAccessory:
     """
     # Example
     {
@@ -112,26 +117,27 @@ def users_select_accessory(
         },
     }
     """
-    return {
-        "type": "users_select",
-        "placeholder": {"type": "plain_text", "text": placeholder_text, "emoji": True},
-        "action_id": action_id,
-    }
-
-
-class StaticSelectAccessory(TypedDict):
-    type: str
-    placeholder: dict[str, Any]
-    options: list[dict[str, Any]]
-    action_id: str
+    return section(
+        text=text,
+        accessory={
+            "type": "users_select",
+            "placeholder": {
+                "type": "plain_text",
+                "text": placeholder_text,
+                "emoji": True,
+            },
+            "action_id": action_id,
+        },
+    )
 
 
 def static_select_accessory(
     *,
+    text: PlainText | MrkdwnText,
     placeholder_text: str,
     options: list[dict[str, Any]],
     action_id: str,
-) -> StaticSelectAccessory:
+) -> SectionStaticSelectAccessory:
     """
     # Example
     {
@@ -170,31 +176,28 @@ def static_select_accessory(
         },
     }
     """
-    return {
-        "type": "static_select",
-        "placeholder": {
-            "type": "plain_text",
-            "text": placeholder_text,
-            "emoji": True,
+    return section(
+        text=text,
+        accessory={
+            "type": "static_select",
+            "placeholder": {
+                "type": "plain_text",
+                "text": placeholder_text,
+                "emoji": True,
+            },
+            "options": options,
+            "action_id": action_id,
         },
-        "options": options,
-        "action_id": action_id,
-    }
-
-
-class MultiStaticSelectAccessory(TypedDict):
-    type: str
-    placeholder: dict[str, Any]
-    options: list[dict[str, Any]]
-    action_id: str
+    )
 
 
 def multi_static_select_accessory(
     *,
+    text: PlainText | MrkdwnText,
     placeholder_text: str,
     options: list[dict[str, Any]],
     action_id: str,
-) -> MultiStaticSelectAccessory:
+) -> SectionMultiStaticSelectAccessory:
     """
     # Example
     {
@@ -233,29 +236,27 @@ def multi_static_select_accessory(
         },
     }
     """
-    return {
-        "type": "multi_static_select",
-        "placeholder": {
-            "type": "plain_text",
-            "text": placeholder_text,
-            "emoji": True,
+    return section(
+        text=text,
+        accessory={
+            "type": "multi_static_select",
+            "placeholder": {
+                "type": "plain_text",
+                "text": placeholder_text,
+                "emoji": True,
+            },
+            "options": options,
+            "action_id": action_id,
         },
-        "options": options,
-        "action_id": action_id,
-    }
-
-
-class MultiConversationsSelectAccessory(TypedDict):
-    type: str
-    placeholder: dict[str, Any]
-    action_id: str
+    )
 
 
 def multi_conversations_select_accessory(
     *,
+    text: PlainText | MrkdwnText,
     placeholder_text: str,
     action_id: str,
-) -> MultiConversationsSelectAccessory:
+) -> SectionMultiConversationsSelectAccessory:
     """
     # Example
     {
@@ -272,30 +273,27 @@ def multi_conversations_select_accessory(
         },
     }
     """
-    return {
-        "type": "multi_conversations_select",
-        "placeholder": {
-            "type": "plain_text",
-            "text": placeholder_text,
-            "emoji": True,
+    return section(
+        text=text,
+        accessory={
+            "type": "multi_conversations_select",
+            "placeholder": {
+                "type": "plain_text",
+                "text": placeholder_text,
+                "emoji": True,
+            },
+            "action_id": action_id,
         },
-        "action_id": action_id,
-    }
-
-
-class ButtonAccessory(TypedDict):
-    type: str
-    text: dict[str, Any]
-    value: str
-    action_id: str
+    )
 
 
 def button_accessory(
     *,
-    text: str,
+    text: PlainText | MrkdwnText,
+    button_text: str,
     value: str,
     action_id: str,
-) -> ButtonAccessory:
+) -> SectionButtonAccessory:
     """
     # Example
     {
@@ -309,29 +307,25 @@ def button_accessory(
         },
     }
     """
-    return {
-        "type": "button",
-        "text": {"type": "plain_text", "text": text, "emoji": True},
-        "value": value,
-        "action_id": action_id,
-    }
-
-
-class LinkButtonAccessory(TypedDict):
-    type: str
-    text: dict[str, Any]
-    value: str
-    url: str
-    action_id: str
+    return section(
+        text=text,
+        accessory={
+            "type": "button",
+            "text": {"type": "plain_text", "text": button_text, "emoji": True},
+            "value": value,
+            "action_id": action_id,
+        },
+    )
 
 
 def link_button_accessory(
     *,
-    text: str,
+    text: PlainText | MrkdwnText,
+    button_text: str,
     value: str,
     url: str,
     action_id: str,
-) -> LinkButtonAccessory:
+) -> SectionLinkButtonAccessory:
     """
     # Example
     {
@@ -346,13 +340,16 @@ def link_button_accessory(
         },
     }
     """
-    return {
-        "type": "button",
-        "text": {"type": "plain_text", "text": text, "emoji": True},
-        "value": value,
-        "url": url,
-        "action_id": action_id,
-    }
+    return section(
+        text=text,
+        accessory={
+            "type": "button",
+            "text": {"type": "plain_text", "text": button_text, "emoji": True},
+            "value": value,
+            "url": url,
+            "action_id": action_id,
+        },
+    )
 
 
 class ImageAccessory(TypedDict):
@@ -361,11 +358,18 @@ class ImageAccessory(TypedDict):
     alt_text: str
 
 
+class SectionImageAccessory(TypedDict):
+    type: str
+    text: PlainText | MrkdwnText
+    accessory: ImageAccessory
+
+
 def image_accessory(
     *,
+    text: PlainText | MrkdwnText,
     image_url: str,
     alt_text: str,
-) -> ImageAccessory:
+) -> SectionImageAccessory:
     """
     # Example
     {
@@ -381,11 +385,14 @@ def image_accessory(
         },
     }
     """
-    return {
-        "type": "image",
-        "image_url": image_url,
-        "alt_text": alt_text,
-    }
+    return section(
+        text=text,
+        accessory={
+            "type": "image",
+            "image_url": image_url,
+            "alt_text": alt_text,
+        },
+    )
 
 
 class SlackImageAccessory(TypedDict):
@@ -394,11 +401,18 @@ class SlackImageAccessory(TypedDict):
     alt_text: str
 
 
+class SectionSlackImageAccessory(TypedDict):
+    type: str
+    text: PlainText | MrkdwnText
+    accessory: SlackImageAccessory
+
+
 def slack_image_accessory(
     *,
+    text: PlainText | MrkdwnText,
     slack_file: dict[str, Any],
     alt_text: str,
-) -> SlackImageAccessory:
+) -> SectionSlackImageAccessory:
     """
     # Example
     {
@@ -414,11 +428,14 @@ def slack_image_accessory(
         },
     }
     """
-    return {
-        "type": "image",
-        "slack_file": {"url": slack_file},
-        "alt_text": alt_text,
-    }
+    return section(
+        text=text,
+        accessory={
+            "type": "image",
+            "slack_file": {"url": slack_file},
+            "alt_text": alt_text,
+        },
+    )
 
 
 class OverflowAccessory(TypedDict):
@@ -427,11 +444,18 @@ class OverflowAccessory(TypedDict):
     action_id: str
 
 
+class SectionOverflowAccessory(TypedDict):
+    type: str
+    text: PlainText | MrkdwnText
+    accessory: OverflowAccessory
+
+
 def overflow_accessory(
     *,
+    text: PlainText | MrkdwnText,
     options: list[dict[str, Any]],
     action_id: str,
-) -> OverflowAccessory:
+) -> SectionOverflowAccessory:
     """
     # Example
     {
@@ -472,24 +496,22 @@ def overflow_accessory(
         },
     }
     """
-    return {
-        "type": "overflow",
-        "options": options,
-        "action_id": action_id,
-    }
-
-
-class CheckboxAccessory(TypedDict):
-    type: str
-    options: list[dict[str, Any]]
-    action_id: str
+    return section(
+        text=text,
+        accessory={
+            "type": "overflow",
+            "options": options,
+            "action_id": action_id,
+        },
+    )
 
 
 def checkbox_accessory(
     *,
+    text: PlainText | MrkdwnText,
     options: list[dict[str, Any]],
     action_id: str,
-) -> CheckboxAccessory:
+) -> SectionCheckboxAccessory:
     """
     # Example
     {
@@ -518,24 +540,22 @@ def checkbox_accessory(
         },
     }
     """
-    return {
-        "type": "checkboxes",
-        "options": options,
-        "action_id": action_id,
-    }
-
-
-class RadioButtonsAccessory(TypedDict):
-    type: str
-    options: list[dict[str, Any]]
-    action_id: str
+    return section(
+        text=text,
+        accessory={
+            "type": "checkboxes",
+            "options": options,
+            "action_id": action_id,
+        },
+    )
 
 
 def radio_buttons_accessory(
     *,
+    text: PlainText | MrkdwnText,
     options: list[dict[str, Any]],
     action_id: str,
-) -> RadioButtonsAccessory:
+) -> SectionRadioButtonsAccessory:
     """
     # Example
     {
@@ -573,22 +593,19 @@ def radio_buttons_accessory(
         },
     }
     """
-    return {
-        "type": "radio_buttons",
-        "options": options,
-        "action_id": action_id,
-    }
-
-
-class DatePickerAccessory(TypedDict):
-    type: str
-    initial_date: str
-    placeholder: dict[str, Any]
-    action_id: str
+    return section(
+        text=text,
+        accessory={
+            "type": "radio_buttons",
+            "options": options,
+            "action_id": action_id,
+        },
+    )
 
 
 def date_picker_accessory(
     *,
+    text: PlainText | MrkdwnText,
     initial_date: str,
     placeholder_text: str,
     action_id: str,
@@ -610,23 +627,24 @@ def date_picker_accessory(
         },
     }
     """
-    return {
-        "type": "datepicker",
-        "initial_date": initial_date,
-        "placeholder": {"type": "plain_text", "text": placeholder_text, "emoji": True},
-        "action_id": action_id,
-    }
-
-
-class TimePickerAccessory(TypedDict):
-    type: str
-    initial_time: str
-    placeholder: dict[str, Any]
-    action_id: str
+    return section(
+        text=text,
+        accessory={
+            "type": "datepicker",
+            "initial_date": initial_date,
+            "placeholder": {
+                "type": "plain_text",
+                "text": placeholder_text,
+                "emoji": True,
+            },
+            "action_id": action_id,
+        },
+    )
 
 
 def time_picker_accessory(
     *,
+    text: PlainText | MrkdwnText,
     initial_time: str,
     placeholder_text: str,
     action_id: str,
@@ -648,9 +666,16 @@ def time_picker_accessory(
         },
     }
     """
-    return {
-        "type": "timepicker",
-        "initial_time": initial_time,
-        "placeholder": {"type": "plain_text", "text": placeholder_text, "emoji": True},
-        "action_id": action_id,
-    }
+    return section(
+        text=text,
+        accessory={
+            "type": "timepicker",
+            "initial_time": initial_time,
+            "placeholder": {
+                "type": "plain_text",
+                "text": placeholder_text,
+                "emoji": True,
+            },
+            "action_id": action_id,
+        },
+    )
