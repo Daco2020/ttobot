@@ -14,7 +14,14 @@ from app import models
 from app.slack.services import SlackService
 
 
-async def submit_command(ack, body, say, client, user_id: str, service: SlackService) -> None:
+async def submit_command(
+    ack,
+    body,
+    say,
+    client,
+    user_id: str,
+    service: SlackService,
+) -> None:
     """글 제출 시작"""
     await ack()
 
@@ -144,11 +151,19 @@ async def submit_command(ack, body, say, client, user_id: str, service: SlackSer
 
 
 async def submit_view(
-    ack, body, client: AsyncWebClient, view, say, user_id: str, service: SlackService
+    ack,
+    body,
+    client: AsyncWebClient,
+    view,
+    say,
+    user_id: str,
+    service: SlackService,
 ) -> None:
     """글 제출 완료"""
     # 슬랙 앱이 구 버전일 경우 일부 block 이 사라져 키에러가 발생할 수 있음
-    content_url = view["state"]["values"]["content_url"]["url_text_input-action"]["value"]
+    content_url = view["state"]["values"]["content_url"]["url_text_input-action"][
+        "value"
+    ]
     channel_id = view["private_metadata"]
     username = body["user"]["username"]
 
@@ -163,7 +178,9 @@ async def submit_view(
     await ack()
 
     try:
-        content = await service.create_submit_content(title, content_url, username, view)
+        content = await service.create_submit_content(
+            title, content_url, username, view
+        )
         # 해당 text 는 슬랙 활동 탭에서 표시되는 메시지이며, 누가 어떤 링크를 제출했는지 확인합니다.
         text = f"*<@{content.user_id}>님 제출 완료.* 링크 : *<{content.content_url}|{re.sub('<|>', '', title if content.title != 'title unknown.' else content.content_url)}>*"
         message = await client.chat_postMessage(
@@ -244,7 +261,12 @@ async def submit_view(
 
 
 async def forward_message(
-    ack, body, client: AsyncWebClient, view, user_id: str, service: SlackService
+    ack,
+    body,
+    client: AsyncWebClient,
+    view,
+    user_id: str,
+    service: SlackService,
 ) -> None:
     # TODO: 방학기간에 담소에도 글을 보낼지에 대한 메시지 전송 로직
     await ack()
@@ -276,7 +298,14 @@ async def forward_message(
     )
 
 
-async def open_intro_modal(ack, body, client, view, user_id: str, service: SlackService) -> None:
+async def open_intro_modal(
+    ack,
+    body,
+    client,
+    view,
+    user_id: str,
+    service: SlackService,
+) -> None:
     """다른 유저의 자기소개 확인"""
     await ack()
 
@@ -316,7 +345,13 @@ async def open_intro_modal(ack, body, client, view, user_id: str, service: Slack
 
 
 async def edit_intro_view(
-    ack, body, client, view, say, user_id: str, service: SlackService
+    ack,
+    body,
+    client,
+    view,
+    say,
+    user_id: str,
+    service: SlackService,
 ) -> None:
     """자기소개 수정 시작"""
     await ack(
@@ -403,7 +438,14 @@ async def submit_intro_view(
     )
 
 
-async def contents_modal(ack, body, client, view, user_id: str, service: SlackService) -> None:
+async def contents_modal(
+    ack,
+    body,
+    client,
+    view,
+    user_id: str,
+    service: SlackService,
+) -> None:
     """다른 유저의 제출한 글 목록 확인"""
     await ack()
 
@@ -421,7 +463,14 @@ async def contents_modal(ack, body, client, view, user_id: str, service: SlackSe
     )
 
 
-async def bookmark_modal(ack, body, client, view, user_id: str, service: SlackService) -> None:
+async def bookmark_modal(
+    ack,
+    body,
+    client,
+    view,
+    user_id: str,
+    service: SlackService,
+) -> None:
     # TODO: 글 검색에서 넘어온 경우 북마크 저장 후 검색 모달로 돌아가야 함
     """북마크 저장 시작"""
     await ack()
@@ -441,7 +490,9 @@ async def bookmark_modal(ack, body, client, view, user_id: str, service: SlackSe
         await client.views_open(trigger_id=body["trigger_id"], view=view)
 
 
-def get_bookmark_view(content_id: str, bookmark: models.Bookmark | None) -> dict[str, Any]:
+def get_bookmark_view(
+    content_id: str, bookmark: models.Bookmark | None
+) -> dict[str, Any]:
     if bookmark is not None:
         # 이미 북마크가 되어 있다면 이를 사용자에게 알린다.
         view = {
@@ -497,7 +548,15 @@ def get_bookmark_view(content_id: str, bookmark: models.Bookmark | None) -> dict
     return view
 
 
-async def bookmark_view(ack, body, client, view, say, user_id: str, service: SlackService) -> None:
+async def bookmark_view(
+    ack,
+    body,
+    client,
+    view,
+    say,
+    user_id: str,
+    service: SlackService,
+) -> None:
     """북마크 저장 완료"""
     await ack()
 
@@ -524,7 +583,14 @@ async def bookmark_view(ack, body, client, view, say, user_id: str, service: Sla
     )
 
 
-async def pass_command(ack, body, say, client, user_id: str, service: SlackService) -> None:
+async def pass_command(
+    ack,
+    body,
+    say,
+    client,
+    user_id: str,
+    service: SlackService,
+) -> None:
     """글 패스 시작"""
     await ack()
 
@@ -535,7 +601,15 @@ async def pass_command(ack, body, say, client, user_id: str, service: SlackServi
     )
 
 
-async def pass_view(ack, body, client, view, say, user_id: str, service: SlackService) -> None:
+async def pass_view(
+    ack,
+    body,
+    client,
+    view,
+    say,
+    user_id: str,
+    service: SlackService,
+) -> None:
     """글 패스 완료"""
     await ack()
 
@@ -550,20 +624,32 @@ async def pass_view(ack, body, client, view, say, user_id: str, service: SlackSe
         content.ts = message.get("ts", "")
         await service.update_user_content(content)
     except Exception as e:
-        message = (
-            f"{service.user.name}({service.user.channel_name}) 님의 패스가 실패했어요. {str(e)}"
-        )
+        message = f"{service.user.name}({service.user.channel_name}) 님의 패스가 실패했어요. {str(e)}"
         raise BotException(message)
 
 
-async def search_command(ack, body, say, client, user_id: str, service: SlackService) -> None:
+async def search_command(
+    ack,
+    body,
+    say,
+    client,
+    user_id: str,
+    service: SlackService,
+) -> None:
     """글 검색 시작"""
     await ack()
 
     await service.open_search_modal(body, client)
 
 
-async def submit_search(ack, body, client, view, user_id: str, service: SlackService) -> None:
+async def submit_search(
+    ack,
+    body,
+    client,
+    view,
+    user_id: str,
+    service: SlackService,
+) -> None:
     """글 검색 완료"""
     name = _get_name(body)
     category = _get_category(body)
@@ -588,7 +674,14 @@ async def submit_search(ack, body, client, view, user_id: str, service: SlackSer
     )
 
 
-async def web_search(ack, body, client, view, user_id: str, service: SlackService) -> None:
+async def web_search(
+    ack,
+    body,
+    client,
+    view,
+    user_id: str,
+    service: SlackService,
+) -> None:
     """웹 검색 시작"""
     await ack()
 
@@ -645,7 +738,14 @@ def _fetch_blocks(contents: list[models.Content]) -> list[dict[str, Any]]:
     return blocks
 
 
-async def back_to_search_view(ack, body, say, client, user_id: str, service: SlackService) -> None:
+async def back_to_search_view(
+    ack,
+    body,
+    say,
+    client,
+    user_id: str,
+    service: SlackService,
+) -> None:
     """글 검색 다시 시작"""
     view = {
         "type": "modal",
@@ -776,7 +876,14 @@ def _get_keyword(body) -> str:
     return keyword
 
 
-async def bookmark_command(ack, body, say, client, user_id: str, service: SlackService) -> None:
+async def bookmark_command(
+    ack,
+    body,
+    say,
+    client,
+    user_id: str,
+    service: SlackService,
+) -> None:
     """북마크 조회"""
     await ack()
 
@@ -819,7 +926,12 @@ async def bookmark_command(ack, body, say, client, user_id: str, service: SlackS
 
 
 async def handle_bookmark_page(
-    ack, body, say, client: AsyncWebClient, user_id: str, service: SlackService
+    ack,
+    body,
+    say,
+    client: AsyncWebClient,
+    user_id: str,
+    service: SlackService,
 ) -> None:
     """북마크 페이지 이동"""
     await ack()
@@ -944,7 +1056,9 @@ def _fetch_bookmark_blocks(
             )
 
             note = [
-                bookmark.note for bookmark in bookmarks if content.content_id == bookmark.content_id
+                bookmark.note
+                for bookmark in bookmarks
+                if content.content_id == bookmark.content_id
             ][0]
 
             blocks.append(
@@ -961,7 +1075,13 @@ def _fetch_bookmark_blocks(
 
 
 async def open_overflow_action(
-    ack, body, client, view, say, user_id: str, service: SlackService
+    ack,
+    body,
+    client,
+    view,
+    say,
+    user_id: str,
+    service: SlackService,
 ) -> None:
     """북마크 메뉴 선택"""
     await ack()
@@ -1016,7 +1136,7 @@ def _get_content_metrix(
 
 # TODO: 니즈가 확인되는 경우 활성화
 # async def bookmark_search_view(
-#     ack, body, say, client, user_id: str, service: SlackService
+#     ack, body, say, client, user_id: str, service: SlackService,
 # ) -> None:
 #     """북마크 검색 시작"""
 #     view = {
