@@ -3,8 +3,8 @@ from slack_bolt import BoltRequest
 from app import models
 from fastapi import APIRouter, Depends, Request, HTTPException
 from fastapi.responses import JSONResponse
-from app.auth import login
-from app.auth import current_user
+from app.api.auth import login
+from app.api.auth import current_user
 from app.config import settings
 from fastapi.responses import RedirectResponse
 from slack_bolt.oauth.oauth_settings import OAuthSettings
@@ -49,7 +49,9 @@ async def slack_callback(
 
     result = oauth_flow.run_installation(code=code)
     if not result:
-        raise HTTPException(status_code=403, detail="Slack OAuth Error: Failed to run installation")
+        raise HTTPException(
+            status_code=403, detail="Slack OAuth Error: Failed to run installation"
+        )
 
     response = JSONResponse(status_code=200, content={"message": "success"})
     login(response, payload={"user_id": result.user_id})

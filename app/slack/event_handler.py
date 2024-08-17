@@ -13,7 +13,7 @@ from typing import Callable, cast
 
 from app.slack.events import contents as contents_events
 from app.slack.events import core as core_events
-from app.slack.exception import BotException
+from app.exception import BotException
 from app.slack.repositories import SlackRepository
 from app.slack.services import SlackService
 

@@ -8,8 +8,8 @@ from fastapi import Cookie, Depends, HTTPException, Response
 
 from datetime import datetime, timedelta, timezone
 from typing import Any, cast
-from app.deps import user_repo
-from app.repositories import UserRepository
+from app.api.deps import user_repo
+from app.api.repositories import UserRepository
 
 from app.utils import tz_now
 
@@ -78,7 +78,8 @@ async def current_user(
             result = decode_token(access_token)
         except Exception:
             raise HTTPException(
-                status_code=403, detail=f"토큰이 유효하지 않습니다. token: {access_token}"
+                status_code=403,
+                detail=f"토큰이 유효하지 않습니다. token: {access_token}",
             )
 
         if user_id := result.get("user_id", None):

@@ -6,7 +6,7 @@ import httpx
 from app.constants import URL_REGEX, ContentCategoryEnum
 from app.logging import log_event, logger
 from app.constants import MAX_PASS_COUNT
-from app.slack.exception import BotException, ClientException
+from app.exception import BotException, ClientException
 from app.slack.repositories import SlackRepository
 from app.slack.components import static_select
 from app.constants import remind_message

@@ -6,17 +6,20 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 from app.config import settings
 from app.store import Store
-from app.views.community import router as community_router
-from app.views.login import router as login_router
+from app.api.views.community import router as community_router
+from app.api.views.login import router as login_router
 from slack_bolt.adapter.socket_mode.aiohttp import AsyncSocketModeHandler
 from fastapi.middleware.cors import CORSMiddleware
 from app.slack.services import SlackReminderService
-from app.constants import DUE_DATES
+
 
 from slack_bolt.async_app import AsyncApp
-from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from app.slack.event_handler import app as slack_app
-from datetime import datetime, time
+
+# from apscheduler.schedulers.asyncio import AsyncIOScheduler
+# from app.constants import DUE_DATES
+# from datetime import datetime, time
+
 
 app = FastAPI()
 

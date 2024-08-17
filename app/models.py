@@ -6,7 +6,7 @@ from zoneinfo import ZoneInfo
 from pydantic import BaseModel, Field, field_validator
 import datetime
 from app.constants import DUE_DATES
-from app.slack.exception import BotException
+from app.exception import BotException
 
 from app.utils import tz_now, tz_now_to_str
 

@@ -4,7 +4,7 @@ import pandas as pd
 
 from app import store
 from app import models
-from app.slack.exception import BotException
+from app.exception import BotException
 from app.utils import tz_now_to_str
 
 

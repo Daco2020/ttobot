@@ -1,5 +1,5 @@
-from app.repositories import UserRepository
-from app.services import AppService
+from app.api.repositories import UserRepository
+from app.api.services import AppService
 
 
 def app_service() -> AppService:

@@ -1,16 +1,5 @@
-from typing import Any, TypedDict
-
+from typing import Any
 from pydantic import BaseModel, Field
-
-
-class Content(TypedDict):
-    user_id: str
-    name: str
-    title: str
-    content_url: str
-    dt: str
-    category: str
-    tags: str
 
 
 class ContentResponse(BaseModel):

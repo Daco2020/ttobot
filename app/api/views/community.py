@@ -3,7 +3,7 @@ import polars as pl
 from starlette import status
 from fastapi import APIRouter, Query
 from app.constants import ContentCategoryEnum, ContentSortEnum
-from app import dto
+from app.api import dto
 from app.utils import translate_keywords
 
 
