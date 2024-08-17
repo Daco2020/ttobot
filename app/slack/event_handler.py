@@ -11,8 +11,8 @@ from slack_bolt.response import BoltResponse
 
 from typing import Callable, cast
 
-from app.slack.contents import events as contents_events
-from app.slack.core import events as core_events
+from app.slack.events import contents as contents_events
+from app.slack.events import core as core_events
 from app.slack.exception import BotException
 from app.slack.repositories import SlackRepository
 from app.slack.services import SlackService
