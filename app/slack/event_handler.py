@@ -61,7 +61,7 @@ async def log_event_middleware(
 
 
 @app.middleware
-async def inject_service_middleware(
+async def dependency_injection_middleware(
     req: BoltRequest,
     resp: BoltResponse,
     next: Callable,
@@ -80,6 +80,7 @@ async def inject_service_middleware(
     user = user_repo.get_user(cast(str, user_id))
     if user:
         req.context["service"] = SlackService(user_repo=user_repo, user=user)
+        req.context["user"] = user
         await next()
         return
 

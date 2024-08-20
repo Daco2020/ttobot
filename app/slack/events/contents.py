@@ -6,9 +6,11 @@ import requests
 import orjson
 
 from app.slack.components import static_select
-from app.constants import ContentCategoryEnum
+from app.constants import MAX_PASS_COUNT, ContentCategoryEnum
 from app.exception import BotException, ClientException
 from slack_sdk.web.async_client import AsyncWebClient
+from slack_sdk.models.views import View
+from slack_sdk.models.blocks import SectionBlock, InputBlock, PlainTextInputElement
 
 from app import models
 from app.slack.services import SlackService
@@ -590,16 +592,55 @@ async def pass_command(
     body,
     say,
     client,
-    user_id: str,
+    user: models.User,
     service: SlackService,
 ) -> None:
     """글 패스 시작"""
     await ack()
 
-    await service.open_pass_modal(
-        body=body,
-        client=client,
-        view_name="pass_view",
+    await service.validate_pass(body=body)
+
+    pass_count = user.pass_count
+    round, due_date = user.get_due_date()
+
+    if user.is_submit:
+        text = f"🤗 {user.name} 님은 이미 {round}회차(마감일: {due_date}) 글을 제출했어요. 제출내역을 확인해주세요."
+        await client.chat_postEphemeral(
+            channel=body["channel_id"],
+            user=user.user_id,
+            text=text,
+        )
+        return
+
+    await client.views_open(
+        trigger_id=body["trigger_id"],
+        view=View(
+            type="modal",
+            private_metadata=body["channel_id"],
+            callback_id="pass_view",
+            title="또봇",
+            submit="패스",
+            blocks=[
+                SectionBlock(
+                    block_id="required_section",
+                    text=f"패스 하려면 아래 '패스' 버튼을 눌러주세요.\
+                        \n\n아래 유의사항을 확인해주세요.\
+                        \n- 현재 회차는 {round}회차, 마감일은 {due_date} 이에요.\
+                        \n- 패스는 연속으로 사용할 수 없어요.\
+                        \n- 남은 패스는 {MAX_PASS_COUNT - pass_count}번 이에요.",
+                ),
+                InputBlock(
+                    block_id="description",
+                    optional=True,
+                    label="하고 싶은 말",
+                    element=PlainTextInputElement(
+                        action_id="plain_text_input-action",
+                        placeholder="하고 싶은 말이 있다면 남겨주세요.",
+                        multiline=True,
+                    ),
+                ),
+            ],
+        ),
     )
 
 

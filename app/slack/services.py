@@ -285,64 +285,11 @@ class SlackService:
             },
         )
 
-    async def open_pass_modal(self, body, client, view_name: str) -> None:
-        """패스 모달을 띄웁니다."""
+    async def validate_pass(self, body) -> None:
+        """패스 유효성 검사"""
+        # TODO: 유저 모델로 분리
         self._check_channel(body["channel_id"])
         await self._validate_pass()
-
-        pass_count = self._user.pass_count
-        round, due_date = self._user.get_due_date()
-
-        if self._user.is_submit and self._user.channel_id != "ALL":
-            await client.chat_postEphemeral(
-                channel=self._user.channel_id,
-                user=self._user.user_id,
-                text=f"🤗 {self._user.name} 님은 이미 {round}회차(마감일: {due_date}) 글을 제출했어요. 제출내역을 확인해주세요.",  # noqa E501
-            )
-            return
-        await client.views_open(
-            trigger_id=body["trigger_id"],
-            view={
-                "type": "modal",
-                "private_metadata": body["channel_id"],
-                "callback_id": view_name,
-                "title": {"type": "plain_text", "text": "또봇"},
-                "submit": {"type": "plain_text", "text": "패스"},
-                "blocks": [
-                    {
-                        "type": "section",
-                        "block_id": "required_section",
-                        "text": {
-                            "type": "mrkdwn",
-                            "text": f"패스 하려면 아래 '패스' 버튼을 눌러주세요.\
-                            \n\n아래 유의사항을 확인해주세요.\
-                            \n- 현재 회차는 {round}회차, 마감일은 {due_date} 이에요.\
-                            \n- 패스는 연속으로 사용할 수 없어요.\
-                            \n- 남은 패스는 {MAX_PASS_COUNT - pass_count}번 이에요.",
-                        },
-                    },
-                    {
-                        "type": "input",
-                        "block_id": "description",
-                        "optional": True,
-                        "element": {
-                            "type": "plain_text_input",
-                            "action_id": "plain_text_input-action",
-                            "placeholder": {
-                                "type": "plain_text",
-                                "text": "하고 싶은 말이 있다면 남겨주세요.",
-                            },
-                            "multiline": True,
-                        },
-                        "label": {
-                            "type": "plain_text",
-                            "text": "하고 싶은 말",
-                            "emoji": True,
-                        },
-                    },
-                ],
-            },
-        )
 
     async def open_search_modal(self, body, client) -> dict[str, Any]:
         return await client.views_open(
