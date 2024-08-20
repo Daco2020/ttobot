@@ -8,6 +8,8 @@ from app.logging import log_event
 from loguru import logger
 from slack_bolt.request import BoltRequest
 from slack_bolt.response import BoltResponse
+from slack_sdk.models.blocks import SectionBlock
+from slack_sdk.models.views import View
 
 from typing import Callable, cast
 
@@ -118,22 +120,15 @@ async def handle_error(error, body):
     else:
         message = "예기치 못한 오류가 발생했어요."
 
+    text = f"🥲 {message}\n\n👉🏼 궁금한 사항은 <#{settings.SUPPORT_CHANNEL}> 채널로 문의해주세요."
     if trigger_id := body.get("trigger_id"):
         await app.client.views_open(
             trigger_id=trigger_id,
-            view={
-                "type": "modal",
-                "title": {"type": "plain_text", "text": "잠깐!"},
-                "blocks": [
-                    {
-                        "type": "section",
-                        "text": {
-                            "type": "mrkdwn",
-                            "text": f"🥲 {message}\n\n👉🏼 궁금한 사항은 <#{settings.SUPPORT_CHANNEL}> 채널로 문의해주세요.",  # noqa E501
-                        },
-                    }
-                ],
-            },
+            view=View(
+                type="modal",
+                title={"type": "plain_text", "text": "잠깐!"},
+                blocks=[SectionBlock(text=text)],
+            ),
         )
 
     # 관리자에게 에러를 알립니다.
