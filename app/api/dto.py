@@ -17,7 +17,7 @@ class ContentResponse(BaseModel):
                     "category": "기술 & 언어",
                     "tags": "python,코딩테스트",
                     "name": "김현준",
-                    "cohort": "9기",
+                    "cohort": "10기",
                     "relevance": 1,
                 }
             ]

@@ -31,7 +31,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-slack_handler = AsyncSocketModeHandler(slack_app, settings.APP_TOKEN)
+slack_handler = AsyncSocketModeHandler(slack_app, settings.SLACK_APP_TOKEN)
 
 
 @app.get("/")

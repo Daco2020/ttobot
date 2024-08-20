@@ -6,22 +6,20 @@ from app.config import settings
 URL_REGEX = r"((http|https):\/\/)?[a-zA-Z0-9.-]+(\.[a-zA-Z]{2,})"
 MAX_PASS_COUNT = 2
 DUE_DATES = [  # 글또 시작일 을 포함한 오름차순 마감일 리스트
-    datetime.datetime(2023, 11, 26).date(),  # 0회차 - 글또 9기 시작
-    datetime.datetime(2023, 12, 10).date(),  # 1회차
-    datetime.datetime(2023, 12, 24).date(),  # 2회차
-    datetime.datetime(2024, 1, 7).date(),  # 3회차
-    datetime.datetime(2024, 1, 21).date(),  # 4회차
-    datetime.datetime(2024, 2, 4).date(),  # 5회차
-    datetime.datetime(2024, 2, 18).date(),  # 6회차
-    datetime.datetime(2024, 3, 3).date(),  # 7회차
-    datetime.datetime(2024, 3, 17).date(),  # 8회차
-    datetime.datetime(2024, 3, 31).date(),  # 9회차
-    datetime.datetime(2024, 4, 14).date(),  # 10회차 - 글또 9기 종료
-    datetime.datetime(2024, 4, 28).date(),  # 11회차
-    datetime.datetime(2024, 5, 12).date(),  # 12회차
-    datetime.datetime(2024, 5, 26).date(),  # 13회차
-    datetime.datetime(2024, 6, 9).date(),  # 14회차
-    datetime.datetime(2024, 6, 23).date(),  # 15회차
+    datetime.datetime(2024, 9, 29).date(),  # 0회차 - 글또 10기 시작
+    datetime.datetime(2024, 10, 13).date(),  # 1회차
+    datetime.datetime(2024, 10, 27).date(),  # 2회차
+    datetime.datetime(2024, 11, 10).date(),  # 3회차
+    datetime.datetime(2024, 11, 24).date(),  # 4회차
+    datetime.datetime(2024, 12, 8).date(),  # 5회차
+    datetime.datetime(2024, 12, 22).date(),  # 6회차
+    datetime.datetime(2025, 1, 5).date(),  # 7회차
+    datetime.datetime(2025, 1, 19).date(),  # 8회차
+    datetime.datetime(2025, 2, 2).date(),  # 9회차
+    datetime.datetime(2025, 2, 16).date(),  # 10회차
+    datetime.datetime(2025, 3, 2).date(),  # 11회차
+    datetime.datetime(2025, 3, 16).date(),  # 12회차
+    datetime.datetime(2025, 3, 30).date(),  # 추가회차
 ]
 
 

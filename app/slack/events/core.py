@@ -2,16 +2,32 @@ from app.client import SpreadSheetClient
 from app.config import settings
 from app.constants import HELP_TEXT
 from app.slack.services import SlackService
+from app.slack.types import AppMentionBodyType, CommandBodyType
 from app.store import Store
 
+from slack_sdk.models.blocks import SectionBlock, DividerBlock
+from slack_sdk.models.views import View
+from slack_bolt.async_app import AsyncAck, AsyncSay
+from slack_sdk.web.async_client import AsyncWebClient
 
-async def handle_app_mention(ack, body, say, client) -> None:
+
+async def handle_app_mention(
+    ack: AsyncAck,
+    body: AppMentionBodyType,
+    say: AsyncSay,
+    client: AsyncWebClient,
+) -> None:
     """앱 멘션 호출 시 도움말 메시지를 전송합니다."""
     await ack()
 
 
-async def get_deposit(
-    ack, body, say, client, user_id: str, service: SlackService
+async def deposit_command(
+    ack: AsyncAck,
+    body: CommandBodyType,
+    say: AsyncSay,
+    client: AsyncWebClient,
+    user_id: str,
+    service: SlackService,
 ) -> None:
     """예치금을 조회합니다."""
     await ack()
@@ -31,61 +47,52 @@ async def get_deposit(
 
     await client.views_open(
         trigger_id=body["trigger_id"],
-        view={
-            "type": "modal",
-            "title": {
-                "type": "plain_text",
-                "text": f"{service.user.name}님의 예치금 현황",
-            },
-            "blocks": [
-                {
-                    "type": "section",
-                    "text": {
-                        "type": "mrkdwn",
-                        "text": text,
-                    },
-                },
-            ],
-        },
+        view=View(
+            type="modal",
+            title=f"{service.user.name}님의 예치금 현황",
+            close="닫기",
+            blocks=[SectionBlock(text=text)],
+        ),
     )
 
 
 async def history_command(
-    ack, body, say, client, user_id: str, service: SlackService
+    ack: AsyncAck,
+    body: CommandBodyType,
+    say: AsyncSay,
+    client: AsyncWebClient,
+    user_id: str,
+    service: SlackService,
 ) -> None:
     """제출 내역을 조회합니다."""
     await ack()
 
     round, due_date = service.user.get_due_date()
     guide_message = f"\n*현재 회차는 {round}회차, 마감일은 {due_date} 이에요."
+    submit_history = service.get_submit_history()
 
     await client.views_open(
         trigger_id=body["trigger_id"],
-        view={
-            "type": "modal",
-            "title": {
-                "type": "plain_text",
-                "text": f"{service.user.name}님의 제출 내역",
-            },
-            "blocks": [
-                {
-                    "type": "section",
-                    "text": {"type": "mrkdwn", "text": service.get_submit_history()},
-                },
-                {
-                    "type": "divider",
-                },
-                {
-                    "type": "section",
-                    "text": {"type": "mrkdwn", "text": guide_message},
-                },
+        view=View(
+            type="modal",
+            title=f"{service.user.name}님의 제출 내역",
+            close="닫기",
+            blocks=[
+                SectionBlock(text=submit_history),
+                DividerBlock(),
+                SectionBlock(text=guide_message),
             ],
-        },
+        ),
     )
 
 
 async def admin_command(
-    ack, body, say, client, user_id: str, service: SlackService
+    ack: AsyncAck,
+    body: CommandBodyType,
+    say: AsyncSay,
+    client: AsyncWebClient,
+    user_id: str,
+    service: SlackService,
 ) -> None:
     """관리자 메뉴를 조회합니다."""
     await ack()
@@ -111,7 +118,13 @@ async def admin_command(
 
 
 async def help_command(
-    ack, body, say, client, user_id: str, channel_id: str, service: SlackService
+    ack: AsyncAck,
+    body: CommandBodyType,
+    say: AsyncSay,
+    client: AsyncWebClient,
+    user_id: str,
+    channel_id: str,
+    service: SlackService,
 ) -> None:
     """도움말을 조회합니다."""
     await ack()

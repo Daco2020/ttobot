@@ -17,7 +17,7 @@ from app.exception import BotException
 from app.slack.repositories import SlackRepository
 from app.slack.services import SlackService
 
-app = AsyncApp(token=settings.BOT_TOKEN)
+app = AsyncApp(token=settings.SLACK_BOT_TOKEN)
 
 
 @app.middleware
@@ -196,7 +196,7 @@ app.view("handle_bookmark_page_view")(contents_events.handle_bookmark_page)
 
 # core
 app.event("app_mention")(core_events.handle_app_mention)
-app.command("/예치금")(core_events.get_deposit)
+app.command("/예치금")(core_events.deposit_command)
 app.command("/제출내역")(core_events.history_command)
 app.command("/관리자")(core_events.admin_command)
 app.command("/도움말")(core_events.help_command)

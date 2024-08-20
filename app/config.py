@@ -6,8 +6,8 @@ class Settings(BaseSettings):
     ENV: str
     DOMAIN: str
 
-    BOT_TOKEN: str
-    APP_TOKEN: str
+    SLACK_BOT_TOKEN: str
+    SLACK_APP_TOKEN: str
     SLACK_CLIENT_ID: str
     SLACK_CLIENT_SECRET: str
 
