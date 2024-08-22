@@ -49,12 +49,88 @@ async def submit_command(
 ) -> None:
     """글 제출 시작"""
     await ack()
+    view_name = "submit_view"
+    channel_id = body["channel_id"]
+    guide_message = await service.get_submit_guide_message(channel_id)
 
-    # await service.open_submit_modal(
-    #     body=body,
-    #     client=client,
-    #     view_name="submit_view",
-    # )
+    await client.views_open(
+        trigger_id=body["trigger_id"],
+        view=View(
+            type="modal",
+            private_metadata=channel_id,
+            callback_id=view_name,
+            title="또봇",
+            submit="제출",
+            blocks=[
+                SectionBlock(
+                    block_id="required_section",
+                    text=guide_message,
+                ),
+                InputBlock(
+                    block_id="content_url",
+                    label="글 링크",
+                    element=UrlInputElement(
+                        action_id="url_text_input-action",
+                        placeholder="노션은 하단의 '글 제목'을 필수로 입력해주세요.",
+                    ),
+                ),
+                InputBlock(
+                    block_id="category",
+                    label="카테고리",
+                    element=StaticSelectElement(
+                        action_id="static_select-category",
+                        placeholder="글의 카테고리를 선택해주세요.",
+                        options=static_select.options(
+                            [category.value for category in ContentCategoryEnum]
+                        ),
+                    ),
+                ),
+                InputBlock(
+                    block_id="curation",
+                    label="큐레이션",
+                    element=StaticSelectElement(
+                        action_id="static_select-curation",
+                        placeholder="글을 큐레이션 대상에 포함할까요?",
+                        options=[
+                            Option(text="큐레이션 대상이 되고 싶어요!", value="Y"),
+                            Option(text="아직은 부끄러워요~", value="N"),
+                        ],
+                    ),
+                ),
+                DividerBlock(),
+                InputBlock(
+                    block_id="tag",
+                    label="태그",
+                    optional=True,
+                    element=PlainTextInputElement(
+                        action_id="dreamy_input",
+                        placeholder="태그1,태그2,태그3, ... ",
+                        multiline=False,
+                    ),
+                ),
+                InputBlock(
+                    block_id="description",
+                    label="하고 싶은 말",
+                    optional=True,
+                    element=PlainTextInputElement(
+                        action_id="plain_text_input-action",
+                        placeholder="하고 싶은 말이 있다면 남겨주세요.",
+                        multiline=True,
+                    ),
+                ),
+                InputBlock(
+                    block_id="manual_title_input",
+                    label="글 제목(직접 입력)",
+                    optional=True,
+                    element=PlainTextInputElement(
+                        action_id="title_input",
+                        placeholder="'글 제목'을 직접 입력합니다.",
+                        multiline=False,
+                    ),
+                ),
+            ],
+        ),
+    )
 
     # TODO: 방학용 제출 모달
     service._check_channel(body["channel_id"])
@@ -270,9 +346,10 @@ async def open_intro_modal(
     await ack()
 
     other_user_id = body["actions"][0]["value"]
-    other_user = service.get_other_user(other_user_id)
-    is_self = user_id == other_user_id
+    other_user = service.get_user(other_user_id)
     intro_text = other_user.intro.replace("\\n", "\n") or "자기소개가 비어있어요. 😢"
+
+    is_self = user_id == other_user_id
 
     await client.views_open(
         trigger_id=body["trigger_id"],
@@ -380,7 +457,7 @@ async def contents_modal(
     await ack()
 
     other_user_id = body["actions"][0]["value"]
-    other_user = service.get_other_user(other_user_id)
+    other_user = service.get_user(other_user_id)
 
     await client.views_open(
         trigger_id=body["trigger_id"],
@@ -495,7 +572,7 @@ async def pass_command(
     """글 패스 시작"""
     await ack()
 
-    await service.validate_pass(body=body)
+    await service.validate_pass(body["channel_id"])
 
     pass_count = user.pass_count
     round, due_date = user.get_due_date()
@@ -579,7 +656,63 @@ async def search_command(
     """글 검색 시작"""
     await ack()
 
-    await service.open_search_modal(body, client)
+    await client.views_open(
+        trigger_id=body["trigger_id"],
+        view=View(
+            type="modal",
+            callback_id="submit_search",
+            title="글 검색 🔍",
+            submit="검색",
+            blocks=[
+                SectionBlock(
+                    block_id="description_section",
+                    text="원하는 조건의 글을 검색할 수 있어요.",
+                ),
+                InputBlock(
+                    block_id="keyword_search",
+                    label="검색어",
+                    optional=True,
+                    element=PlainTextInputElement(
+                        action_id="keyword",
+                        placeholder="검색어를 입력해주세요.",
+                        multiline=False,
+                    ),
+                ),
+                InputBlock(
+                    block_id="author_search",
+                    label="글 작성자",
+                    optional=True,
+                    element=PlainTextInputElement(
+                        action_id="author_name",
+                        placeholder="이름을 입력해주세요.",
+                        multiline=False,
+                    ),
+                ),
+                InputBlock(
+                    block_id="category_search",
+                    label="카테고리",
+                    element=StaticSelectElement(
+                        action_id="chosen_category",
+                        placeholder="카테고리 선택",
+                        initial_option=Option(value="전체", text="전체"),
+                        options=static_select.options(
+                            [category.value for category in ContentCategoryEnum]
+                            + ["전체"]
+                        ),
+                    ),
+                ),
+                SectionBlock(
+                    text="웹으로 검색하시려면 [웹 검색] 버튼을 눌러주세요.",
+                    accessory=ButtonElement(
+                        text="웹 검색",
+                        action_id="web_search",
+                        url="https://vvd.bz/d2HG",
+                        style="primary",
+                    ),
+                ),
+            ],
+        ),
+    )
 
 
 async def submit_search(
@@ -683,11 +816,11 @@ async def back_to_search_view(
                 ),
                 InputBlock(
                     block_id="keyword_search",
-                    label="키워드",
+                    label="검색어",
                     optional=True,
                     element=PlainTextInputElement(
                         action_id="keyword",
-                        placeholder="키워드를 입력해주세요.",
+                        placeholder="검색어를 입력해주세요.",
                         multiline=False,
                     ),
                 ),

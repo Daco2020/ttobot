@@ -3,12 +3,11 @@ import re
 from typing import Any
 
 import httpx
-from app.constants import URL_REGEX, ContentCategoryEnum
+from app.constants import URL_REGEX
 from app.logging import log_event, logger
 from app.constants import MAX_PASS_COUNT
 from app.exception import BotException, ClientException
 from app.slack.repositories import SlackRepository
-from app.slack.components import static_select
 from app.constants import remind_message
 from app import models
 from app import store
@@ -50,10 +49,12 @@ class SlackService:
 
         return contents
 
-    def get_other_user(self, user_id) -> models.User:
-        """다른 유저를 가져옵니다."""
+    def get_user(self, user_id) -> models.User:
+        """유저 정보를 가져옵니다."""
         user = self._user_repo.get_user(user_id)
-        return user  # type: ignore
+        if not user:
+            raise BotException("해당 유저 정보가 없어요.")
+        return user
 
     async def create_submit_content(
         self,
@@ -124,9 +125,9 @@ class SlackService:
                 message += f"{content.dt}\n"
         return message or "제출 내역이 없어요."
 
-    async def open_submit_modal(self, body, client, view_name: str) -> None:
+    async def get_submit_guide_message(self, channel_id: str) -> str:
         """제출 모달을 띄웁니다."""
-        self._check_channel(body["channel_id"])
+        self._check_channel(channel_id)
         round, due_date = self._user.get_due_date()
         guide_message = f"\n\n현재 회차는 {round}회차, 마감일은 {due_date} 이에요."
         if self._user.is_submit:
@@ -137,264 +138,14 @@ class SlackService:
             guide_message += (
                 f"\n({self._user.name} 님은 아직 {round}회차 글을 제출하지 않았어요)"
             )
-        await client.views_open(
-            trigger_id=body["trigger_id"],
-            view={
-                "type": "modal",
-                "private_metadata": body["channel_id"],
-                "callback_id": view_name,
-                "title": {"type": "plain_text", "text": "또봇"},
-                "submit": {"type": "plain_text", "text": "제출"},
-                "blocks": [
-                    {
-                        "type": "section",
-                        "block_id": "required_section",
-                        "text": {
-                            "type": "mrkdwn",
-                            "text": guide_message,
-                        },
-                    },
-                    {
-                        "type": "input",
-                        "block_id": "content_url",
-                        "element": {
-                            "type": "url_text_input",
-                            "action_id": "url_text_input-action",
-                            "placeholder": {
-                                "type": "plain_text",
-                                "text": "노션은 하단의 '글 제목'을 필수로 입력해주세요.",
-                                "emoji": True,
-                            },
-                        },
-                        "label": {
-                            "type": "plain_text",
-                            "text": "글 링크",
-                            "emoji": True,
-                        },
-                    },
-                    {
-                        "type": "input",
-                        "block_id": "category",
-                        "label": {
-                            "type": "plain_text",
-                            "text": "카테고리",
-                            "emoji": True,
-                        },
-                        "element": {
-                            "type": "static_select",
-                            "placeholder": {
-                                "type": "plain_text",
-                                "text": "글의 카테고리를 선택해주세요.",
-                                "emoji": True,
-                            },
-                            "options": static_select.options(
-                                [category.value for category in ContentCategoryEnum]
-                            ),
-                            "action_id": "static_select-category",
-                        },
-                    },
-                    {
-                        "type": "input",
-                        "block_id": "curation",
-                        "label": {
-                            "type": "plain_text",
-                            "text": "큐레이션",
-                            "emoji": True,
-                        },
-                        "element": {
-                            "type": "static_select",
-                            "placeholder": {
-                                "type": "plain_text",
-                                "text": "글을 큐레이션 대상에 포함할까요?",
-                                "emoji": True,
-                            },
-                            "options": [
-                                {
-                                    "text": {
-                                        "type": "plain_text",
-                                        "text": "큐레이션 대상이 되고 싶어요!",
-                                        "emoji": True,
-                                    },
-                                    "value": "Y",  # str만 반환할 수 있음
-                                },
-                                {
-                                    "text": {
-                                        "type": "plain_text",
-                                        "text": "아직은 부끄러워요~",
-                                        "emoji": True,
-                                    },
-                                    "value": "N",
-                                },
-                            ],
-                            "action_id": "static_select-curation",
-                        },
-                    },
-                    {"type": "divider"},
-                    {
-                        "type": "input",
-                        "block_id": "tag",
-                        "label": {
-                            "type": "plain_text",
-                            "text": "태그",
-                        },
-                        "optional": True,
-                        "element": {
-                            "type": "plain_text_input",
-                            "action_id": "dreamy_input",
-                            "placeholder": {
-                                "type": "plain_text",
-                                "text": "태그1,태그2,태그3, ... ",
-                            },
-                            "multiline": False,
-                        },
-                    },
-                    {
-                        "type": "input",
-                        "block_id": "description",
-                        "optional": True,
-                        "element": {
-                            "type": "plain_text_input",
-                            "action_id": "plain_text_input-action",
-                            "placeholder": {
-                                "type": "plain_text",
-                                "text": "하고 싶은 말이 있다면 남겨주세요.",
-                            },
-                            "multiline": True,
-                        },
-                        "label": {
-                            "type": "plain_text",
-                            "text": "하고 싶은 말",
-                            "emoji": True,
-                        },
-                    },
-                    {
-                        "type": "input",
-                        "block_id": "manual_title_input",
-                        "label": {
-                            "type": "plain_text",
-                            "text": "글 제목(직접 입력)",
-                        },
-                        "optional": True,
-                        "element": {
-                            "type": "plain_text_input",
-                            "action_id": "title_input",
-                            "placeholder": {
-                                "type": "plain_text",
-                                "text": "'글 제목'을 직접 입력합니다.",
-                            },
-                            "multiline": False,
-                        },
-                    },
-                ],
-            },
-        )
 
-    async def validate_pass(self, body) -> None:
+        return guide_message
+
+    async def validate_pass(self, channel_id: str) -> None:
         """패스 유효성 검사"""
         # TODO: 유저 모델로 분리
-        self._check_channel(body["channel_id"])
+        self._check_channel(channel_id)
         await self._validate_pass()
-
-    async def open_search_modal(self, body, client) -> dict[str, Any]:
-        return await client.views_open(
-            trigger_id=body["trigger_id"],
-            view={
-                "type": "modal",
-                "callback_id": "submit_search",
-                "title": {"type": "plain_text", "text": "글 검색 🔍"},
-                "submit": {"type": "plain_text", "text": "검색"},
-                "blocks": [
-                    {
-                        "type": "section",
-                        "block_id": "description_section",
-                        "text": {
-                            "type": "mrkdwn",
-                            "text": "원하는 조건의 글을 검색할 수 있어요.",
-                        },
-                    },
-                    {
-                        "type": "input",
-                        "block_id": "keyword_search",
-                        "optional": True,
-                        "element": {
-                            "type": "plain_text_input",
-                            "action_id": "keyword",
-                            "placeholder": {
-                                "type": "plain_text",
-                                "text": "검색어를 입력해주세요.",
-                            },
-                            "multiline": False,
-                        },
-                        "label": {
-                            "type": "plain_text",
-                            "text": "검색어",
-                            "emoji": True,
-                        },
-                    },
-                    {
-                        "type": "input",
-                        "block_id": "author_search",
-                        "optional": True,
-                        "element": {
-                            "type": "plain_text_input",
-                            "action_id": "author_name",
-                            "placeholder": {
-                                "type": "plain_text",
-                                "text": "이름을 입력해주세요.",
-                            },
-                            "multiline": False,
-                        },
-                        "label": {
-                            "type": "plain_text",
-                            "text": "글 작성자",
-                            "emoji": False,
-                        },
-                    },
-                    {
-                        "type": "input",
-                        "block_id": "category_search",
-                        "label": {
-                            "type": "plain_text",
-                            "text": "카테고리",
-                            "emoji": True,
-                        },
-                        "element": {
-                            "type": "static_select",
-                            "action_id": "chosen_category",
-                            "placeholder": {
-                                "type": "plain_text",
-                                "text": "카테고리 선택",
-                            },
-                            "initial_option": {
-                                "text": {"type": "plain_text", "text": "전체"},
-                                "value": "전체",
-                            },
-                            "options": static_select.options(
-                                [category.value for category in ContentCategoryEnum]
-                                + ["전체"]
-                            ),
-                        },
-                    },
-                    {
-                        "type": "section",
-                        "text": {
-                            "type": "mrkdwn",
-                            "text": "웹으로 검색하시려면 [웹 검색] 버튼을 눌러주세요.",
-                        },
-                        "accessory": {
-                            "type": "button",
-                            "action_id": "web_search",
-                            "text": {
-                                "type": "plain_text",
-                                "text": "웹 검색",
-                            },
-                            "url": "https://vvd.bz/d2HG",
-                            "style": "primary",
-                        },
-                    },
-                ],
-            },
-        )
 
     def _get_description(self, view) -> str:
         description: str = view["state"]["values"]["description"][
@@ -580,6 +331,8 @@ class SlackReminderService:
             if user.is_submit:
                 continue
             if user.cohort == "8기":
+                continue
+            if user.cohort == "9기":
                 continue
             if user.channel_name == "슬랙봇":
                 continue
