@@ -11,18 +11,26 @@ from app.exception import BotException, ClientException
 from slack_sdk.web.async_client import AsyncWebClient
 from slack_sdk.models.views import View
 from slack_sdk.models.blocks import SectionBlock, InputBlock, PlainTextInputElement
+from slack_bolt.async_app import AsyncAck, AsyncSay
 
 from app import models
 from app.slack.services import SlackService
+from app.slack.types import (
+    ActionBodyType,
+    CommandBodyType,
+    OverflowActionBodyType,
+    ViewBodyType,
+    ViewType,
+)
 
 CONTENTS_PER_PAGE = 20
 
 
 async def submit_command(
-    ack,
-    body,
-    say,
-    client,
+    ack: AsyncAck,
+    body: CommandBodyType,
+    say: AsyncSay,
+    client: AsyncWebClient,
     user_id: str,
     service: SlackService,
 ) -> None:
@@ -155,11 +163,11 @@ async def submit_command(
 
 
 async def submit_view(
-    ack,
-    body,
+    ack: AsyncAck,
+    body: ViewBodyType,
     client: AsyncWebClient,
-    view,
-    say,
+    view: ViewType,
+    say: AsyncSay,
     user_id: str,
     service: SlackService,
 ) -> None:
@@ -265,10 +273,9 @@ async def submit_view(
 
 
 async def forward_message(
-    ack,
-    body,
+    ack: AsyncAck,
+    body: ActionBodyType,
     client: AsyncWebClient,
-    view,
     user_id: str,
     service: SlackService,
 ) -> None:
@@ -303,15 +310,15 @@ async def forward_message(
 
 
 async def open_intro_modal(
-    ack,
-    body,
-    client,
-    view,
+    ack: AsyncAck,
+    body: ActionBodyType,
+    client: AsyncWebClient,
     user_id: str,
     service: SlackService,
 ) -> None:
     """다른 유저의 자기소개 확인"""
     await ack()
+    print(body, "body")
 
     other_user_id = body["actions"][0]["value"]
     other_user = service.get_other_user(other_user_id)
@@ -349,11 +356,11 @@ async def open_intro_modal(
 
 
 async def edit_intro_view(
-    ack,
-    body,
-    client,
-    view,
-    say,
+    ack: AsyncAck,
+    body: ViewBodyType,
+    client: AsyncWebClient,
+    view: ViewType,
+    say: AsyncSay,
     user_id: str,
     service: SlackService,
 ) -> None:
@@ -403,7 +410,13 @@ async def edit_intro_view(
 
 
 async def submit_intro_view(
-    ack, body, client, view, say, user_id: str, service: SlackService
+    ack: AsyncAck,
+    body: ViewBodyType,
+    client: AsyncWebClient,
+    view: ViewType,
+    say: AsyncSay,
+    user_id: str,
+    service: SlackService,
 ) -> None:
     """자기소개 수정 완료"""
     new_intro = view["state"]["values"]["description"]["edit_intro"]["value"] or ""
@@ -443,10 +456,9 @@ async def submit_intro_view(
 
 
 async def contents_modal(
-    ack,
-    body,
-    client,
-    view,
+    ack: AsyncAck,
+    body: ActionBodyType,
+    client: AsyncWebClient,
     user_id: str,
     service: SlackService,
 ) -> None:
@@ -468,10 +480,9 @@ async def contents_modal(
 
 
 async def bookmark_modal(
-    ack,
-    body,
-    client,
-    view,
+    ack: AsyncAck,
+    body: ActionBodyType,
+    client: AsyncWebClient,
     user_id: str,
     service: SlackService,
 ) -> None:
@@ -481,6 +492,7 @@ async def bookmark_modal(
 
     actions = body["actions"][0]
     is_overflow = actions["type"] == "overflow"  # TODO: 분리필요
+
     if is_overflow:
         content_id = actions["selected_option"]["value"]
     else:
@@ -553,11 +565,11 @@ def get_bookmark_view(
 
 
 async def bookmark_view(
-    ack,
-    body,
-    client,
-    view,
-    say,
+    ack: AsyncAck,
+    body: ViewBodyType,
+    client: AsyncWebClient,
+    view: ViewType,
+    say: AsyncSay,
     user_id: str,
     service: SlackService,
 ) -> None:
@@ -588,10 +600,10 @@ async def bookmark_view(
 
 
 async def pass_command(
-    ack,
-    body,
-    say,
-    client,
+    ack: AsyncAck,
+    body: CommandBodyType,
+    say: AsyncSay,
+    client: AsyncWebClient,
     user: models.User,
     service: SlackService,
 ) -> None:
@@ -645,11 +657,11 @@ async def pass_command(
 
 
 async def pass_view(
-    ack,
-    body,
-    client,
-    view,
-    say,
+    ack: AsyncAck,
+    body: ViewBodyType,
+    client: AsyncWebClient,
+    view: ViewType,
+    say: AsyncSay,
     user_id: str,
     service: SlackService,
 ) -> None:
@@ -672,10 +684,10 @@ async def pass_view(
 
 
 async def search_command(
-    ack,
-    body,
-    say,
-    client,
+    ack: AsyncAck,
+    body: CommandBodyType,
+    say: AsyncSay,
+    client: AsyncWebClient,
     user_id: str,
     service: SlackService,
 ) -> None:
@@ -686,10 +698,9 @@ async def search_command(
 
 
 async def submit_search(
-    ack,
-    body,
-    client,
-    view,
+    ack: AsyncAck,
+    body: ViewBodyType | ActionBodyType,
+    client: AsyncWebClient,
     user_id: str,
     service: SlackService,
 ) -> None:
@@ -718,14 +729,13 @@ async def submit_search(
 
 
 async def web_search(
-    ack,
-    body,
-    client,
-    view,
+    ack: AsyncAck,
+    body: ActionBodyType,
+    client: AsyncWebClient,
     user_id: str,
     service: SlackService,
 ) -> None:
-    """웹 검색 시작"""
+    """웹 검색 시작(외부 링크로 이동)"""
     await ack()
 
 
@@ -782,10 +792,10 @@ def _fetch_blocks(contents: list[models.Content]) -> list[dict[str, Any]]:
 
 
 async def back_to_search_view(
-    ack,
-    body,
-    say,
-    client,
+    ack: AsyncAck,
+    body: ViewBodyType,
+    say: AsyncSay,
+    client: AsyncWebClient,
     user_id: str,
     service: SlackService,
 ) -> None:
@@ -920,10 +930,10 @@ def _get_keyword(body) -> str:
 
 
 async def bookmark_command(
-    ack,
-    body,
-    say,
-    client,
+    ack: AsyncAck,
+    body: CommandBodyType,
+    say: AsyncSay,
+    client: AsyncWebClient,
     user_id: str,
     service: SlackService,
 ) -> None:
@@ -969,9 +979,9 @@ async def bookmark_command(
 
 
 async def handle_bookmark_page(
-    ack,
-    body,
-    say,
+    ack: AsyncAck,
+    body: ViewBodyType | OverflowActionBodyType,
+    say: AsyncSay,
     client: AsyncWebClient,
     user_id: str,
     service: SlackService,
@@ -983,8 +993,8 @@ async def handle_bookmark_page(
     content_ids = [bookmark.content_id for bookmark in bookmarks]
     contents = service.fetch_contents_by_ids(content_ids)
     content_matrix = _get_content_metrix(contents)
-    action_id = body["actions"][0]["action_id"] if body.get("actions") else None
-    private_metadata = body.get("view", {}).get("private_metadata", {})
+    action_id = body["actions"][0]["action_id"] if body.get("actions") else None  # type: ignore
+    private_metadata = body.get("view", {}).get("private_metadata", {})  # type: ignore
     page = orjson.loads(private_metadata).get("page", 1) if private_metadata else 1
 
     if action_id == "next_bookmark_page_action":
@@ -1118,16 +1128,16 @@ def _fetch_bookmark_blocks(
 
 
 async def open_overflow_action(
-    ack,
-    body,
-    client,
-    view,
-    say,
+    ack: AsyncAck,
+    body: OverflowActionBodyType,
+    client: AsyncWebClient,
+    say: AsyncSay,
     user_id: str,
     service: SlackService,
 ) -> None:
     """북마크 메뉴 선택"""
     await ack()
+    print(body, "body")
     private_metadata = body["view"]["private_metadata"]
 
     title = ""
