@@ -100,15 +100,13 @@ class SlackService:
         return message
 
     def _get_description(self, view) -> str:
-        description: str = view["state"]["values"]["description"][
-            "plain_text_input-action"
-        ]["value"]
+        description: str = view["state"]["values"]["description"]["text_input"]["value"]
         if not description:
             return ""
         return description
 
     def _get_tags(self, view) -> str:
-        raw_tag: str = view["state"]["values"]["tag"]["dreamy_input"]["value"]
+        raw_tag: str = view["state"]["values"]["tag"]["tags_input"]["value"]
         if not raw_tag:
             return ""
         deduplication_tags = list(dict.fromkeys(raw_tag.split(",")))
@@ -116,15 +114,15 @@ class SlackService:
         return tags
 
     def _get_category(self, view) -> str:
-        category: str = view["state"]["values"]["category"]["static_select-category"][
+        category: str = view["state"]["values"]["category"]["category_select"][
             "selected_option"
         ]["value"]
         return category
 
     def _get_curation_flag(self, view) -> str:
-        curation_flag: str = view["state"]["values"]["curation"][
-            "static_select-curation"
-        ]["selected_option"]["value"]
+        curation_flag: str = view["state"]["values"]["curation"]["curation_select"][
+            "selected_option"
+        ]["value"]
         return curation_flag
 
     async def get_title(self, view, url: str) -> str:

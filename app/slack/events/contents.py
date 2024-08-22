@@ -78,7 +78,7 @@ async def submit_command(
     #                 block_id="category",
     #                 label="카테고리",
     #                 element=StaticSelectElement(
-    #                     action_id="static_select-category",
+    #                     action_id="category_select",
     #                     placeholder="글의 카테고리를 선택해주세요.",
     #                     options=static_select.options(
     #                         [category.value for category in ContentCategoryEnum]
@@ -89,7 +89,7 @@ async def submit_command(
     #                 block_id="curation",
     #                 label="큐레이션",
     #                 element=StaticSelectElement(
-    #                     action_id="static_select-curation",
+    #                     action_id="curation_select",
     #                     placeholder="글을 큐레이션 대상에 포함할까요?",
     #                     options=[
     #                         Option(text="큐레이션 대상이 되고 싶어요!", value="Y"),
@@ -103,7 +103,7 @@ async def submit_command(
     #                 label="태그",
     #                 optional=True,
     #                 element=PlainTextInputElement(
-    #                     action_id="dreamy_input",
+    #                     action_id="tags_input",
     #                     placeholder="태그1,태그2,태그3, ... ",
     #                     multiline=False,
     #                 ),
@@ -113,7 +113,7 @@ async def submit_command(
     #                 label="하고 싶은 말",
     #                 optional=True,
     #                 element=PlainTextInputElement(
-    #                     action_id="plain_text_input-action",
+    #                     action_id="text_input",
     #                     placeholder="하고 싶은 말이 있다면 남겨주세요.",
     #                     multiline=True,
     #                 ),
@@ -158,7 +158,7 @@ async def submit_command(
                     block_id="category",
                     label="카테고리",
                     element=StaticSelectElement(
-                        action_id="static_select-category",
+                        action_id="category_select",
                         placeholder="글의 카테고리를 선택해주세요.",
                         options=static_select.options(
                             [category.value for category in ContentCategoryEnum]
@@ -171,7 +171,7 @@ async def submit_command(
                     label="태그",
                     optional=True,
                     element=PlainTextInputElement(
-                        action_id="dreamy_input",
+                        action_id="tags_input",
                         placeholder="태그1,태그2,태그3, ... ",
                         multiline=False,
                     ),
@@ -181,7 +181,7 @@ async def submit_command(
                     label="하고 싶은 말",
                     optional=True,
                     element=PlainTextInputElement(
-                        action_id="plain_text_input-action",
+                        action_id="text_input",
                         placeholder="하고 싶은 말이 있다면 남겨주세요.",
                         multiline=True,
                     ),
@@ -521,7 +521,7 @@ def get_bookmark_view(content_id: str, bookmark: models.Bookmark | None) -> View
                     label="메모",
                     optional=True,
                     element=PlainTextInputElement(
-                        action_id="plain_text_input-action",
+                        action_id="text_input",
                         placeholder="북마크에 대한 메모를 남겨주세요.",
                         multiline=True,
                     ),
@@ -543,7 +543,7 @@ async def bookmark_view(
     await ack()
 
     content_id = view["private_metadata"]
-    value = view["state"]["values"]["bookmark_note"]["plain_text_input-action"]["value"]
+    value = view["state"]["values"]["bookmark_note"]["text_input"]["value"]
     note = value if value else ""  # 유저가 입력하지 않으면 None 으로 전달 된다.
     service.create_bookmark(user.user_id, content_id, note)
 
@@ -606,7 +606,7 @@ async def pass_command(
                     optional=True,
                     label="하고 싶은 말",
                     element=PlainTextInputElement(
-                        action_id="plain_text_input-action",
+                        action_id="text_input",
                         placeholder="하고 싶은 말이 있다면 남겨주세요.",
                         multiline=True,
                     ),
