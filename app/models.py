@@ -5,7 +5,7 @@ from enum import Enum
 from zoneinfo import ZoneInfo
 from pydantic import BaseModel, Field, field_validator
 import datetime
-from app.constants import DUE_DATES
+from app.constants import DUE_DATES, MAX_PASS_COUNT
 from app.exception import BotException
 
 from app.utils import tz_now, tz_now_to_str
@@ -97,6 +97,38 @@ class User(BaseModel):
 
         # 최근 제출한 콘텐츠의 날짜가 직전 마감일 초과, 현재 날짜 이하 라면 제출했다고 판단한다.
         return latest_due_date < recent_content.date <= now_date
+
+    def check_channel(self, channel_id: str) -> None:
+        if self.channel_id == "ALL":
+            return
+        if self.channel_id != channel_id:
+            raise BotException(
+                f"{self.name} 님의 코어 채널 <#{self.channel_id}> 에서 다시 시도해주세요."
+            )
+
+    @property
+    def submit_guide_message(self) -> str:
+        """제출 모달을 띄웁니다."""
+        round, due_date = self.get_due_date()
+        guide_message = f"\n\n현재 회차는 {round}회차, 마감일은 {due_date} 이에요."
+        if self.is_submit:
+            guide_message += f"\n({self.name} 님은 이미 {round}회차 글을 제출했어요)"
+        else:
+            guide_message += (
+                f"\n({self.name} 님은 아직 {round}회차 글을 제출하지 않았어요)"
+            )
+
+        return guide_message
+
+    def check_pass(self) -> None:
+        if self.pass_count >= MAX_PASS_COUNT:
+            message = "사용할 수 있는 pass 가 없어요."
+            raise BotException(message)
+        if self.is_prev_pass:
+            message = (
+                "직전 회차에 pass 를 사용했기 때문에 연속으로 pass 를 사용할 수 없어요."
+            )
+            raise BotException(message)
 
     def to_list_for_sheet(self) -> list[str]:
         return [

@@ -5,7 +5,6 @@ from typing import Any
 import httpx
 from app.constants import URL_REGEX
 from app.logging import log_event, logger
-from app.constants import MAX_PASS_COUNT
 from app.exception import BotException, ClientException
 from app.slack.repositories import SlackRepository
 from app.constants import remind_message
@@ -84,7 +83,6 @@ class SlackService:
 
     async def create_pass_content(self, ack, body, view) -> models.Content:
         """패스 콘텐츠를 생성합니다."""
-        await self._validate_pass()
         content = models.Content(
             user_id=body["user"]["id"],
             username=body["user"]["username"],
@@ -124,28 +122,6 @@ class SlackService:
                 message += f"\n{pass_head}  |  "
                 message += f"{content.dt}\n"
         return message or "제출 내역이 없어요."
-
-    async def get_submit_guide_message(self, channel_id: str) -> str:
-        """제출 모달을 띄웁니다."""
-        self._check_channel(channel_id)
-        round, due_date = self._user.get_due_date()
-        guide_message = f"\n\n현재 회차는 {round}회차, 마감일은 {due_date} 이에요."
-        if self._user.is_submit:
-            guide_message += (
-                f"\n({self._user.name} 님은 이미 {round}회차 글을 제출했어요)"
-            )
-        else:
-            guide_message += (
-                f"\n({self._user.name} 님은 아직 {round}회차 글을 제출하지 않았어요)"
-            )
-
-        return guide_message
-
-    async def validate_pass(self, channel_id: str) -> None:
-        """패스 유효성 검사"""
-        # TODO: 유저 모델로 분리
-        self._check_channel(channel_id)
-        await self._validate_pass()
 
     def _get_description(self, view) -> str:
         description: str = view["state"]["values"]["description"][
@@ -216,14 +192,6 @@ class SlackService:
         )
         return tag_message
 
-    def _check_channel(self, channel_id) -> None:
-        if self._user.channel_id == "ALL":
-            return
-        if self._user.channel_id != channel_id:
-            raise BotException(
-                f"{self._user.name} 님의 코어 채널 <#{self._user.channel_id}> 에서 다시 시도해주세요."
-            )
-
     def validate_url(self, view, content_url: str) -> None:
         if not re.match(URL_REGEX, content_url):
             raise ValueError("링크는 url 형식이어야 해요.")
@@ -247,16 +215,6 @@ class SlackService:
             ):
                 return None
             raise ValueError("노션은 하단의 '글 제목'을 필수로 입력해주세요.")
-
-    async def _validate_pass(self) -> None:
-        if self._user.pass_count >= MAX_PASS_COUNT:
-            message = "사용할 수 있는 pass 가 없어요."
-            raise BotException(message)
-        if self._user.is_prev_pass:
-            message = (
-                "직전 회차에 pass 를 사용했기 때문에 연속으로 pass 를 사용할 수 없어요."
-            )
-            raise BotException(message)
 
     def create_bookmark(
         self, user_id: str, content_id: str, note: str = ""

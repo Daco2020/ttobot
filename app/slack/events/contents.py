@@ -45,101 +45,101 @@ async def submit_command(
     say: AsyncSay,
     client: AsyncWebClient,
     user_id: str,
+    user: models.User,
     service: SlackService,
 ) -> None:
     """글 제출 시작"""
     await ack()
-    view_name = "submit_view"
+    callback_id = "submit_view"
     channel_id = body["channel_id"]
-    guide_message = await service.get_submit_guide_message(channel_id)
+    user.check_channel(channel_id)
 
+    # await client.views_open(
+    #     trigger_id=body["trigger_id"],
+    #     view=View(
+    #         type="modal",
+    #         private_metadata=channel_id,
+    #         callback_id=callback_id,
+    #         title="또봇",
+    #         submit="제출",
+    #         blocks=[
+    #             SectionBlock(
+    #                 block_id="required_section",
+    #                 text=user.submit_guide_message,
+    #             ),
+    #             InputBlock(
+    #                 block_id="content_url",
+    #                 label="글 링크",
+    #                 element=UrlInputElement(
+    #                     action_id="url_text_input-action",
+    #                     placeholder="노션은 하단의 '글 제목'을 필수로 입력해주세요.",
+    #                 ),
+    #             ),
+    #             InputBlock(
+    #                 block_id="category",
+    #                 label="카테고리",
+    #                 element=StaticSelectElement(
+    #                     action_id="static_select-category",
+    #                     placeholder="글의 카테고리를 선택해주세요.",
+    #                     options=static_select.options(
+    #                         [category.value for category in ContentCategoryEnum]
+    #                     ),
+    #                 ),
+    #             ),
+    #             InputBlock(
+    #                 block_id="curation",
+    #                 label="큐레이션",
+    #                 element=StaticSelectElement(
+    #                     action_id="static_select-curation",
+    #                     placeholder="글을 큐레이션 대상에 포함할까요?",
+    #                     options=[
+    #                         Option(text="큐레이션 대상이 되고 싶어요!", value="Y"),
+    #                         Option(text="아직은 부끄러워요~", value="N"),
+    #                     ],
+    #                 ),
+    #             ),
+    #             DividerBlock(),
+    #             InputBlock(
+    #                 block_id="tag",
+    #                 label="태그",
+    #                 optional=True,
+    #                 element=PlainTextInputElement(
+    #                     action_id="dreamy_input",
+    #                     placeholder="태그1,태그2,태그3, ... ",
+    #                     multiline=False,
+    #                 ),
+    #             ),
+    #             InputBlock(
+    #                 block_id="description",
+    #                 label="하고 싶은 말",
+    #                 optional=True,
+    #                 element=PlainTextInputElement(
+    #                     action_id="plain_text_input-action",
+    #                     placeholder="하고 싶은 말이 있다면 남겨주세요.",
+    #                     multiline=True,
+    #                 ),
+    #             ),
+    #             InputBlock(
+    #                 block_id="manual_title_input",
+    #                 label="글 제목(직접 입력)",
+    #                 optional=True,
+    #                 element=PlainTextInputElement(
+    #                     action_id="title_input",
+    #                     placeholder="'글 제목'을 직접 입력합니다.",
+    #                     multiline=False,
+    #                 ),
+    #             ),
+    #         ],
+    #     ),
+    # )
+
+    # TODO: 방학용 제출 모달
     await client.views_open(
         trigger_id=body["trigger_id"],
         view=View(
             type="modal",
             private_metadata=channel_id,
-            callback_id=view_name,
-            title="또봇",
-            submit="제출",
-            blocks=[
-                SectionBlock(
-                    block_id="required_section",
-                    text=guide_message,
-                ),
-                InputBlock(
-                    block_id="content_url",
-                    label="글 링크",
-                    element=UrlInputElement(
-                        action_id="url_text_input-action",
-                        placeholder="노션은 하단의 '글 제목'을 필수로 입력해주세요.",
-                    ),
-                ),
-                InputBlock(
-                    block_id="category",
-                    label="카테고리",
-                    element=StaticSelectElement(
-                        action_id="static_select-category",
-                        placeholder="글의 카테고리를 선택해주세요.",
-                        options=static_select.options(
-                            [category.value for category in ContentCategoryEnum]
-                        ),
-                    ),
-                ),
-                InputBlock(
-                    block_id="curation",
-                    label="큐레이션",
-                    element=StaticSelectElement(
-                        action_id="static_select-curation",
-                        placeholder="글을 큐레이션 대상에 포함할까요?",
-                        options=[
-                            Option(text="큐레이션 대상이 되고 싶어요!", value="Y"),
-                            Option(text="아직은 부끄러워요~", value="N"),
-                        ],
-                    ),
-                ),
-                DividerBlock(),
-                InputBlock(
-                    block_id="tag",
-                    label="태그",
-                    optional=True,
-                    element=PlainTextInputElement(
-                        action_id="dreamy_input",
-                        placeholder="태그1,태그2,태그3, ... ",
-                        multiline=False,
-                    ),
-                ),
-                InputBlock(
-                    block_id="description",
-                    label="하고 싶은 말",
-                    optional=True,
-                    element=PlainTextInputElement(
-                        action_id="plain_text_input-action",
-                        placeholder="하고 싶은 말이 있다면 남겨주세요.",
-                        multiline=True,
-                    ),
-                ),
-                InputBlock(
-                    block_id="manual_title_input",
-                    label="글 제목(직접 입력)",
-                    optional=True,
-                    element=PlainTextInputElement(
-                        action_id="title_input",
-                        placeholder="'글 제목'을 직접 입력합니다.",
-                        multiline=False,
-                    ),
-                ),
-            ],
-        ),
-    )
-
-    # TODO: 방학용 제출 모달
-    service._check_channel(body["channel_id"])
-    await client.views_open(
-        trigger_id=body["trigger_id"],
-        view=View(
-            type="modal",
-            private_metadata=body["channel_id"],
-            callback_id="submit_view",
+            callback_id=callback_id,
             title="또봇",
             submit="제출",
             blocks=[
@@ -572,15 +572,16 @@ async def pass_command(
     """글 패스 시작"""
     await ack()
 
-    await service.validate_pass(body["channel_id"])
-
-    pass_count = user.pass_count
+    channel_id = body["channel_id"]
     round, due_date = user.get_due_date()
+
+    user.check_channel(channel_id)
+    user.check_pass()
 
     if user.is_submit:
         text = f"🤗 {user.name} 님은 이미 {round}회차(마감일: {due_date}) 글을 제출했어요. 제출내역을 확인해주세요."
         await client.chat_postEphemeral(
-            channel=body["channel_id"],
+            channel=channel_id,
             user=user.user_id,
             text=text,
         )
@@ -590,7 +591,7 @@ async def pass_command(
         trigger_id=body["trigger_id"],
         view=View(
             type="modal",
-            private_metadata=body["channel_id"],
+            private_metadata=channel_id,
             callback_id="pass_view",
             title="또봇",
             submit="패스",
@@ -601,7 +602,7 @@ async def pass_command(
                         \n\n아래 유의사항을 확인해주세요.\
                         \n- 현재 회차는 {round}회차, 마감일은 {due_date} 이에요.\
                         \n- 패스는 연속으로 사용할 수 없어요.\
-                        \n- 남은 패스는 {MAX_PASS_COUNT - pass_count}번 이에요.",
+                        \n- 남은 패스는 {MAX_PASS_COUNT - user.pass_count}번 이에요.",
                 ),
                 InputBlock(
                     block_id="description",
@@ -658,60 +659,7 @@ async def search_command(
 
     await client.views_open(
         trigger_id=body["trigger_id"],
-        view=View(
-            type="modal",
-            callback_id="submit_search",
-            title="글 검색 🔍",
-            submit="검색",
-            blocks=[
-                SectionBlock(
-                    block_id="description_section",
-                    text="원하는 조건의 글을 검색할 수 있어요.",
-                ),
-                InputBlock(
-                    block_id="keyword_search",
-                    label="검색어",
-                    optional=True,
-                    element=PlainTextInputElement(
-                        action_id="keyword",
-                        placeholder="검색어를 입력해주세요.",
-                        multiline=False,
-                    ),
-                ),
-                InputBlock(
-                    block_id="author_search",
-                    label="글 작성자",
-                    optional=True,
-                    element=PlainTextInputElement(
-                        action_id="author_name",
-                        placeholder="이름을 입력해주세요.",
-                        multiline=False,
-                    ),
-                ),
-                InputBlock(
-                    block_id="category_search",
-                    label="카테고리",
-                    element=StaticSelectElement(
-                        action_id="chosen_category",
-                        placeholder="카테고리 선택",
-                        initial_option=Option(value="전체", text="전체"),
-                        options=static_select.options(
-                            [category.value for category in ContentCategoryEnum]
-                            + ["전체"]
-                        ),
-                    ),
-                ),
-                SectionBlock(
-                    text="웹으로 검색하시려면 [웹 검색] 버튼을 눌러주세요.",
-                    accessory=ButtonElement(
-                        text="웹 검색",
-                        action_id="web_search",
-                        url="https://vvd.bz/d2HG",
-                        style="primary",
-                    ),
-                ),
-            ],
-        ),
+        view=_get_search_view(),
     )
 
 
@@ -804,60 +752,7 @@ async def back_to_search_view(
     """글 검색 다시 시작"""
     await ack(
         response_type="update",
-        view=View(
-            type="modal",
-            callback_id="submit_search",
-            title="글 검색 🔍",
-            submit="검색",
-            blocks=[
-                SectionBlock(
-                    block_id="description_section",
-                    text="원하는 조건의 글을 검색할 수 있어요.",
-                ),
-                InputBlock(
-                    block_id="keyword_search",
-                    label="검색어",
-                    optional=True,
-                    element=PlainTextInputElement(
-                        action_id="keyword",
-                        placeholder="검색어를 입력해주세요.",
-                        multiline=False,
-                    ),
-                ),
-                InputBlock(
-                    block_id="author_search",
-                    label="글 작성자",
-                    optional=True,
-                    element=PlainTextInputElement(
-                        action_id="author_name",
-                        placeholder="이름을 입력해주세요.",
-                        multiline=False,
-                    ),
-                ),
-                InputBlock(
-                    block_id="category_search",
-                    label="카테고리",
-                    element=StaticSelectElement(
-                        action_id="chosen_category",
-                        placeholder="카테고리 선택",
-                        initial_option=Option(value="전체", text="전체"),
-                        options=static_select.options(
-                            [category.value for category in ContentCategoryEnum]
-                            + ["전체"]
-                        ),
-                    ),
-                ),
-                SectionBlock(
-                    text="웹으로 검색하시려면 [웹 검색] 버튼을 눌러주세요.",
-                    accessory=ButtonElement(
-                        text="웹 검색",
-                        action_id="web_search",
-                        url="https://vvd.bz/d2HG",
-                        style="primary",
-                    ),
-                ),
-            ],
-        ),
+        view=_get_search_view(),
     )
 
 
@@ -1115,3 +1010,59 @@ def _get_content_metrix(
     for i, v in enumerate(range(0, len(contents), contents_per_page)):
         content_matrix.update({i + 1: contents[v : v + contents_per_page]})
     return content_matrix
+
+
+def _get_search_view():
+    return View(
+        type="modal",
+        callback_id="submit_search",
+        title="글 검색 🔍",
+        submit="검색",
+        blocks=[
+            SectionBlock(
+                block_id="description_section",
+                text="원하는 조건의 글을 검색할 수 있어요.",
+            ),
+            InputBlock(
+                block_id="keyword_search",
+                label="검색어",
+                optional=True,
+                element=PlainTextInputElement(
+                    action_id="keyword",
+                    placeholder="검색어를 입력해주세요.",
+                    multiline=False,
+                ),
+            ),
+            InputBlock(
+                block_id="author_search",
+                label="글 작성자",
+                optional=True,
+                element=PlainTextInputElement(
+                    action_id="author_name",
+                    placeholder="이름을 입력해주세요.",
+                    multiline=False,
+                ),
+            ),
+            InputBlock(
+                block_id="category_search",
+                label="카테고리",
+                element=StaticSelectElement(
+                    action_id="chosen_category",
+                    placeholder="카테고리 선택",
+                    initial_option=Option(value="전체", text="전체"),
+                    options=static_select.options(
+                        [category.value for category in ContentCategoryEnum] + ["전체"]
+                    ),
+                ),
+            ),
+            SectionBlock(
+                text="웹으로 검색하시려면 [웹 검색] 버튼을 눌러주세요.",
+                accessory=ButtonElement(
+                    text="웹 검색",
+                    action_id="web_search",
+                    url="https://vvd.bz/d2HG",
+                    style="primary",
+                ),
+            ),
+        ],
+    )
