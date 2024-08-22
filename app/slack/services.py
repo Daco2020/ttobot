@@ -22,11 +22,6 @@ class SlackService:
         self._user_repo = user_repo
         self._user = user
 
-    @property
-    def user(self) -> models.User:
-        """유저를 가져옵니다."""
-        return self._user
-
     def fetch_contents(
         self,
         keyword: str | None = None,
@@ -103,25 +98,6 @@ class SlackService:
             message = f"\n>>>🙏🏼 *<@{content.user_id}>님 패스 완료.*\
                 {self._description_message(content.description)}"
         return message
-
-    def get_submit_history(self) -> str:
-        message = ""
-        for content in self._user.fetch_contents():
-            round = content.get_round()
-            sumit_head = f"✅  {round}회차 제출"
-            pass_head = f"▶️  {round}회차 패스"
-            if content.type == "submit":
-                message += f"\n{sumit_head}  |  "
-                message += f"{content.dt}"
-                message += f"\n:point_right::skin-tone-2: {content.title}\n"
-
-                # 슬랙 모달은 3000자까지만 허용하기 때문에 url을 제외하여 문자 길이를 줄임.
-                # message += f"*<{content.content_url}|{re.sub('<|>', '', content.title)}>*"
-
-            else:
-                message += f"\n{pass_head}  |  "
-                message += f"{content.dt}\n"
-        return message or "제출 내역이 없어요."
 
     def _get_description(self, view) -> str:
         description: str = view["state"]["values"]["description"][
@@ -260,7 +236,7 @@ class SlackService:
         if bookmark:
             store.bookmark_update_queue.append(bookmark)
 
-    def update_user(
+    def update_user_intro(
         self,
         user_id: str,
         new_intro: str,
@@ -268,7 +244,7 @@ class SlackService:
         """사용자의 자기소개를 수정합니다."""
         if self._user.user_id != user_id:
             raise BotException("본인의 자기소개만 수정할 수 있습니다.")
-        self._user_repo.update_user(user_id, new_intro)
+        self._user_repo.update_user_intro(user_id, new_intro)
 
     def fetch_users(self) -> list[models.User]:
         users = [models.User(**user) for user in self._user_repo._fetch_users()]

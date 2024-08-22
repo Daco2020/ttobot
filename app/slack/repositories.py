@@ -157,7 +157,7 @@ class SlackRepository:
 
         df.to_csv("store/bookmark.csv", index=False, quoting=csv.QUOTE_ALL)
 
-    def update_user(
+    def update_user_intro(
         self,
         user_id: str,
         new_intro: str,

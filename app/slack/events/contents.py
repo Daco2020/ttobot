@@ -44,7 +44,6 @@ async def submit_command(
     body: CommandBodyType,
     say: AsyncSay,
     client: AsyncWebClient,
-    user_id: str,
     user: models.User,
     service: SlackService,
 ) -> None:
@@ -208,7 +207,7 @@ async def submit_view(
     client: AsyncWebClient,
     view: ViewType,
     say: AsyncSay,
-    user_id: str,
+    user: models.User,
     service: SlackService,
 ) -> None:
     """글 제출 완료"""
@@ -250,12 +249,12 @@ async def submit_view(
                         ButtonElement(
                             text="자기소개 보기",
                             action_id="intro_modal",
-                            value=service.user.user_id,
+                            value=content.user_id,
                         ),
                         ButtonElement(
                             text="이전 작성글 보기",
                             action_id="contents_modal",
-                            value=service.user.user_id,
+                            value=content.user_id,
                         ),
                         ButtonElement(
                             text="북마크 추가📌",
@@ -273,7 +272,7 @@ async def submit_view(
         # 2초 대기하는 이유는 메시지 보다 더 먼저 전송 될 수 있기 때문임
         await asyncio.sleep(2)
         await client.chat_postEphemeral(
-            user=user_id,
+            user=content.user_id,
             channel=channel_id,
             text="여러분의 소중한 글을 더 많은 분들에게 보여드리고 싶어요. 자유로운 담소에도 전송하시겠어요?",
             blocks=[
@@ -294,7 +293,7 @@ async def submit_view(
         )
 
     except Exception as e:
-        message = f"{service.user.name}({service.user.channel_name}) 님의 제출이 실패했어요. {str(e)}"  # type: ignore
+        message = f"{user.name}({user.channel_name}) 님의 제출이 실패했어요. {str(e)}"  # type: ignore
         raise BotException(message)  # type: ignore
 
 
@@ -302,7 +301,6 @@ async def forward_message(
     ack: AsyncAck,
     body: ActionBodyType,
     client: AsyncWebClient,
-    user_id: str,
     service: SlackService,
 ) -> None:
     # TODO: 방학기간에 담소에도 글을 보낼지에 대한 메시지 전송 로직
@@ -339,7 +337,7 @@ async def open_intro_modal(
     ack: AsyncAck,
     body: ActionBodyType,
     client: AsyncWebClient,
-    user_id: str,
+    user: models.User,
     service: SlackService,
 ) -> None:
     """다른 유저의 자기소개 확인"""
@@ -349,7 +347,7 @@ async def open_intro_modal(
     other_user = service.get_user(other_user_id)
     intro_text = other_user.intro.replace("\\n", "\n") or "자기소개가 비어있어요. 😢"
 
-    is_self = user_id == other_user_id
+    is_self = user.user_id == other_user_id
 
     await client.views_open(
         trigger_id=body["trigger_id"],
@@ -370,7 +368,7 @@ async def edit_intro_view(
     client: AsyncWebClient,
     view: ViewType,
     say: AsyncSay,
-    user_id: str,
+    user: models.User,
     service: SlackService,
 ) -> None:
     """자기소개 수정 시작"""
@@ -394,7 +392,7 @@ async def edit_intro_view(
                         max_length=2000,
                         placeholder={
                             "type": "plain_text",
-                            "text": f"{service.user.intro[:100]} ... ",
+                            "text": f"{user.intro[:100]} ... ",
                         },
                     ),
                 ),
@@ -409,12 +407,12 @@ async def submit_intro_view(
     client: AsyncWebClient,
     view: ViewType,
     say: AsyncSay,
-    user_id: str,
+    user: models.User,
     service: SlackService,
 ) -> None:
     """자기소개 수정 완료"""
     new_intro = view["state"]["values"]["description"]["edit_intro"]["value"] or ""
-    service.update_user(user_id, new_intro=new_intro)
+    service.update_user_intro(user.user_id, new_intro=new_intro)
     await ack(
         response_action="update",
         view=View(
@@ -450,7 +448,6 @@ async def contents_modal(
     ack: AsyncAck,
     body: ActionBodyType,
     client: AsyncWebClient,
-    user_id: str,
     service: SlackService,
 ) -> None:
     """다른 유저의 제출한 글 목록 확인"""
@@ -474,7 +471,7 @@ async def bookmark_modal(
     ack: AsyncAck,
     body: BlockActionBodyType | OverflowActionBodyType,
     client: AsyncWebClient,
-    user_id: str,
+    user: models.User,
     service: SlackService,
 ) -> None:
     """북마크 저장 시작"""
@@ -490,7 +487,7 @@ async def bookmark_modal(
     else:
         content_id = actions["value"]  # type: ignore
 
-    bookmark = service.get_bookmark(user_id, content_id)
+    bookmark = service.get_bookmark(user.user_id, content_id)
     view = get_bookmark_view(content_id, bookmark)
     if is_overflow:
         await client.views_update(view_id=body["view"]["id"], view=view)  # type: ignore
@@ -539,7 +536,7 @@ async def bookmark_view(
     client: AsyncWebClient,
     view: ViewType,
     say: AsyncSay,
-    user_id: str,
+    user: models.User,
     service: SlackService,
 ) -> None:
     """북마크 저장 완료"""
@@ -548,7 +545,7 @@ async def bookmark_view(
     content_id = view["private_metadata"]
     value = view["state"]["values"]["bookmark_note"]["plain_text_input-action"]["value"]
     note = value if value else ""  # 유저가 입력하지 않으면 None 으로 전달 된다.
-    service.create_bookmark(user_id, content_id, note)
+    service.create_bookmark(user.user_id, content_id, note)
 
     await ack(
         response_action="update",
@@ -625,7 +622,7 @@ async def pass_view(
     client: AsyncWebClient,
     view: ViewType,
     say: AsyncSay,
-    user_id: str,
+    user: models.User,
     service: SlackService,
 ) -> None:
     """글 패스 완료"""
@@ -642,7 +639,7 @@ async def pass_view(
         content.ts = message.get("ts", "")
         await service.update_user_content(content)
     except Exception as e:
-        message = f"{service.user.name}({service.user.channel_name}) 님의 패스가 실패했어요. {str(e)}"  # type: ignore
+        message = f"{user.name}({user.channel_name}) 님의 패스가 실패했어요. {str(e)}"  # type: ignore
         raise BotException(message)  # type: ignore
 
 
@@ -651,7 +648,6 @@ async def search_command(
     body: CommandBodyType,
     say: AsyncSay,
     client: AsyncWebClient,
-    user_id: str,
     service: SlackService,
 ) -> None:
     """글 검색 시작"""
@@ -667,7 +663,6 @@ async def submit_search(
     ack: AsyncAck,
     body: ViewBodyType | ActionBodyType,
     client: AsyncWebClient,
-    user_id: str,
     service: SlackService,
 ) -> None:
     """글 검색 완료"""
@@ -693,7 +688,6 @@ async def web_search(
     ack: AsyncAck,
     body: ActionBodyType,
     client: AsyncWebClient,
-    user_id: str,
     service: SlackService,
 ) -> None:
     """웹 검색 시작(외부 링크로 이동)"""
@@ -746,7 +740,6 @@ async def back_to_search_view(
     body: ViewBodyType,
     say: AsyncSay,
     client: AsyncWebClient,
-    user_id: str,
     service: SlackService,
 ) -> None:
     """글 검색 다시 시작"""
@@ -798,13 +791,13 @@ async def bookmark_command(
     body: CommandBodyType,
     say: AsyncSay,
     client: AsyncWebClient,
-    user_id: str,
+    user: models.User,
     service: SlackService,
 ) -> None:
     """북마크 조회"""
     await ack()
 
-    bookmarks = service.fetch_bookmarks(user_id)
+    bookmarks = service.fetch_bookmarks(user.user_id)
     content_ids = [bookmark.content_id for bookmark in bookmarks]
     contents = service.fetch_contents_by_ids(content_ids)
     content_matrix = _get_content_metrix(contents)
@@ -841,13 +834,13 @@ async def handle_bookmark_page(
     body: ViewBodyType | OverflowActionBodyType,
     say: AsyncSay,
     client: AsyncWebClient,
-    user_id: str,
+    user: models.User,
     service: SlackService,
 ) -> None:
     """북마크 페이지 이동"""
     await ack()
 
-    bookmarks = service.fetch_bookmarks(user_id)
+    bookmarks = service.fetch_bookmarks(user.user_id)
     content_ids = [bookmark.content_id for bookmark in bookmarks]
     contents = service.fetch_contents_by_ids(content_ids)
     content_matrix = _get_content_metrix(contents)
@@ -966,7 +959,7 @@ async def open_overflow_action(
     body: OverflowActionBodyType,
     client: AsyncWebClient,
     say: AsyncSay,
-    user_id: str,
+    user: models.User,
     service: SlackService,
 ) -> None:
     """북마크 메뉴 선택"""
@@ -980,12 +973,14 @@ async def open_overflow_action(
     if value["action"] == "remove_bookmark":
         title = "북마크 취소📌"
         service.update_bookmark(
-            user_id, value["content_id"], new_status=models.BookmarkStatusEnum.DELETED
+            user.user_id,
+            value["content_id"],
+            new_status=models.BookmarkStatusEnum.DELETED,
         )
         text = "북마크를 취소했어요."
     elif value["action"] == "view_note":
         title = "북마크 메모✏️"
-        bookmark = service.get_bookmark(user_id, value["content_id"])
+        bookmark = service.get_bookmark(user.user_id, value["content_id"])
         text = bookmark.note if bookmark and bookmark.note else "메모가 없어요."
 
     await client.views_update(

@@ -130,6 +130,26 @@ class User(BaseModel):
             )
             raise BotException(message)
 
+    @property
+    def submit_history(self) -> str:
+        message = ""
+        for content in self.fetch_contents():
+            round = content.get_round()
+            sumit_head = f"✅  {round}회차 제출"
+            pass_head = f"▶️  {round}회차 패스"
+            if content.type == "submit":
+                message += f"\n{sumit_head}  |  "
+                message += f"{content.dt}"
+                message += f"\n:point_right::skin-tone-2: {content.title}\n"
+
+                # 슬랙 모달은 3000자까지만 허용하기 때문에 url을 제외하여 문자 길이를 줄임.
+                # message += f"*<{content.content_url}|{re.sub('<|>', '', content.title)}>*"
+
+            else:
+                message += f"\n{pass_head}  |  "
+                message += f"{content.dt}\n"
+        return message or "제출 내역이 없어요."
+
     def to_list_for_sheet(self) -> list[str]:
         return [
             self.user_id,
