@@ -167,3 +167,20 @@ class OverflowActionBodyType(TypedDict):
     is_enterprise_install: bool
     view: ViewType
     actions: list[OverflowActionType]
+
+
+class BlockActionBodyType(TypedDict):
+    type: str
+    user: UserType
+    api_app_id: str
+    token: str
+    container: ContainerType
+    trigger_id: str
+    team: TeamType
+    enterprise: str
+    is_enterprise_install: bool
+    channel: ChannelType
+    message: MessageType
+    state: dict[str, dict]
+    response_url: str
+    actions: list[ActionType]
