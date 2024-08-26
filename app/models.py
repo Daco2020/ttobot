@@ -99,6 +99,7 @@ class User(BaseModel):
         return latest_due_date < recent_content.date <= now_date
 
     def check_channel(self, channel_id: str) -> None:
+        """코어 채널이 일치하는지 체크합니다."""
         if self.channel_id == "ALL":
             return
         if self.channel_id != channel_id:
@@ -107,8 +108,8 @@ class User(BaseModel):
             )
 
     @property
-    def submit_guide_message(self) -> str:
-        """제출 모달을 띄웁니다."""
+    def submission_guide_message(self) -> str:
+        """제출 모달 가이드 메시지를 반환합니다."""
         round, due_date = self.get_due_date()
         guide_message = f"\n\n현재 회차는 {round}회차, 마감일은 {due_date} 이에요."
         if self.is_submit:
@@ -121,6 +122,7 @@ class User(BaseModel):
         return guide_message
 
     def check_pass(self) -> None:
+        """pass 사용 가능 여부를 체크합니다."""
         if self.pass_count >= MAX_PASS_COUNT:
             message = "사용할 수 있는 pass 가 없어요."
             raise BotException(message)
@@ -282,4 +284,30 @@ class Bookmark(StoreModel):
             self.status,
             self.created_at,
             self.updated_at,
+        ]
+
+
+class CoffeeChatProof(StoreModel):
+    ts: str  # id
+    thread_ts: str = ""  # 스레드로 인증한 경우 상위 id 추가
+    user_id: str
+    text: str
+    image_urls: str = ""  # url1,url2,url3 형태
+
+    def to_list_for_csv(self) -> list[str]:
+        return [
+            self.ts,
+            self.thread_ts,
+            self.user_id,
+            self.text,
+            self.image_urls,
+        ]
+
+    def to_list_for_sheet(self) -> list[str]:
+        return [
+            self.ts,
+            self.thread_ts,
+            self.user_id,
+            self.text,
+            self.image_urls,
         ]

@@ -8,16 +8,20 @@ from app.logging import log_event
 from loguru import logger
 from slack_bolt.request import BoltRequest
 from slack_bolt.response import BoltResponse
+from slack_bolt.async_app import AsyncAck, AsyncSay
 from slack_sdk.models.blocks import SectionBlock
 from slack_sdk.models.views import View
 
 from typing import Callable, cast
 
+from app.models import User
+from app.slack.events import community as community_events
 from app.slack.events import contents as contents_events
 from app.slack.events import core as core_events
 from app.exception import BotException
 from app.slack.repositories import SlackRepository
 from app.slack.services import SlackService
+from app.slack.types import MessageBodyType
 
 app = AsyncApp(token=settings.SLACK_BOT_TOKEN)
 
@@ -141,23 +145,34 @@ async def handle_error(error, body):
 
 @app.event("message")
 async def handle_message(
-    ack,
-    body,
+    ack: AsyncAck,
+    body: MessageBodyType,
+    say: AsyncSay,
     client: AsyncWebClient,
     service: SlackService,
+    user: User,
 ) -> None:
     await ack()
 
     event = body.get("event", {})
-    user_id = event.get("user")
     channel_id = event.get("channel")
     thread_ts = event.get("thread_ts")
 
     if channel_id == settings.SUPPORT_CHANNEL and not thread_ts:
         # 사용자가 문의사항을 남기면 관리자에게 알립니다.
-        if user := SlackRepository().get_user(cast(str, user_id)):
-            message = f"👋🏼 <#{user.channel_id}>채널의 {user.name}님이 <#{channel_id}>을 남겼어요."
-            await client.chat_postMessage(channel=settings.ADMIN_CHANNEL, text=message)
+        message = f"👋🏼 <#{user.channel_id}>채널의 {user.name}님이 <#{channel_id}>을 남겼어요."
+        await client.chat_postMessage(channel=settings.ADMIN_CHANNEL, text=message)
+
+    # TODO: if channel_id == settings.COFFEE_CHAT_CHANNEL:
+    if channel_id:
+        await community_events.handle_coffee_chat_message(
+            ack=ack,
+            body=body,
+            say=say,
+            client=client,
+            service=service,
+            user=user,
+        )
 
 
 @app.event("member_joined_channel")
@@ -166,7 +181,15 @@ async def handle_member_joined_channel(ack, body) -> None:
 
 
 # community
-# TODO: 추후 community 기능 구현
+app.action("cancel_coffee_chat_proof_button")(
+    community_events.cancel_coffee_chat_proof_button
+)
+app.action("submit_coffee_chat_proof_button")(
+    community_events.submit_coffee_chat_proof_button
+)
+app.view("submit_coffee_chat_proof_view")(
+    community_events.submit_coffee_chat_proof_view
+)
 
 # contents
 app.command("/제출")(contents_events.submit_command)

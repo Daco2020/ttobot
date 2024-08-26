@@ -64,7 +64,7 @@ async def submit_command(
     #         blocks=[
     #             SectionBlock(
     #                 block_id="required_section",
-    #                 text=user.submit_guide_message,
+    #                 text=user.submission_guide_message,
     #             ),
     #             InputBlock(
     #                 block_id="content_url",

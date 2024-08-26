@@ -13,7 +13,7 @@ class AppMentionEvent(TypedDict):
     event_ts: str
 
 
-class AppMentionAuthorization(TypedDict):
+class Authorization(TypedDict):
     enterprise_id: str
     team_id: str
     user_id: str
@@ -29,7 +29,7 @@ class AppMentionBodyType(TypedDict):
     type: str
     event_id: str
     event_time: int
-    authorizations: list[AppMentionAuthorization]
+    authorizations: list[Authorization]
     is_ext_shared_channel: bool
     event_context: str
 
@@ -184,3 +184,32 @@ class BlockActionBodyType(TypedDict):
     state: dict[str, dict]
     response_url: str
     actions: list[ActionType]
+
+
+class MessageEvent(TypedDict):
+    user: str
+    type: str
+    ts: str
+    client_msg_id: str
+    text: str
+    team: str
+    blocks: list[dict]
+    channel: str
+    event_ts: str
+    channel_type: str
+    thread_ts: str | None  # 상위 메시지의 timestamp
+
+
+class MessageBodyType(TypedDict):
+    token: str
+    team_id: str
+    context_team_id: str
+    context_enterprise_id: str | None
+    api_app_id: str
+    event: MessageEvent
+    type: str
+    event_id: str
+    event_time: int
+    authorizations: list[Authorization]
+    is_ext_shared_channel: bool
+    event_context: str
