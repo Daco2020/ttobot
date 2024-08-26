@@ -2,8 +2,8 @@ import asyncio
 import orjson
 import requests
 from slack_sdk.web.async_client import AsyncWebClient
+from app.exception import BotException
 from app.models import User
-from app.models import CoffeeChatProof
 from app.slack.services import SlackService
 from app.slack.types import (
     ActionBodyType,
@@ -20,6 +20,9 @@ from slack_sdk.models.blocks import (
     ButtonElement,
 )
 
+# TODO: 생성한 커피 챗 인증 업로드
+# TODO: 커피 챗 인증 횟수 확인 방법 강구
+
 
 async def handle_coffee_chat_message(
     ack: AsyncAck,
@@ -32,22 +35,25 @@ async def handle_coffee_chat_message(
     """커피챗 인증 메시지인지 확인하고, 인증 모달을 전송합니다."""
     await ack()
 
-    if body["event"].get("thread_ts"):  # 스레드에 답글로 커피챗 인증을 하는 경우
-        # TODO: thread_ts 로 커피챗 인증글이 있다면 인증을 할 수 있는 스레드이다.
-        # TODO: 커피챗.user_id==user.user_id and 커피챗.ts==thread_ts 커피챗 인증글이 있다면 이미 해당 유저는 인증이 완료된 상태이다.
+    # 인증글에 답글로 커피챗 인증을 하는 경우
+    if body["event"].get("thread_ts"):
+        try:
+            service.check_coffee_chat_proof(
+                thread_ts=str(body["event"]["thread_ts"]),
+                user_id=body["event"]["user"],
+            )
+        except BotException:
+            # 인증 글에 대한 답글이 아니거나 이미 인증한 경우, 인증 대상이 아닌 경우이다.
+            return
 
-        image_urls = ",".join(
-            file["thumb_1024"] for file in body["event"].get("files", [])  # type: ignore
-        )
-        CoffeeChatProof(
-            ts=body["event"]["ts"],
-            thread_ts=body["event"]["thread_ts"],  # type: ignore
+        service.create_coffee_chat_proof(
+            ts=str(body["event"]["ts"]),
+            thread_ts=str(body["event"]["thread_ts"]),
             user_id=body["event"]["user"],
             text=body["event"]["text"],
-            image_urls=image_urls,
+            files=body["event"].get("files", []),  # type: ignore
+            selected_user_ids="",
         )
-
-        # TODO: 데이터 저장
 
         await client.reactions_add(
             channel=body["event"]["channel"],
@@ -176,29 +182,36 @@ async def submit_coffee_chat_proof_view(
         "selected_users"
     ]
 
-    text = message["text"]
-    image_urls = ",".join(file["thumb_1024"] for file in message.get("files", []))
+    service.create_coffee_chat_proof(
+        ts=message_ts,
+        thread_ts="",
+        user_id=user.user_id,
+        text=message["text"],
+        files=message.get("files", []),
+        selected_user_ids=",".join(
+            selected_user
+            for selected_user in selected_users
+            if selected_user != user.user_id
+        ),
+    )
 
-    participant_user_ids = ",".join(
+    await client.reactions_add(
+        channel="C05J87UPC3F",
+        timestamp=message_ts,
+        name="white_check_mark",
+    )
+
+    user_call_text = ",".join(
         f"<@{selected_user}>"
         for selected_user in selected_users
         if selected_user != user.user_id  # 본인 제외
     )
 
-    CoffeeChatProof(
-        ts=message_ts,
-        user_id=user.user_id,
-        text=text,
-        image_urls=image_urls,
-    )
-
-    # TODO: 데이터 저장
-
-    if participant_user_ids:
+    if user_call_text:
         await client.chat_postMessage(
             channel="C05J87UPC3F",
             thread_ts=message_ts,
-            text=f"{participant_user_ids} 커피챗 인증을 위해 후기를 남겨주세요. ☕😊",
+            text=f"{user_call_text} 커피챗 인증을 위해 꼭 후기를 남겨주세요. ☕😊",
         )
 
     # 나에게만 표시 메시지 수정하는 요청(slack bolt 에서는 지원하지 않음)

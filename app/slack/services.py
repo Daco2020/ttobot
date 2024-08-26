@@ -18,8 +18,8 @@ from slack_bolt.async_app import AsyncApp
 
 
 class SlackService:
-    def __init__(self, user_repo: SlackRepository, user: models.User) -> None:
-        self._user_repo = user_repo
+    def __init__(self, repo: SlackRepository, user: models.User) -> None:
+        self._repo = repo
         self._user = user
 
     def fetch_contents(
@@ -30,12 +30,12 @@ class SlackService:
     ) -> list[models.Content]:
         """콘텐츠를 조건에 맞춰 가져옵니다."""
         if keyword:
-            contents = self._user_repo.fetch_contents_by_keyword(keyword)
+            contents = self._repo.fetch_contents_by_keyword(keyword)
         else:
-            contents = self._user_repo.fetch_contents()
+            contents = self._repo.fetch_contents()
 
         if name:
-            user_ids = self._user_repo.fetch_user_ids_by_name(name)
+            user_ids = self._repo.fetch_user_ids_by_name(name)
             contents = [content for content in contents if content.user_id in user_ids]
 
         if category != "전체":
@@ -45,7 +45,7 @@ class SlackService:
 
     def get_user(self, user_id) -> models.User:
         """유저 정보를 가져옵니다."""
-        user = self._user_repo.get_user(user_id)
+        user = self._repo.get_user(user_id)
         if not user:
             raise BotException("해당 유저 정보가 없어요.")
         return user
@@ -74,7 +74,7 @@ class SlackService:
     async def update_user_content(self, content: models.Content) -> None:
         """유저의 콘텐츠를 업데이트합니다."""
         self._user.contents.append(content)
-        self._user_repo.update(self._user)
+        self._repo.update(self._user)
 
     async def create_pass_content(self, ack, body, view) -> models.Content:
         """패스 콘텐츠를 생성합니다."""
@@ -195,19 +195,19 @@ class SlackService:
     ) -> models.Bookmark:
         """북마크를 생성합니다."""
         bookmark = models.Bookmark(user_id=user_id, content_id=content_id, note=note)
-        self._user_repo.create_bookmark(bookmark)
+        self._repo.create_bookmark(bookmark)
         store.bookmark_upload_queue.append(bookmark.to_list_for_sheet())
         return bookmark
 
     def get_bookmark(self, user_id: str, content_id: str) -> models.Bookmark | None:
         """북마크를 가져옵니다."""
-        bookmark = self._user_repo.get_bookmark(user_id, content_id)
+        bookmark = self._repo.get_bookmark(user_id, content_id)
         return bookmark
 
     def fetch_bookmarks(self, user_id: str) -> list[models.Bookmark]:
         """유저의 북마크를 모두 가져옵니다."""
         # TODO: 키워드로 검색 기능 추가
-        bookmarks = self._user_repo.fetch_bookmarks(user_id)
+        bookmarks = self._repo.fetch_bookmarks(user_id)
         return bookmarks
 
     def fetch_contents_by_ids(
@@ -215,9 +215,9 @@ class SlackService:
     ) -> list[models.Content]:
         """컨텐츠 아이디로 Contents 를 가져옵니다."""
         if keyword:
-            contents = self._user_repo.fetch_contents_by_keyword(keyword)
+            contents = self._repo.fetch_contents_by_keyword(keyword)
         else:
-            contents = self._user_repo.fetch_contents()
+            contents = self._repo.fetch_contents()
         return [content for content in contents if content.content_id in content_ids]
 
     def update_bookmark(
@@ -229,8 +229,8 @@ class SlackService:
     ) -> None:
         """북마크를 업데이트합니다."""
         # TODO: 북마크 삭제와 수정 분리할 것
-        self._user_repo.update_bookmark(content_id, new_note, new_status)
-        bookmark = self._user_repo.get_bookmark(user_id, content_id, status=new_status)
+        self._repo.update_bookmark(content_id, new_note, new_status)
+        bookmark = self._repo.get_bookmark(user_id, content_id, status=new_status)
         if bookmark:
             store.bookmark_update_queue.append(bookmark)
 
@@ -242,23 +242,69 @@ class SlackService:
         """사용자의 자기소개를 수정합니다."""
         if self._user.user_id != user_id:
             raise BotException("본인의 자기소개만 수정할 수 있습니다.")
-        self._user_repo.update_user_intro(user_id, new_intro)
+        self._repo.update_user_intro(user_id, new_intro)
 
     def fetch_users(self) -> list[models.User]:
-        users = [models.User(**user) for user in self._user_repo._fetch_users()]
+        users = [models.User(**user) for user in self._repo._fetch_users()]
         return users
 
     def get_content_by_ts(self, ts: str) -> models.Content:
-        return self._user_repo.get_content_by_ts(ts)  # type: ignore
+        return self._repo.get_content_by_ts(ts)  # type: ignore
+
+    def create_coffee_chat_proof(
+        self,
+        ts: str,
+        thread_ts: str,
+        user_id: str,
+        text: str,
+        files: list[dict[str, Any]],
+        selected_user_ids: str,
+    ) -> models.CoffeeChatProof:
+        """커피챗 인증글을 생성합니다."""
+        image_urls = ",".join(file["thumb_1024"] for file in files)
+        coffee_chat_proof = models.CoffeeChatProof(
+            ts=ts,
+            thread_ts=thread_ts,
+            user_id=user_id,
+            text=text,
+            image_urls=image_urls,
+            selected_user_ids=selected_user_ids,
+        )
+        self._repo.create_coffee_chat_proof(coffee_chat_proof)
+        return coffee_chat_proof
+
+    def check_coffee_chat_proof(
+        self,
+        thread_ts: str,
+        user_id: str,
+    ) -> None:
+        """
+        커피챗 인증 가능 여부를 확인합니다.
+
+        1. 스레드의 상위 메시지(thread_ts)로 기존 커피챗 인증 글(ts)이 존재하지 않으면, 인증할 수 없습니다.
+        2. 인증 대상자 목록(selected_user_ids)에 해당 사용자의 user_id가 포함되어 있지 않으면, 인증할 수 없습니다.
+        3. 동일한 user_id로 이미 커피챗 인증이 되어 있는 경우, 중복 인증을 할 수 없습니다.
+        """
+        parent_proof = self._repo.get_coffee_chat_proof(ts=thread_ts)
+        if not parent_proof:
+            raise BotException("커피챗 인증글을 찾을 수 없어요.")
+
+        if user_id not in parent_proof.selected_user_ids:
+            raise BotException("커피챗 인증 대상이 아니에요.")
+
+        proofs = self._repo.fetch_coffee_chat_proofs(thread_ts=thread_ts)
+        for proof in proofs:
+            if proof.user_id == user_id:
+                raise BotException("이미 답글로 커피챗을 인증했어요.")
 
 
 class SlackReminderService:
-    def __init__(self, user_repo: SlackRepository) -> None:
-        self._user_repo = user_repo
+    def __init__(self, repo: SlackRepository) -> None:
+        self._repo = repo
 
     async def send_reminder_message_to_user(self, slack_app: AsyncApp) -> None:
         """사용자에게 리마인드 메시지를 전송합니다."""
-        users = self._user_repo.fetch_users()
+        users = self._repo.fetch_users()
         for user in users:
             if user.is_submit:
                 continue

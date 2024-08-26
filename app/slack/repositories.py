@@ -178,3 +178,34 @@ class SlackRepository:
                 if row["ts"] == ts:
                     return models.Content(**row)
             return None
+
+    def create_coffee_chat_proof(self, proof: models.CoffeeChatProof) -> None:
+
+        with open(
+            "store/coffee_chat_proof.csv", "a", newline="", encoding="utf-8"
+        ) as f:
+            writer = csv.writer(f, quoting=csv.QUOTE_ALL)
+            writer.writerow(proof.to_list_for_csv())
+
+    def get_coffee_chat_proof(self, ts: str) -> models.CoffeeChatProof | None:
+        """ts로 커피챗 인증을 조회합니다."""
+        df = pd.read_csv("store/coffee_chat_proof.csv", dtype=str, na_filter=False)
+
+        df = df[df["ts"] == ts]
+
+        if df.empty:
+            return None
+
+        row = df.iloc[0]
+        return models.CoffeeChatProof(**row)
+
+    def fetch_coffee_chat_proofs(self, thread_ts: str) -> list[models.CoffeeChatProof]:
+        """thread_ts로 커피챗 인증을 조회합니다."""
+        df = pd.read_csv("store/coffee_chat_proof.csv", dtype=str, na_filter=False)
+
+        df = df[df["thread_ts"] == thread_ts]
+
+        if df.empty:
+            return []
+
+        return [models.CoffeeChatProof(**row) for row in df.to_dict(orient="records")]

@@ -88,7 +88,7 @@ if settings.ENV == "prod":
         store.initialize_logs()
 
     async def remind_job(slack_app: AsyncApp) -> None:
-        slack_service = SlackReminderService(user_repo=SlackRepository())
+        slack_service = SlackReminderService(repo=SlackRepository())
         await slack_service.send_reminder_message_to_user(slack_app)
 
     @app.on_event("shutdown")

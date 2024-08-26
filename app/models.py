@@ -293,6 +293,7 @@ class CoffeeChatProof(StoreModel):
     user_id: str
     text: str
     image_urls: str = ""  # url1,url2,url3 형태
+    selected_user_ids: str = ""  # id1,id2,id3 형태
 
     def to_list_for_csv(self) -> list[str]:
         return [
@@ -301,6 +302,7 @@ class CoffeeChatProof(StoreModel):
             self.user_id,
             self.text,
             self.image_urls,
+            self.selected_user_ids,
         ]
 
     def to_list_for_sheet(self) -> list[str]:
@@ -310,4 +312,5 @@ class CoffeeChatProof(StoreModel):
             self.user_id,
             self.text,
             self.image_urls,
+            self.selected_user_ids,
         ]

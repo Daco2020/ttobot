@@ -79,10 +79,10 @@ async def dependency_injection_middleware(
         await next()
         return
 
-    user_repo = SlackRepository()
-    user = user_repo.get_user(cast(str, user_id))
+    repo = SlackRepository()
+    user = repo.get_user(cast(str, user_id))
     if user:
-        req.context["service"] = SlackService(user_repo=user_repo, user=user)
+        req.context["service"] = SlackService(repo=repo, user=user)
         req.context["user"] = user
         await next()
         return
@@ -157,8 +157,8 @@ async def handle_message(
     thread_ts = event.get("thread_ts")
 
     if channel_id == settings.SUPPORT_CHANNEL and not thread_ts:
-        user_repo = SlackRepository()
-        user = user_repo.get_user(user_id)  # type: ignore
+        repo = SlackRepository()
+        user = repo.get_user(user_id)  # type: ignore
 
         if not user:
             message = f"🥲 사용자 정보를 추가해주세요. 👉🏼 user_id: {user_id}"
@@ -172,15 +172,15 @@ async def handle_message(
 
     # TODO: if channel_id == settings.COFFEE_CHAT_CHANNEL:
     if channel_id == "C05J87UPC3F":
-        user_repo = SlackRepository()
-        user = user_repo.get_user(user_id)  # type: ignore
+        repo = SlackRepository()
+        user = repo.get_user(user_id)  # type: ignore
 
         if not user:
             message = f"🥲 사용자 정보를 추가해주세요. 👉🏼 user_id: {user_id}"
             await client.chat_postMessage(channel=settings.ADMIN_CHANNEL, text=message)
             return
 
-        service = SlackService(user_repo=user_repo, user=user)
+        service = SlackService(repo=repo, user=user)
         await community_events.handle_coffee_chat_message(
             ack=ack,
             body=body,
