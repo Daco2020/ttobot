@@ -1,3 +1,4 @@
+import asyncio
 import orjson
 import requests
 from slack_sdk.web.async_client import AsyncWebClient
@@ -31,11 +32,7 @@ async def handle_coffee_chat_message(
     """커피챗 인증 메시지인지 확인하고, 인증 모달을 전송합니다."""
     await ack()
 
-    if body["event"]["channel"] != "C05J87UPC3F":
-        return
-
-    thread_ts = body["event"].get("thread_ts")
-    if thread_ts:
+    if body["event"].get("thread_ts"):  # 스레드에 답글로 커피챗 인증을 하는 경우
         # TODO: thread_ts 로 커피챗 인증글이 있다면 인증을 할 수 있는 스레드이다.
         # TODO: 커피챗.user_id==user.user_id and 커피챗.ts==thread_ts 커피챗 인증글이 있다면 이미 해당 유저는 인증이 완료된 상태이다.
 
@@ -44,7 +41,7 @@ async def handle_coffee_chat_message(
         )
         CoffeeChatProof(
             ts=body["event"]["ts"],
-            thread_ts=thread_ts,
+            thread_ts=body["event"]["thread_ts"],  # type: ignore
             user_id=body["event"]["user"],
             text=body["event"]["text"],
             image_urls=image_urls,
@@ -59,6 +56,8 @@ async def handle_coffee_chat_message(
         )
         return
 
+    # 2초 대기하는 이유는 메시지 보다 더 먼저 전송 될 수 있기 때문임
+    await asyncio.sleep(2)
     text = "☕ 커피챗 인증을 시작하려면 아래 [ 커피챗 인증 ] 버튼을 눌러주세요."
     await client.chat_postEphemeral(
         user=user.user_id,

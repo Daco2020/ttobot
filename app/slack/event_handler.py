@@ -14,7 +14,6 @@ from slack_sdk.models.views import View
 
 from typing import Callable, cast
 
-from app.models import User
 from app.slack.events import community as community_events
 from app.slack.events import contents as contents_events
 from app.slack.events import core as core_events
@@ -75,7 +74,7 @@ async def dependency_injection_middleware(
     user_id = req.context.user_id
     channel_id = req.context.channel_id
 
-    if event in ["app_mention", "member_joined_channel"]:
+    if event in ["app_mention", "member_joined_channel", "message"]:
         # 앱 멘션과 채널 입장은 서비스 객체를 주입하지 않는다.
         await next()
         return
@@ -149,30 +148,48 @@ async def handle_message(
     body: MessageBodyType,
     say: AsyncSay,
     client: AsyncWebClient,
-    service: SlackService,
-    user: User,
 ) -> None:
     await ack()
 
     event = body.get("event", {})
+    user_id = event.get("user")
     channel_id = event.get("channel")
     thread_ts = event.get("thread_ts")
 
     if channel_id == settings.SUPPORT_CHANNEL and not thread_ts:
+        user_repo = SlackRepository()
+        user = user_repo.get_user(user_id)  # type: ignore
+
+        if not user:
+            message = f"🥲 사용자 정보를 추가해주세요. 👉🏼 user_id: {user_id}"
+            await client.chat_postMessage(channel=settings.ADMIN_CHANNEL, text=message)
+            return
+
         # 사용자가 문의사항을 남기면 관리자에게 알립니다.
         message = f"👋🏼 <#{user.channel_id}>채널의 {user.name}님이 <#{channel_id}>을 남겼어요."
         await client.chat_postMessage(channel=settings.ADMIN_CHANNEL, text=message)
+        return
 
     # TODO: if channel_id == settings.COFFEE_CHAT_CHANNEL:
-    if channel_id:
+    if channel_id == "C05J87UPC3F":
+        user_repo = SlackRepository()
+        user = user_repo.get_user(user_id)  # type: ignore
+
+        if not user:
+            message = f"🥲 사용자 정보를 추가해주세요. 👉🏼 user_id: {user_id}"
+            await client.chat_postMessage(channel=settings.ADMIN_CHANNEL, text=message)
+            return
+
+        service = SlackService(user_repo=user_repo, user=user)
         await community_events.handle_coffee_chat_message(
             ack=ack,
             body=body,
             say=say,
             client=client,
-            service=service,
             user=user,
+            service=service,
         )
+        return
 
 
 @app.event("member_joined_channel")
