@@ -3,7 +3,7 @@ import decimal
 import uuid
 import orjson
 
-from typing import Any
+from typing import Any, Mapping
 
 from pydantic import BaseModel
 from app.utils import tz_now, tz_now_to_str
@@ -42,7 +42,7 @@ def log_event(
     event: str,
     type: str,
     description: str = "",
-    body: dict[str, Any] = {},
+    body: Mapping[str, Any] = {},
 ) -> None:
     try:
         data = dict(

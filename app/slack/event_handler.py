@@ -50,6 +50,7 @@ async def log_event_middleware(
         type = "unknown"
 
     if event not in ["message", "member_joined_channel"]:
+        # message 는 handle_message 에서 로깅합니다.
         description = event_descriptions.get(str(event), "알 수 없는 이벤트")
         log_event(
             actor=req.context.user_id,
@@ -180,6 +181,17 @@ async def handle_message(
             await client.chat_postMessage(channel=settings.ADMIN_CHANNEL, text=message)
             return
 
+        description = event_descriptions.get(
+            "coffee_chat_proof_message", "알 수 없는 이벤트"
+        )
+        log_event(
+            actor=user.user_id,
+            event="coffee_chat_proof_message",
+            type="message",
+            description=description,
+            body=body,
+        )
+
         service = SlackService(repo=repo, user=user)
         await community_events.handle_coffee_chat_message(
             ack=ack,
@@ -264,4 +276,8 @@ event_descriptions = {
     "/제출내역": "제출내역 조회",
     "/관리자": "관리자 메뉴 조회",
     "/도움말": "도움말 조회",
+    "coffee_chat_proof_message": "커피챗 인증 메시지",
+    "cancel_coffee_chat_proof_button": "커피챗 인증 안내 닫기",
+    "submit_coffee_chat_proof_button": "커피챗 인증 제출 시작",
+    "submit_coffee_chat_proof_view": "커피챗 인증 제출 완료",
 }
