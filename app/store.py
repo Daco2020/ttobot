@@ -8,6 +8,7 @@ content_upload_queue: list[list[str]] = []
 bookmark_upload_queue: list[list[str]] = []
 bookmark_update_queue: list[Bookmark] = []  # TODO: 추후 타입 수정 필요
 user_update_queue: list[list[str]] = []
+coffee_chat_proof_upload_queue: list[list[str]] = []
 
 
 class Store:
@@ -20,6 +21,9 @@ class Store:
         self.write("users", values=self._client.get_values("users"))
         self.write("contents", values=self._client.get_values("contents"))
         self.write("bookmark", values=self._client.get_values("bookmark"))
+        self.write(
+            "coffee_chat_proof", values=self._client.get_values("coffee_chat_proof")
+        )
 
     def write(self, table_name: str, values: list[list[str]]) -> None:
         with open(f"store/{table_name}.csv", "w", newline="", encoding="utf-8") as f:
@@ -91,6 +95,18 @@ class Store:
                 body={"user_update_queue": user_update_queue},
             )
             user_update_queue = []
+
+        global coffee_chat_proof_upload_queue
+        if coffee_chat_proof_upload_queue:
+            self._client.upload("coffee_chat_proof", coffee_chat_proof_upload_queue)
+            log_event(
+                actor="system",
+                event="uploaded_coffee_chat_proofs",
+                type="community",
+                description=f"{len(coffee_chat_proof_upload_queue)}개 커피챗 인증 업로드",
+                body={"coffee_chat_proof_upload_queue": coffee_chat_proof_upload_queue},
+            )
+            coffee_chat_proof_upload_queue = []
 
     def backup(self, table_name: str) -> None:
         values = self.read(table_name)

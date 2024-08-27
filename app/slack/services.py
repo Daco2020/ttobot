@@ -271,6 +271,9 @@ class SlackService:
             selected_user_ids=selected_user_ids,
         )
         self._repo.create_coffee_chat_proof(coffee_chat_proof)
+        store.coffee_chat_proof_upload_queue.append(
+            coffee_chat_proof.to_list_for_sheet()
+        )
         return coffee_chat_proof
 
     def check_coffee_chat_proof(

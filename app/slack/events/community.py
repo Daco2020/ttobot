@@ -20,8 +20,7 @@ from slack_sdk.models.blocks import (
     ButtonElement,
 )
 
-# TODO: 생성한 커피 챗 인증 업로드
-# TODO: 커피 챗 인증 횟수 확인 방법 강구
+# TODO: 커피 챗 인증 횟수 확인 방법 강구. 앱 홈 화면에 표시할 수 있도록?
 
 
 async def handle_coffee_chat_message(
@@ -211,7 +210,7 @@ async def submit_coffee_chat_proof_view(
         await client.chat_postMessage(
             channel="C05J87UPC3F",
             thread_ts=message_ts,
-            text=f"{user_call_text} 커피챗 인증을 위해 꼭 후기를 남겨주세요. ☕😊",
+            text=f"{user_call_text} \n\n😊 커피챗 인증을 위해 꼭 후기를 남겨주세요. 인증이 확인된 멤버는 ✅가 표시돼요.",
         )
 
     # 나에게만 표시 메시지 수정하는 요청(slack bolt 에서는 지원하지 않음)

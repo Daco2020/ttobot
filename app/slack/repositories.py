@@ -180,7 +180,7 @@ class SlackRepository:
             return None
 
     def create_coffee_chat_proof(self, proof: models.CoffeeChatProof) -> None:
-
+        """커피챗 인증을 생성합니다."""
         with open(
             "store/coffee_chat_proof.csv", "a", newline="", encoding="utf-8"
         ) as f:
