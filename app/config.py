@@ -18,6 +18,7 @@ class Settings(BaseSettings):
     SECRET_KEY: str
 
     SUPPORT_CHANNEL: str
+    COFFEE_CHAT_PROOF_CHANNEL: str
     ADMIN_CHANNEL: str
     ADMIN_IDS: list[str]
 

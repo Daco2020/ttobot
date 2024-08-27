@@ -171,8 +171,7 @@ async def handle_message(
         await client.chat_postMessage(channel=settings.ADMIN_CHANNEL, text=message)
         return
 
-    # TODO: if channel_id == settings.COFFEE_CHAT_CHANNEL:
-    if channel_id == "C05J87UPC3F":
+    if channel_id == settings.COFFEE_CHAT_PROOF_CHANNEL:
         repo = SlackRepository()
         user = repo.get_user(user_id)  # type: ignore
 

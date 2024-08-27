@@ -19,6 +19,7 @@ from slack_sdk.models.blocks import (
     ActionsBlock,
     ButtonElement,
 )
+from app.config import settings
 
 # TODO: 커피 챗 인증 횟수 확인 방법 강구. 앱 홈 화면에 표시할 수 있도록?
 
@@ -171,7 +172,7 @@ async def submit_coffee_chat_proof_view(
     message_ts = private_metadata["message_ts"]
 
     history = await client.conversations_history(
-        channel="C05J87UPC3F",
+        channel=settings.COFFEE_CHAT_PROOF_CHANNEL,
         latest=message_ts,
         limit=1,
         inclusive=True,
@@ -195,7 +196,7 @@ async def submit_coffee_chat_proof_view(
     )
 
     await client.reactions_add(
-        channel="C05J87UPC3F",
+        channel=settings.COFFEE_CHAT_PROOF_CHANNEL,
         timestamp=message_ts,
         name="white_check_mark",
     )
@@ -208,7 +209,7 @@ async def submit_coffee_chat_proof_view(
 
     if user_call_text:
         await client.chat_postMessage(
-            channel="C05J87UPC3F",
+            channel=settings.COFFEE_CHAT_PROOF_CHANNEL,
             thread_ts=message_ts,
             text=f"{user_call_text} \n\n😊 커피챗 인증을 위해 꼭 후기를 남겨주세요. 인증이 확인된 멤버는 ✅가 표시돼요.",
         )
