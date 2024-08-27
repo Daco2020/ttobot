@@ -261,7 +261,7 @@ class SlackService:
         selected_user_ids: str,
     ) -> models.CoffeeChatProof:
         """커피챗 인증글을 생성합니다."""
-        image_urls = ",".join(file["thumb_1024"] for file in files)
+        image_urls = ",".join(file["url_private"] for file in files)
         coffee_chat_proof = models.CoffeeChatProof(
             ts=ts,
             thread_ts=thread_ts,
