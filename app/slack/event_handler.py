@@ -161,9 +161,10 @@ async def handle_message(
         repo = SlackRepository()
         user = repo.get_user(user_id)  # type: ignore
 
+        # TODO: 슬랙 봇을 인식하기 어려워 추후 제거하거나 타입을 확인할 필요 있음.
         if not user:
-            message = f"🥲 사용자 정보를 추가해주세요. 👉🏼 user_id: {user_id}"
-            await client.chat_postMessage(channel=settings.ADMIN_CHANNEL, text=message)
+            # message = f"🥲 사용자 정보를 추가해주세요. 👉🏼 user_id: {user_id}"
+            # await client.chat_postMessage(channel=settings.ADMIN_CHANNEL, text=message)
             return
 
         # 사용자가 문의사항을 남기면 관리자에게 알립니다.
@@ -175,9 +176,10 @@ async def handle_message(
         repo = SlackRepository()
         user = repo.get_user(user_id)  # type: ignore
 
+        # TODO: 슬랙 봇을 인식하기 어려워 추후 제거하거나 타입을 확인할 필요 있음.
         if not user:
-            message = f"🥲 사용자 정보를 추가해주세요. 👉🏼 user_id: {user_id}"
-            await client.chat_postMessage(channel=settings.ADMIN_CHANNEL, text=message)
+            # message = f"🥲 사용자 정보를 추가해주세요. 👉🏼 user_id: {user_id}"
+            # await client.chat_postMessage(channel=settings.ADMIN_CHANNEL, text=message)
             return
 
         description = event_descriptions.get(
