@@ -213,3 +213,33 @@ class MessageBodyType(TypedDict):
     authorizations: list[Authorization]
     is_ext_shared_channel: bool
     event_context: str
+
+
+class ReactionEventItem(TypedDict):
+    type: str
+    channel: str
+    ts: str
+
+
+class ReactionEvent(TypedDict):
+    user: str
+    type: str
+    reaction: str
+    item: ReactionEventItem
+    item_user: str
+    event_ts: str
+
+
+class ReactionBodyType(TypedDict):
+    token: str
+    team_id: str
+    context_team_id: str
+    context_enterprise_id: str | None
+    api_app_id: str
+    event: ReactionEvent
+    type: str
+    event_id: str
+    event_time: int
+    authorizations: list[Authorization]
+    is_ext_shared_channel: bool
+    event_context: str

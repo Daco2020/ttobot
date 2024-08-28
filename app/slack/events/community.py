@@ -7,6 +7,7 @@ from app.slack.services import SlackService
 from app.slack.types import (
     ActionBodyType,
     MessageBodyType,
+    ReactionBodyType,
     ViewBodyType,
 )
 from slack_bolt.async_app import AsyncAck, AsyncSay
@@ -223,3 +224,34 @@ async def submit_coffee_chat_proof_view(
         },
         timeout=5.0,
     )
+
+
+async def handle_reaction_added(
+    ack: AsyncAck,
+    body: ReactionBodyType,
+    user: User,
+    service: SlackService,
+) -> None:
+    """리액션 추가 이벤트를 처리합니다."""
+    await ack()
+
+    service.create_reaction(
+        type=body["event"]["type"],
+        user_id=body["event"]["user"],
+        reaction=body["event"]["reaction"],
+        reaction_ts=body["event"]["event_ts"],
+        item_type=body["event"]["item"]["type"],
+        item_user_id=body["event"]["item_user"],
+        item_channel=body["event"]["item"]["channel"],
+        item_ts=body["event"]["item"]["ts"],
+    )
+
+
+async def handle_reaction_removed(
+    ack: AsyncAck,
+    body: ReactionBodyType,
+    user: User,
+    service: SlackService,
+):
+    """리액션 삭제 이벤트를 처리합니다."""
+    await ack()

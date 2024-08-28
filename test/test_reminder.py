@@ -7,14 +7,14 @@ import pytest
 from pytest_mock import MockerFixture
 from app.models import Content, User
 from app.slack.repositories import SlackRepository
-from app.slack.services import SlackReminderService
+from app.slack.services import BackgroundService
 from app.utils import tz_now
 from test.conftest import FakeSlackApp
 
 
 @pytest.mark.asyncio
 async def test_send_reminder_message_to_user(
-    slack_remind_service: SlackReminderService,
+    background_service: BackgroundService,
     slack_app: FakeSlackApp,
     mocker: MockerFixture,
 ) -> None:
@@ -86,7 +86,9 @@ async def test_send_reminder_message_to_user(
                 intro="안녕하세요. 도진홍입니다.",
                 contents=[
                     Content(  # 지난 회차 제출한 경우
-                        dt=(tz_now() - timedelta(days=15)).strftime("%Y-%m-%d %H:%M:%S"),
+                        dt=(tz_now() - timedelta(days=15)).strftime(
+                            "%Y-%m-%d %H:%M:%S"
+                        ),
                         user_id="리마인드 대상2",
                         username="도진홍",
                         type="submit",
@@ -99,7 +101,7 @@ async def test_send_reminder_message_to_user(
     slack_client_mock = mocker.patch.object(slack_app.client, "chat_postMessage")
 
     # when
-    await slack_remind_service.send_reminder_message_to_user(cast(AsyncApp, slack_app))
+    await background_service.send_reminder_message_to_user(cast(AsyncApp, slack_app))
 
     # then
     assert slack_client_mock.call_count == 2
