@@ -255,7 +255,7 @@ class BookmarkStatusEnum(str, Enum):
 
 class Bookmark(StoreModel):
     user_id: str
-    author_user_id: str
+    content_user_id: str
     content_ts: str  # id 역할을 한다.
     note: str = ""
     status: BookmarkStatusEnum = BookmarkStatusEnum.ACTIVE
@@ -265,7 +265,7 @@ class Bookmark(StoreModel):
     def to_list_for_csv(self) -> list[str]:
         return [
             self.user_id,
-            self.author_user_id,
+            self.content_user_id,
             self.content_ts,
             self.note,
             self.status,
@@ -276,7 +276,7 @@ class Bookmark(StoreModel):
     def to_list_for_sheet(self) -> list[str]:
         return [
             self.user_id,
-            self.author_user_id,
+            self.content_user_id,
             self.content_ts,
             self.note,
             self.status,

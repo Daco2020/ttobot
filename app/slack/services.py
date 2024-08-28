@@ -193,14 +193,14 @@ class SlackService:
     def create_bookmark(
         self,
         user_id: str,
-        author_user_id: str,
+        content_user_id: str,
         content_ts: str,
         note: str = "",
     ) -> models.Bookmark:
         """북마크를 생성합니다."""
         bookmark = models.Bookmark(
             user_id=user_id,
-            author_user_id=author_user_id,
+            content_user_id=content_user_id,
             content_ts=content_ts,
             note=note,
         )
@@ -257,8 +257,22 @@ class SlackService:
         users = [models.User(**user) for user in self._repo._fetch_users()]
         return users
 
-    def get_content_by_ts(self, ts: str) -> models.Content:
-        return self._repo.get_content_by_ts(ts)  # type: ignore
+    def get_content_by(
+        self,
+        *,
+        ts: str | None = None,
+        user_id: str | None = None,
+        dt: str | None = None,
+    ) -> models.Content:
+        content = self._repo.get_content_by(
+            ts=ts,
+            user_id=user_id,
+            dt=dt,
+        )
+        if not content:
+            raise BotException("해당 콘텐츠 정보가 없어요.")
+
+        return content
 
     def create_coffee_chat_proof(
         self,

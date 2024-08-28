@@ -2,7 +2,6 @@ import ast
 import asyncio
 import re
 import requests
-import orjson
 
 from app.slack.components import static_select
 from app.constants import MAX_PASS_COUNT, ContentCategoryEnum
@@ -37,6 +36,7 @@ from app.slack.types import (
     ViewBodyType,
     ViewType,
 )
+from app.utils import dict_to_json_str, json_str_to_dict
 
 
 async def submit_command(
@@ -258,7 +258,12 @@ async def submit_view(
                         ButtonElement(
                             text="북마크 추가📌",
                             action_id="bookmark_modal",
-                            value=content.ts,  # TODO: ts 가 생성되기 전이므로 dt 로 대체
+                            value=dict_to_json_str(
+                                {
+                                    "user_id": content.user_id,
+                                    "dt": content.dt,
+                                }
+                            ),
                         ),
                     ],
                 ),
@@ -314,7 +319,7 @@ async def forward_message(
         channel=source_channel, message_ts=content_ts
     )
     permalink = permalink_response["permalink"]
-    content = service.get_content_by_ts(content_ts)
+    content = service.get_content_by(ts=content_ts)
 
     # 담소 채널에 보내는 메시지
     text = f"<@{content.user_id}>님이 글을 공유했어요! \n👉 *<{permalink}|{content.title}>*"
@@ -480,13 +485,16 @@ async def bookmark_modal(
 
     actions = body["actions"][0]
     is_overflow = actions["type"] == "overflow"  # TODO: 분리필요
-
     if is_overflow:
-        content_ts = actions["selected_option"]["value"]  # type: ignore
+        content_value = json_str_to_dict(actions["selected_option"]["value"])  # type: ignore
     else:
-        content_ts = actions["value"]  # type: ignore
+        content_value = json_str_to_dict(actions["value"])  # type: ignore
 
-    bookmark = service.get_bookmark(user.user_id, content_ts)
+    content = service.get_content_by(
+        user_id=content_value["user_id"],
+        dt=content_value["dt"],
+    )
+    bookmark = service.get_bookmark(user.user_id, content.ts)
     if bookmark is not None:
         # 이미 북마크가 되어 있다면 사용자에게 알린다.
         view = View(
@@ -496,15 +504,14 @@ async def bookmark_modal(
             blocks=[SectionBlock(text="\n이미 북마크한 글이에요. 😉")],
         )
     else:
-        target_content = service.get_content_by_ts(content_ts)
         view = View(
             type="modal",
-            private_metadata=orjson.dumps(
+            private_metadata=dict_to_json_str(
                 {
-                    "author_user_id": target_content.user_id,
-                    "content_ts": target_content.ts,
+                    "content_user_id": content.user_id,
+                    "content_ts": content.ts,
                 }
-            ).decode("utf-8"),
+            ),
             callback_id="bookmark_view",
             title="북마크",
             submit="북마크 추가",
@@ -544,15 +551,15 @@ async def bookmark_view(
     """북마크 저장 완료"""
     await ack()
 
-    private_metadata = orjson.loads(view["private_metadata"])
-    author_user_id = private_metadata["author_user_id"]
+    private_metadata = json_str_to_dict(view["private_metadata"])
+    content_user_id = private_metadata["content_user_id"]
     content_ts = private_metadata["content_ts"]
 
     value = view["state"]["values"]["bookmark_note"]["text_input"]["value"]
     note = value if value else ""  # 유저가 입력하지 않으면 None 으로 전달 된다.
     service.create_bookmark(
         user_id=user.user_id,
-        author_user_id=author_user_id,
+        content_user_id=content_user_id,
         content_ts=content_ts,
         note=note,
     )
@@ -722,7 +729,12 @@ def _fetch_blocks(contents: list[models.Content]) -> list[Block]:
                     options=[
                         Option(
                             text="북마크 추가📌",
-                            value=content.ts,
+                            value=dict_to_json_str(
+                                {
+                                    "user_id": content.user_id,
+                                    "dt": content.dt,
+                                }
+                            ),
                         )
                     ],
                 ),
@@ -817,7 +829,7 @@ async def bookmark_command(
         title=f"총 {len(contents)} 개의 북마크가 있어요.",
         blocks=_fetch_bookmark_blocks(content_matrix, bookmarks),
         callback_id="handle_bookmark_page_view",
-        private_metadata=orjson.dumps({"page": 1}).decode("utf-8"),
+        private_metadata=dict_to_json_str({"page": 1}),
     )
 
     if len(content_matrix) > 1:
@@ -855,8 +867,8 @@ async def handle_bookmark_page(
     contents = service.fetch_contents_by_ids(content_ids)
     content_matrix = _get_content_metrix(contents)
     action_id = body["actions"][0]["action_id"] if body.get("actions") else None  # type: ignore
-    private_metadata = body.get("view", {}).get("private_metadata", {})  # type: ignore
-    page = orjson.loads(private_metadata).get("page", 1) if private_metadata else 1
+    private_metadata = body.get("view", {}).get("private_metadata")
+    page = json_str_to_dict(private_metadata).get("page", 1) if private_metadata else 1
 
     if action_id == "next_bookmark_page_action":
         page += 1
@@ -868,7 +880,7 @@ async def handle_bookmark_page(
         title=f"총 {len(contents)} 개의 북마크가 있어요.",
         blocks=_fetch_bookmark_blocks(content_matrix, bookmarks, page=page),
         callback_id="handle_bookmark_page_view",
-        private_metadata=orjson.dumps({"page": page}).decode("utf-8"),
+        private_metadata=dict_to_json_str({"page": page}),
     )
 
     button_elements = []

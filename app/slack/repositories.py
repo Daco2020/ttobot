@@ -170,14 +170,32 @@ class SlackRepository:
         if user := self._get_user(user_id):
             store.user_update_queue.append(user.to_list_for_sheet())
 
-    def get_content_by_ts(self, ts: str) -> models.Content | None:
-        """ts로 콘텐츠를 조회합니다."""
-        with open("store/contents.csv") as f:
-            reader = csv.DictReader(f)
-            for row in reader:
-                if row["ts"] == ts:
-                    return models.Content(**row)
+    def get_content_by(
+        self,
+        ts: str | None = None,
+        user_id: str | None = None,
+        dt: str | None = None,
+    ) -> models.Content | None:
+        """
+        콘텐츠를 조회합니다.
+        - 우선적으로 ts(타임스탬프)를 기준으로 검색합니다. 이는 Unique한 값입니다.
+        - ts가 없을 경우, user_id와 dt(생성일시)를 조합하여 검색합니다. 이는 Unique한 값입니다.
+        - Unique한 값이 아닌 경우, 검색된 결과 중 가장 최신의 결과를 반환합니다.
+        """
+        df = pd.read_csv("store/contents.csv", dtype=str, na_filter=False)
+
+        if ts:
+            df = df[df["ts"] == ts]
+        if user_id:
+            df = df[df["user_id"] == user_id]
+        if dt:
+            df = df[df["dt"] == dt]
+
+        if df.empty:
             return None
+
+        row = df.sort_values(by="ts", ascending=False).iloc[0]
+        return models.Content(**row)
 
     def create_coffee_chat_proof(self, proof: models.CoffeeChatProof) -> None:
         """커피챗 인증을 생성합니다."""

@@ -1,5 +1,4 @@
 import asyncio
-import orjson
 import requests
 from slack_sdk.web.async_client import AsyncWebClient
 from app.exception import BotException
@@ -20,6 +19,7 @@ from slack_sdk.models.blocks import (
     ButtonElement,
 )
 from app.config import settings
+from app.utils import dict_to_json_str, json_str_to_dict
 
 # TODO: 커피 챗 인증 횟수 확인 방법 강구. 앱 홈 화면에 표시할 수 있도록?
 
@@ -124,12 +124,12 @@ async def submit_coffee_chat_proof_button(
     """커피챗 인증을 제출합니다."""
     await ack()
 
-    private_metadata = orjson.dumps(
+    private_metadata = dict_to_json_str(
         {
             "ephemeral_url": body["response_url"],
             "message_ts": body["actions"][0]["value"],
         }
-    ).decode("utf-8")
+    )
 
     await client.views_open(
         trigger_id=body["trigger_id"],
@@ -167,7 +167,7 @@ async def submit_coffee_chat_proof_view(
     """커피챗 인증을 처리합니다."""
     await ack()
 
-    private_metadata = orjson.loads(body["view"]["private_metadata"])
+    private_metadata = json_str_to_dict(body["view"]["private_metadata"])
     ephemeral_url = private_metadata["ephemeral_url"]
     message_ts = private_metadata["message_ts"]
 

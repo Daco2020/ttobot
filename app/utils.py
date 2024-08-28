@@ -1,4 +1,6 @@
 import csv
+from typing import Any
+import orjson
 import regex as re
 import datetime
 
@@ -68,3 +70,13 @@ def convert_user_id_to_name(message: str) -> str:
         message = message.replace(f"<@{user_id}>", name)
 
     return message
+
+
+def dict_to_json_str(data: dict[str, Any]) -> str:
+    """dict를 json string으로 변환합니다."""
+    return orjson.dumps(data).decode("utf-8")
+
+
+def json_str_to_dict(data: str) -> dict[str, Any]:
+    """json string을 dict로 변환합니다."""
+    return orjson.loads(data)
