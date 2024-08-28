@@ -1,4 +1,3 @@
-import ast
 import asyncio
 import re
 import requests
@@ -937,20 +936,20 @@ def _fetch_bookmark_blocks(
                     action_id="bookmark_overflow_action",
                     options=[
                         Option(
-                            value=str(
-                                dict(
-                                    action="remove_bookmark",
-                                    content_ts=content.ts,
-                                )
+                            value=dict_to_json_str(
+                                {
+                                    "action": "remove_bookmark",
+                                    "content_ts": content.ts,
+                                }
                             ),
                             text="북마크 취소📌",
                         ),
                         Option(
-                            value=str(
-                                dict(
-                                    action="view_note",
-                                    content_ts=content.ts,
-                                )
+                            value=dict_to_json_str(
+                                {
+                                    "action": "view_note",
+                                    "content_ts": content.ts,
+                                }
                             ),
                             text="메모 보기✏️",
                         ),
@@ -987,9 +986,7 @@ async def open_overflow_action(
 
     title = ""
     text = ""
-    value = ast.literal_eval(
-        body["actions"][0]["selected_option"]["value"]
-    )  # TODO: ast.literal_eval 를 orjson 을 사용하도록 변경
+    value = json_str_to_dict(body["actions"][0]["selected_option"]["value"])
     if value["action"] == "remove_bookmark":
         title = "북마크 취소📌"
         service.update_bookmark(
