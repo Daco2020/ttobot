@@ -191,17 +191,26 @@ class SlackService:
             raise ValueError("노션은 하단의 '글 제목'을 필수로 입력해주세요.")
 
     def create_bookmark(
-        self, user_id: str, content_id: str, note: str = ""
+        self,
+        user_id: str,
+        content_user_id: str,
+        content_ts: str,
+        note: str = "",
     ) -> models.Bookmark:
         """북마크를 생성합니다."""
-        bookmark = models.Bookmark(user_id=user_id, content_id=content_id, note=note)
+        bookmark = models.Bookmark(
+            user_id=user_id,
+            content_user_id=content_user_id,
+            content_ts=content_ts,
+            note=note,
+        )
         self._repo.create_bookmark(bookmark)
         store.bookmark_upload_queue.append(bookmark.to_list_for_sheet())
         return bookmark
 
-    def get_bookmark(self, user_id: str, content_id: str) -> models.Bookmark | None:
+    def get_bookmark(self, user_id: str, content_ts: str) -> models.Bookmark | None:
         """북마크를 가져옵니다."""
-        bookmark = self._repo.get_bookmark(user_id, content_id)
+        bookmark = self._repo.get_bookmark(user_id, content_ts)
         return bookmark
 
     def fetch_bookmarks(self, user_id: str) -> list[models.Bookmark]:
@@ -218,19 +227,19 @@ class SlackService:
             contents = self._repo.fetch_contents_by_keyword(keyword)
         else:
             contents = self._repo.fetch_contents()
-        return [content for content in contents if content.content_id in content_ids]
+        return [content for content in contents if content.ts in content_ids]
 
     def update_bookmark(
         self,
         user_id: str,
-        content_id: str,
+        content_ts: str,
         new_note: str = "",
         new_status: models.BookmarkStatusEnum = models.BookmarkStatusEnum.ACTIVE,
     ) -> None:
         """북마크를 업데이트합니다."""
         # TODO: 북마크 삭제와 수정 분리할 것
-        self._repo.update_bookmark(content_id, new_note, new_status)
-        bookmark = self._repo.get_bookmark(user_id, content_id, status=new_status)
+        self._repo.update_bookmark(content_ts, new_note, new_status)
+        bookmark = self._repo.get_bookmark(user_id, content_ts, status=new_status)
         if bookmark:
             store.bookmark_update_queue.append(bookmark)
 
@@ -248,8 +257,22 @@ class SlackService:
         users = [models.User(**user) for user in self._repo._fetch_users()]
         return users
 
-    def get_content_by_ts(self, ts: str) -> models.Content:
-        return self._repo.get_content_by_ts(ts)  # type: ignore
+    def get_content_by(
+        self,
+        *,
+        ts: str | None = None,
+        user_id: str | None = None,
+        dt: str | None = None,
+    ) -> models.Content:
+        content = self._repo.get_content_by(
+            ts=ts,
+            user_id=user_id,
+            dt=dt,
+        )
+        if not content:
+            raise BotException("해당 콘텐츠 정보가 없어요.")
+
+        return content
 
     def create_coffee_chat_proof(
         self,

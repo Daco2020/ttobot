@@ -191,17 +191,12 @@ class Content(StoreModel):
     ts: str = ""
 
     def __hash__(self) -> int:
-        return hash(self.content_id)
+        return hash(self.ts)
 
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, Content):
             return NotImplemented
-        return self.content_id == other.content_id
-
-    @property
-    def content_id(self) -> str:
-        """컨텐츠 아이디를 반환합니다."""
-        return f"{self.user_id}:{self.dt}"
+        return self.ts == other.ts
 
     @property
     def dt_(self) -> datetime.datetime:
@@ -260,7 +255,8 @@ class BookmarkStatusEnum(str, Enum):
 
 class Bookmark(StoreModel):
     user_id: str
-    content_id: str  # user_id:dt 형식의 유니크 키
+    content_user_id: str
+    content_ts: str  # content fk 역할을 한다.
     note: str = ""
     status: BookmarkStatusEnum = BookmarkStatusEnum.ACTIVE
     created_at: str = Field(default_factory=tz_now_to_str)
@@ -269,7 +265,8 @@ class Bookmark(StoreModel):
     def to_list_for_csv(self) -> list[str]:
         return [
             self.user_id,
-            self.content_id,
+            self.content_user_id,
+            self.content_ts,
             self.note,
             self.status,
             self.created_at,
@@ -279,7 +276,8 @@ class Bookmark(StoreModel):
     def to_list_for_sheet(self) -> list[str]:
         return [
             self.user_id,
-            self.content_id,
+            self.content_user_id,
+            self.content_ts,
             self.note,
             self.status,
             self.created_at,
