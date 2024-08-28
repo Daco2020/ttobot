@@ -256,7 +256,7 @@ class BookmarkStatusEnum(str, Enum):
 class Bookmark(StoreModel):
     user_id: str
     content_user_id: str
-    content_ts: str  # id 역할을 한다.
+    content_ts: str  # content fk 역할을 한다.
     note: str = ""
     status: BookmarkStatusEnum = BookmarkStatusEnum.ACTIVE
     created_at: str = Field(default_factory=tz_now_to_str)
