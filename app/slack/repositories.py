@@ -230,6 +230,6 @@ class SlackRepository:
 
     def create_reaction(self, reaction: models.Reaction) -> None:
         """리액션을 생성합니다."""
-        with open("store/reaction.csv", "a", newline="", encoding="utf-8") as f:
+        with open("store/reactions.csv", "a", newline="", encoding="utf-8") as f:
             writer = csv.writer(f, quoting=csv.QUOTE_ALL)
             writer.writerow(reaction.to_list_for_csv())
