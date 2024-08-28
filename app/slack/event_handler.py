@@ -277,5 +277,5 @@ event_descriptions = {
     "submit_coffee_chat_proof_button": "커피챗 인증 제출 시작",
     "submit_coffee_chat_proof_view": "커피챗 인증 제출 완료",
     "reaction_added": "리액션 추가",
-    "reaction_removed": "리액션 제거",
+    "reaction_removed": "리액션 삭제",
 }
