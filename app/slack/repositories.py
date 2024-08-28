@@ -114,12 +114,12 @@ class SlackRepository:
     def get_bookmark(
         self,
         user_id: str,
-        content_id: str,
+        content_ts: str,
         status: models.BookmarkStatusEnum = models.BookmarkStatusEnum.ACTIVE,
     ) -> models.Bookmark | None:
         bookmarks = self.fetch_bookmarks(user_id, status)
         for bookmark in bookmarks:
-            if bookmark.content_id == content_id:
+            if bookmark.content_ts == content_ts:
                 return bookmark
         return None
 
@@ -141,19 +141,19 @@ class SlackRepository:
 
     def update_bookmark(
         self,
-        content_id: str,
+        content_ts: str,
         new_note: str = "",
         new_status: models.BookmarkStatusEnum = models.BookmarkStatusEnum.ACTIVE,
     ) -> None:
         """북마크를 업데이트합니다."""
-        df = pd.read_csv("store/bookmark.csv")
+        df = pd.read_csv("store/bookmark.csv", dtype=str, na_filter=False)
 
         if new_note:
-            df.loc[df["content_id"] == content_id, "note"] = new_note
+            df.loc[df["content_ts"] == content_ts, "note"] = new_note
         if new_status:
-            df.loc[df["content_id"] == content_id, "status"] = new_status
+            df.loc[df["content_ts"] == content_ts, "status"] = new_status
         if new_note or new_status:
-            df.loc[df["content_id"] == content_id, "updated_at"] = tz_now_to_str()
+            df.loc[df["content_ts"] == content_ts, "updated_at"] = tz_now_to_str()
 
         df.to_csv("store/bookmark.csv", index=False, quoting=csv.QUOTE_ALL)
 
@@ -163,7 +163,7 @@ class SlackRepository:
         new_intro: str,
     ) -> None:
         """유저 정보를 업데이트합니다."""
-        df = pd.read_csv("store/users.csv")
+        df = pd.read_csv("store/users.csv", dtype=str, na_filter=False)
         df.loc[df["user_id"] == user_id, "intro"] = new_intro
         df.to_csv("store/users.csv", index=False, quoting=csv.QUOTE_ALL)
 

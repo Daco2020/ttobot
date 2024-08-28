@@ -63,6 +63,7 @@ class SpreadSheetClient:
 
     def update(self, sheet_name: str, obj: StoreModel) -> None:
         """해당 객체 정보를 시트에 업데이트 합니다."""
+        # TODO: 현재는 북마크에 대한 업데이트만 가능하도록 구현되어 있음
         sheet = self._sheets[sheet_name]
         records = sheet.get_all_records()
 
@@ -71,7 +72,7 @@ class SpreadSheetClient:
         for idx, record in enumerate(records):
             if (  # TODO: 추후 pk 를 추가하여 조건 바꾸기
                 obj.user_id == record["user_id"]  # type: ignore
-                and obj.content_id == record["content_id"]  # type: ignore
+                and obj.content_ts == record["content_ts"]  # type: ignore
             ):
                 target_record = record
                 row_number += idx

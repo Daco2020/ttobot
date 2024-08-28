@@ -238,7 +238,6 @@ async def submit_view(
 
         # 해당 text 는 슬랙 활동 탭에서 표시되는 메시지이며, 누가 어떤 링크를 제출했는지 확인합니다. (alt_text 와 유사한 역할)
         text = f"*<@{content.user_id}>님 제출 완료.* 링크 : *<{content.content_url}|{re.sub('<|>', '', title if content.title != 'title unknown.' else content.content_url)}>*"
-
         message = await client.chat_postMessage(
             channel=channel_id,
             text=text,
@@ -259,7 +258,7 @@ async def submit_view(
                         ButtonElement(
                             text="북마크 추가📌",
                             action_id="bookmark_modal",
-                            value=content.content_id,
+                            value=content.ts,  # TODO: ts 가 생성되기 전이므로 dt 로 대체
                         ),
                     ],
                 ),
@@ -483,31 +482,29 @@ async def bookmark_modal(
     is_overflow = actions["type"] == "overflow"  # TODO: 분리필요
 
     if is_overflow:
-        content_id = actions["selected_option"]["value"]  # type: ignore
+        content_ts = actions["selected_option"]["value"]  # type: ignore
     else:
-        content_id = actions["value"]  # type: ignore
+        content_ts = actions["value"]  # type: ignore
 
-    bookmark = service.get_bookmark(user.user_id, content_id)
-    view = get_bookmark_view(content_id, bookmark)
-    if is_overflow:
-        await client.views_update(view_id=body["view"]["id"], view=view)  # type: ignore
-    else:
-        await client.views_open(trigger_id=body["trigger_id"], view=view)
-
-
-def get_bookmark_view(content_id: str, bookmark: models.Bookmark | None) -> View:
+    bookmark = service.get_bookmark(user.user_id, content_ts)
     if bookmark is not None:
         # 이미 북마크가 되어 있다면 사용자에게 알린다.
-        return View(
+        view = View(
             type="modal",
             title="북마크",
             close="닫기",
             blocks=[SectionBlock(text="\n이미 북마크한 글이에요. 😉")],
         )
     else:
-        return View(
+        target_content = service.get_content_by_ts(content_ts)
+        view = View(
             type="modal",
-            private_metadata=content_id,
+            private_metadata=orjson.dumps(
+                {
+                    "author_user_id": target_content.user_id,
+                    "content_ts": target_content.ts,
+                }
+            ).decode("utf-8"),
             callback_id="bookmark_view",
             title="북마크",
             submit="북마크 추가",
@@ -529,6 +526,11 @@ def get_bookmark_view(content_id: str, bookmark: models.Bookmark | None) -> View
             ],
         )
 
+    if is_overflow:
+        await client.views_update(view_id=body["view"]["id"], view=view)  # type: ignore
+    else:
+        await client.views_open(trigger_id=body["trigger_id"], view=view)
+
 
 async def bookmark_view(
     ack: AsyncAck,
@@ -542,10 +544,18 @@ async def bookmark_view(
     """북마크 저장 완료"""
     await ack()
 
-    content_id = view["private_metadata"]
+    private_metadata = orjson.loads(view["private_metadata"])
+    author_user_id = private_metadata["author_user_id"]
+    content_ts = private_metadata["content_ts"]
+
     value = view["state"]["values"]["bookmark_note"]["text_input"]["value"]
     note = value if value else ""  # 유저가 입력하지 않으면 None 으로 전달 된다.
-    service.create_bookmark(user.user_id, content_id, note)
+    service.create_bookmark(
+        user_id=user.user_id,
+        author_user_id=author_user_id,
+        content_ts=content_ts,
+        note=note,
+    )
 
     await ack(
         response_action="update",
@@ -712,7 +722,7 @@ def _fetch_blocks(contents: list[models.Content]) -> list[Block]:
                     options=[
                         Option(
                             text="북마크 추가📌",
-                            value=content.content_id,
+                            value=content.ts,
                         )
                     ],
                 ),
@@ -798,7 +808,7 @@ async def bookmark_command(
     await ack()
 
     bookmarks = service.fetch_bookmarks(user.user_id)
-    content_ids = [bookmark.content_id for bookmark in bookmarks]
+    content_ids = [bookmark.content_ts for bookmark in bookmarks]
     contents = service.fetch_contents_by_ids(content_ids)
     content_matrix = _get_content_metrix(contents)
 
@@ -841,7 +851,7 @@ async def handle_bookmark_page(
     await ack()
 
     bookmarks = service.fetch_bookmarks(user.user_id)
-    content_ids = [bookmark.content_id for bookmark in bookmarks]
+    content_ids = [bookmark.content_ts for bookmark in bookmarks]
     contents = service.fetch_contents_by_ids(content_ids)
     content_matrix = _get_content_metrix(contents)
     action_id = body["actions"][0]["action_id"] if body.get("actions") else None  # type: ignore
@@ -918,7 +928,7 @@ def _fetch_bookmark_blocks(
                             value=str(
                                 dict(
                                     action="remove_bookmark",
-                                    # content_id=content.content_id, # TODO: 글자수 최대 75자 이내로 수정해야함
+                                    content_ts=content.ts,
                                 )
                             ),
                             text="북마크 취소📌",
@@ -927,7 +937,7 @@ def _fetch_bookmark_blocks(
                             value=str(
                                 dict(
                                     action="view_note",
-                                    # content_id=content.content_id,  # TODO: 글자수 최대 75자 이내로 수정해야함
+                                    content_ts=content.ts,
                                 )
                             ),
                             text="메모 보기✏️",
@@ -938,9 +948,7 @@ def _fetch_bookmark_blocks(
         )
 
         note = [
-            bookmark.note
-            for bookmark in bookmarks
-            if content.content_id == bookmark.content_id
+            bookmark.note for bookmark in bookmarks if content.ts == bookmark.content_ts
         ][0]
         blocks.append(
             ContextBlock(elements=[MarkdownTextObject(text=f"\n> 메모: {note}")])
@@ -969,18 +977,18 @@ async def open_overflow_action(
     text = ""
     value = ast.literal_eval(
         body["actions"][0]["selected_option"]["value"]
-    )  # TODO: ast.literal_eval 를 유틸함수로 만들기?
+    )  # TODO: ast.literal_eval 를 orjson 을 사용하도록 변경
     if value["action"] == "remove_bookmark":
         title = "북마크 취소📌"
         service.update_bookmark(
             user.user_id,
-            value["content_id"],
+            value["content_ts"],
             new_status=models.BookmarkStatusEnum.DELETED,
         )
         text = "북마크를 취소했어요."
     elif value["action"] == "view_note":
         title = "북마크 메모✏️"
-        bookmark = service.get_bookmark(user.user_id, value["content_id"])
+        bookmark = service.get_bookmark(user.user_id, value["content_ts"])
         text = bookmark.note if bookmark and bookmark.note else "메모가 없어요."
 
     await client.views_update(
