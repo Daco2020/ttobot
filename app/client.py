@@ -83,7 +83,7 @@ class SpreadSheetClient:
         if not target_record:
             logger.error(f"시트에 해당 값이 존재하지 않습니다. {values}")
 
-        sheet.update(f"A{row_number}:F{row_number}", [values])
+        sheet.update(f"A{row_number}:G{row_number}", [values])
 
     def update_user(self, sheet_name: str, values: list[str]) -> None:
         """유저 정보를 시트에 업데이트 합니다."""

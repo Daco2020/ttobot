@@ -1,3 +1,5 @@
+from app.logging import logger
+
 from zoneinfo import ZoneInfo
 from app.client import SpreadSheetClient
 from app.slack.repositories import SlackRepository
@@ -81,7 +83,10 @@ if settings.ENV == "prod":
         await slack_handler.connect_async()
 
     def upload_contents(store: Store) -> None:
-        store.upload_queue()
+        try:
+            store.upload_queue()
+        except Exception as e:
+            logger.error(f"시트 업로드 중 에러 발생: {str(e)}")
 
     def upload_logs(store: Store) -> None:
         store.bulk_upload("logs")
