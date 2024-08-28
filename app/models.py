@@ -312,3 +312,38 @@ class CoffeeChatProof(StoreModel):
             self.image_urls,
             self.selected_user_ids,
         ]
+
+
+class Reaction(StoreModel):
+    type: str
+    user_id: str
+    reaction: str
+    reaction_ts: str
+    item_type: str
+    item_user_id: str
+    item_channel: str
+    item_ts: str
+
+    def to_list_for_csv(self) -> list[str]:
+        return [
+            self.type,
+            self.user_id,
+            self.reaction,
+            self.reaction_ts,
+            self.item_type,
+            self.item_user_id,
+            self.item_channel,
+            self.item_ts,
+        ]
+
+    def to_list_for_sheet(self) -> list[str]:
+        return [
+            self.type,
+            self.user_id,
+            self.reaction,
+            self.reaction_ts,
+            self.item_type,
+            self.item_user_id,
+            self.item_channel,
+            self.item_ts,
+        ]

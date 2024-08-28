@@ -77,6 +77,7 @@ async def dependency_injection_middleware(
 
     if event in ["app_mention", "member_joined_channel", "message"]:
         # 앱 멘션과 채널 입장은 서비스 객체를 주입하지 않는다.
+        # 메시지는 handle_message 에서 서비스 객체를 생성한다.
         await next()
         return
 
@@ -157,31 +158,22 @@ async def handle_message(
     channel_id = event.get("channel")
     thread_ts = event.get("thread_ts")
 
+    repo = SlackRepository()
+    user = repo.get_user(user_id)  # type: ignore
+
+    # TODO: 슬랙 봇을 인식하기 어려워 추후 제거하거나 타입을 확인할 필요 있음.
+    if not user:
+        # message = f"🥲 사용자 정보를 추가해주세요. 👉🏼 user_id: {user_id}"
+        # await client.chat_postMessage(channel=settings.ADMIN_CHANNEL, text=message)
+        return
+
     if channel_id == settings.SUPPORT_CHANNEL and not thread_ts:
-        repo = SlackRepository()
-        user = repo.get_user(user_id)  # type: ignore
-
-        # TODO: 슬랙 봇을 인식하기 어려워 추후 제거하거나 타입을 확인할 필요 있음.
-        if not user:
-            # message = f"🥲 사용자 정보를 추가해주세요. 👉🏼 user_id: {user_id}"
-            # await client.chat_postMessage(channel=settings.ADMIN_CHANNEL, text=message)
-            return
-
         # 사용자가 문의사항을 남기면 관리자에게 알립니다.
         message = f"👋🏼 <#{user.channel_id}>채널의 {user.name}님이 <#{channel_id}>을 남겼어요."
         await client.chat_postMessage(channel=settings.ADMIN_CHANNEL, text=message)
         return
 
     if channel_id == settings.COFFEE_CHAT_PROOF_CHANNEL:
-        repo = SlackRepository()
-        user = repo.get_user(user_id)  # type: ignore
-
-        # TODO: 슬랙 봇을 인식하기 어려워 추후 제거하거나 타입을 확인할 필요 있음.
-        if not user:
-            # message = f"🥲 사용자 정보를 추가해주세요. 👉🏼 user_id: {user_id}"
-            # await client.chat_postMessage(channel=settings.ADMIN_CHANNEL, text=message)
-            return
-
         description = event_descriptions.get(
             "coffee_chat_proof_message", "알 수 없는 이벤트"
         )
@@ -220,6 +212,9 @@ app.action("submit_coffee_chat_proof_button")(
 app.view("submit_coffee_chat_proof_view")(
     community_events.submit_coffee_chat_proof_view
 )
+app.event("reaction_added")(community_events.handle_reaction_added)
+app.event("reaction_removed")(community_events.handle_reaction_removed)
+
 
 # contents
 app.command("/제출")(contents_events.submit_command)
@@ -281,4 +276,6 @@ event_descriptions = {
     "cancel_coffee_chat_proof_button": "커피챗 인증 안내 닫기",
     "submit_coffee_chat_proof_button": "커피챗 인증 제출 시작",
     "submit_coffee_chat_proof_view": "커피챗 인증 제출 완료",
+    "reaction_added": "리액션 추가",
+    "reaction_removed": "리액션 제거",
 }

@@ -1,10 +1,11 @@
+import traceback
+
 from app.logging import logger
 
 from zoneinfo import ZoneInfo
 from app.client import SpreadSheetClient
 from app.slack.repositories import SlackRepository
 from fastapi import FastAPI, Request
-from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 from app.config import settings
 from app.store import Store
@@ -12,13 +13,14 @@ from app.api.views.community import router as community_router
 from app.api.views.login import router as login_router
 from slack_bolt.adapter.socket_mode.aiohttp import AsyncSocketModeHandler
 from fastapi.middleware.cors import CORSMiddleware
-from app.slack.services import SlackReminderService
+from app.slack.services import BackgroundService
 
 
 from slack_bolt.async_app import AsyncApp
 from app.slack.event_handler import app as slack_app
 
-# from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+
 # from app.constants import DUE_DATES
 # from datetime import datetime, time
 
@@ -45,6 +47,7 @@ app.include_router(community_router, prefix="/v1")
 app.include_router(login_router, prefix="/v1")
 
 if settings.ENV == "prod":
+    async_schedule = AsyncIOScheduler(daemon=True, timezone=ZoneInfo("Asia/Seoul"))
 
     @app.on_event("startup")
     async def startup():
@@ -54,15 +57,16 @@ if settings.ENV == "prod":
         store.initialize_logs()
 
         # 업로드 스케줄러
-        schedule = BackgroundScheduler(daemon=True, timezone="Asia/Seoul")
-        schedule.add_job(upload_contents, "interval", seconds=10, args=[store])
+        async_schedule.add_job(
+            upload_queue, "interval", seconds=10, args=[store, slack_app]
+        )
 
         trigger = IntervalTrigger(minutes=1, timezone=ZoneInfo("Asia/Seoul"))
-        schedule.add_job(upload_logs, trigger=trigger, args=[store])
+        async_schedule.add_job(upload_logs, trigger=trigger, args=[store])
 
-        schedule.start()
+        async_schedule.start()
 
-        # 리마인드 스케줄러(비동기)
+        # 리마인드 스케줄러
         # TODO: 추후 10기에 활성화
         # first_remind_date = datetime.combine(
         #     DUE_DATES[0], time(hour=10, minute=0), tzinfo=ZoneInfo("Asia/Seoul")
@@ -71,7 +75,6 @@ if settings.ENV == "prod":
         #     DUE_DATES[10], time(hour=10, minute=0), tzinfo=ZoneInfo("Asia/Seoul")
         # )
 
-        # async_schedule = AsyncIOScheduler()
         # remind_trigger = IntervalTrigger(
         #     weeks=2, start_date=first_remind_date, end_date=last_remind_date, timezone="Asia/Seoul"
         # )
@@ -82,26 +85,41 @@ if settings.ENV == "prod":
         # 슬랙 소켓 모드 실행
         await slack_handler.connect_async()
 
-    def upload_contents(store: Store) -> None:
+    async def upload_queue(store: Store, slack_app: AsyncApp) -> None:
+        """업로드 큐에 있는 데이터를 업로드합니다."""
         try:
             store.upload_queue()
         except Exception as e:
-            logger.error(f"시트 업로드 중 에러 발생: {str(e)}")
+            trace = traceback.format_exc()
+            error = f"시트 업로드 중 에러가 발생했어요. {str(e)} {trace}"
+            message = f"🫢: {error=} 🕊️: {trace=}"
+            logger.error(message)
 
-    def upload_logs(store: Store) -> None:
+            # 관리자에게 에러를 알립니다.
+            await slack_app.client.chat_postMessage(
+                channel=settings.ADMIN_CHANNEL,
+                text=message,
+            )
+
+    async def upload_logs(store: Store) -> None:
         store.bulk_upload("logs")
         store.initialize_logs()
 
     async def remind_job(slack_app: AsyncApp) -> None:
-        slack_service = SlackReminderService(repo=SlackRepository())
+        slack_service = BackgroundService(repo=SlackRepository())
         await slack_service.send_reminder_message_to_user(slack_app)
 
     @app.on_event("shutdown")
     async def shutdown():
         # 서버 저장소 업로드
+        await slack_handler.close_async()
+
         store = Store(client=SpreadSheetClient())
-        store.bulk_upload("logs")
         store.upload_queue()
+        store.bulk_upload("logs")
+        store.initialize_logs()
+
+        async_schedule.shutdown(wait=True)
 
 else:
 

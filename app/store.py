@@ -9,6 +9,7 @@ bookmark_upload_queue: list[list[str]] = []
 bookmark_update_queue: list[Bookmark] = []  # TODO: 추후 타입 수정 필요
 user_update_queue: list[list[str]] = []
 coffee_chat_proof_upload_queue: list[list[str]] = []
+reaction_upload_queue: list[list[str]] = []
 
 
 class Store:
@@ -24,6 +25,7 @@ class Store:
         self.write(
             "coffee_chat_proof", values=self._client.get_values("coffee_chat_proof")
         )
+        self.write("reactions", values=self._client.get_values("reactions"))
 
     def write(self, table_name: str, values: list[list[str]]) -> None:
         with open(f"store/{table_name}.csv", "w", newline="", encoding="utf-8") as f:
@@ -108,9 +110,22 @@ class Store:
             )
             coffee_chat_proof_upload_queue = []
 
+        global reaction_upload_queue
+        if reaction_upload_queue:
+            self._client.upload("reactions", reaction_upload_queue)
+            log_event(
+                actor="system",
+                event="uploaded_reactions",
+                type="community",
+                description=f"{len(reaction_upload_queue)}개 리액션 업로드",
+                body={"reaction_upload_queue": reaction_upload_queue},
+            )
+            reaction_upload_queue = []
+
     def backup(self, table_name: str) -> None:
         values = self.read(table_name)
         self._client.backup(values)
 
     def initialize_logs(self) -> None:
+        """로그를 초기화합니다."""
         open("store/logs.csv", "w").close()

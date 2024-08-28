@@ -323,8 +323,34 @@ class SlackService:
             if proof.user_id == user_id:
                 raise BotException("이미 답글로 커피챗을 인증했어요.")
 
+    def create_reaction(
+        self,
+        type: str,
+        user_id: str,
+        reaction: str,
+        reaction_ts: str,
+        item_type: str,
+        item_user_id: str,
+        item_channel: str,
+        item_ts: str,
+    ) -> models.Reaction:
+        """리액션을 생성합니다."""
+        reaction_model = models.Reaction(
+            type=type,
+            user_id=user_id,
+            reaction=reaction,
+            reaction_ts=reaction_ts,
+            item_type=item_type,
+            item_user_id=item_user_id,
+            item_channel=item_channel,
+            item_ts=item_ts,
+        )
+        self._repo.create_reaction(reaction_model)
+        store.reaction_upload_queue.append(reaction_model.to_list_for_sheet())
+        return reaction_model
 
-class SlackReminderService:
+
+class BackgroundService:
     def __init__(self, repo: SlackRepository) -> None:
         self._repo = repo
 
