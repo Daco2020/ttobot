@@ -70,9 +70,9 @@ class SpreadSheetClient:
         target_record = dict()
         row_number = 2  # 1은 인덱스가 0부터 시작하기 때문이며 나머지 1은 시드 헤더 행이 있기 때문.
         for idx, record in enumerate(records):
-            if (  # TODO: 추후 pk 를 추가하여 조건 바꾸기
-                obj.user_id == record["user_id"]  # type: ignore
-                and obj.content_ts == record["content_ts"]  # type: ignore
+            # TODO: 추후 조건 바꾸기
+            if obj.user_id == record["user_id"] and obj.content_ts == str(  # type: ignore
+                record["content_ts"]
             ):
                 target_record = record
                 row_number += idx
