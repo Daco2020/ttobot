@@ -22,7 +22,12 @@ from app.slack.repositories import SlackRepository
 from app.slack.services import SlackService
 from app.slack.types import MessageBodyType
 
-app = AsyncApp(token=settings.SLACK_BOT_TOKEN)
+app = AsyncApp(
+    client=AsyncWebClient(
+        token=settings.SLACK_BOT_TOKEN,
+        timeout=10,
+    ),
+)
 
 
 @app.middleware
@@ -242,9 +247,11 @@ app.view("handle_bookmark_page_view")(contents_events.handle_bookmark_page)
 app.event("app_mention")(core_events.handle_app_mention)
 app.command("/예치금")(core_events.deposit_command)
 app.command("/제출내역")(core_events.history_command)
-app.command("/관리자")(core_events.admin_command)
 app.command("/도움말")(core_events.help_command)
-
+app.command("/관리자")(core_events.admin_command)
+app.action("sync_store")(core_events.handle_sync_store)
+app.action("invite_channel")(core_events.handle_invite_channel)
+app.view("invite_channel_view")(core_events.handle_invite_channel_view)
 
 event_descriptions = {
     "/제출": "글 제출 시작",
@@ -278,4 +285,6 @@ event_descriptions = {
     "submit_coffee_chat_proof_view": "커피챗 인증 제출 완료",
     "reaction_added": "리액션 추가",
     "reaction_removed": "리액션 삭제",
+    "sync_store": "데이터 동기화",
+    "invite_channel": "채널 초대",
 }
