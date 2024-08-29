@@ -236,7 +236,7 @@ async def handle_reaction_added(
         reaction=body["event"]["reaction"],
         reaction_ts=body["event"]["event_ts"],
         item_type=body["event"]["item"]["type"],
-        item_user_id=body["event"]["item_user"],
+        item_user_id=body["event"].get("item_user", "알 수 없음"),
         item_channel=body["event"]["item"]["channel"],
         item_ts=body["event"]["item"]["ts"],
     )
