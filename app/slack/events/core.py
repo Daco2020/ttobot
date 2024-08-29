@@ -262,11 +262,7 @@ async def handle_invite_channel_view(
     )
 
     for channel_id in channel_ids:
-        result = await _invite_channel(client, user_id, channel_id)
-        await client.chat_postMessage(
-            channel=settings.ADMIN_CHANNEL,
-            text=result,
-        )
+        await _invite_channel(client, user_id, channel_id)
 
     await client.chat_postMessage(
         channel=settings.ADMIN_CHANNEL,
@@ -294,7 +290,7 @@ async def _invite_channel(
     client: AsyncWebClient,
     user_id: str,
     channel_id: str,
-) -> str:
+) -> None:
     """채널에 멤버를 초대합니다."""
     try:
         await client.conversations_invite(channel=channel_id, users=user_id)
@@ -313,4 +309,7 @@ async def _invite_channel(
             link = "<https://api.slack.com/methods/conversations.invite#errors|문서 확인하기>"
             result = f" -> 😵 ({e.response['error']}) 👉 {link}"
 
-    return f"\n<#{channel_id}>" + result
+    await client.chat_postMessage(
+        channel=settings.ADMIN_CHANNEL,
+        text=f"\n<#{channel_id}>" + result,
+    )
