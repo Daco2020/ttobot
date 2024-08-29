@@ -245,13 +245,18 @@ app.view("handle_bookmark_page_view")(contents_events.handle_bookmark_page)
 
 # core
 app.event("app_mention")(core_events.handle_app_mention)
-app.command("/예치금")(core_events.deposit_command)
-app.command("/제출내역")(core_events.history_command)
-app.command("/도움말")(core_events.help_command)
+app.command("/예치금")(core_events.open_deposit_view)
+app.command("/제출내역")(core_events.open_submission_history_view)
+app.command("/도움말")(core_events.open_help_view)
 app.command("/관리자")(core_events.admin_command)
 app.action("sync_store")(core_events.handle_sync_store)
 app.action("invite_channel")(core_events.handle_invite_channel)
 app.view("invite_channel_view")(core_events.handle_invite_channel_view)
+app.event("app_home_opened")(core_events.handle_home_tab)
+app.action("open_deposit_view")(core_events.open_deposit_view)
+app.action("open_submission_history_view")(core_events.open_submission_history_view)
+app.action("open_help_view")(core_events.open_help_view)
+
 
 event_descriptions = {
     "/제출": "글 제출 시작",
@@ -287,4 +292,9 @@ event_descriptions = {
     "reaction_removed": "리액션 삭제",
     "sync_store": "데이터 동기화",
     "invite_channel": "채널 초대",
+    "invite_channel_view": "채널 초대 완료",
+    "app_home_opened": "홈 탭 열림",
+    "open_deposit_view": "예치금 조회",
+    "open_submission_history_view": "제출내역 조회",
+    "open_help_view": "도움말 조회",
 }

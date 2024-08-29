@@ -243,3 +243,12 @@ class ReactionBodyType(TypedDict):
     authorizations: list[Authorization]
     is_ext_shared_channel: bool
     event_context: str
+
+
+class HomeTabEventType(TypedDict):
+    type: str  # app_home_opened
+    user: str
+    channel: str
+    tab: str  # home
+    view: ViewType
+    event_ts: str

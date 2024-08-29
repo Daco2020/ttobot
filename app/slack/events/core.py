@@ -9,6 +9,7 @@ from app.slack.types import (
     ActionBodyType,
     AppMentionBodyType,
     CommandBodyType,
+    HomeTabEventType,
     ViewBodyType,
     ViewType,
 )
@@ -22,6 +23,9 @@ from slack_sdk.models.blocks import (
     ChannelMultiSelectElement,
     UserSelectElement,
     InputBlock,
+    TextObject,
+    HeaderBlock,
+    ContextBlock,
 )
 from slack_sdk.models.views import View
 from slack_bolt.async_app import AsyncAck, AsyncSay
@@ -39,7 +43,7 @@ async def handle_app_mention(
     await ack()
 
 
-async def deposit_command(
+async def open_deposit_view(
     ack: AsyncAck,
     body: CommandBodyType,
     say: AsyncSay,
@@ -74,7 +78,7 @@ async def deposit_command(
     )
 
 
-async def history_command(
+async def open_submission_history_view(
     ack: AsyncAck,
     body: CommandBodyType,
     say: AsyncSay,
@@ -103,7 +107,7 @@ async def history_command(
     )
 
 
-async def help_command(
+async def open_help_view(
     ack: AsyncAck,
     body: CommandBodyType,
     say: AsyncSay,
@@ -114,11 +118,14 @@ async def help_command(
     """도움말을 조회합니다."""
     await ack()
 
-    # 또봇이 추가된 채널만 전송할 수 있기 때문에 개인 디엠으로 보내도록 통일.
-    await client.chat_postEphemeral(
-        channel=user.user_id,
-        user=user.user_id,
-        text=HELP_TEXT,
+    await client.views_open(
+        trigger_id=body["trigger_id"],
+        view=View(
+            type="modal",
+            title="도움말",
+            close="닫기",
+            blocks=[SectionBlock(text=HELP_TEXT)],
+        ),
     )
 
 
@@ -312,4 +319,144 @@ async def _invite_channel(
     await client.chat_postMessage(
         channel=settings.ADMIN_CHANNEL,
         text=f"\n<#{channel_id}>" + result,
+    )
+
+
+async def handle_home_tab(
+    event: HomeTabEventType,
+    client: AsyncWebClient,
+    user: User,
+    service: SlackService,
+):
+    """홈 탭을 열었을 때의 이벤트를 처리합니다."""
+
+    # TODO: 현재는 임시로 컨셉만 구현한 상태입니다.
+    await client.views_publish(
+        user_id=user.user_id,
+        view=View(
+            type="home",
+            blocks=[
+                SectionBlock(
+                    text=TextObject(
+                        type="mrkdwn",
+                        text=f"<@{user.user_id}> 님 안녕하세요! 저는 또봇이에요~ 👋",
+                    ),
+                ),
+                HeaderBlock(
+                    text="😊 무엇을 도와드릴까요?",
+                ),
+                ContextBlock(
+                    elements=[
+                        TextObject(
+                            type="mrkdwn",
+                            text="아래 버튼을 눌러서 원하는 기능을 이용해보세요.",
+                        )
+                    ],
+                ),
+                ActionsBlock(
+                    elements=[
+                        ButtonElement(
+                            text="현재 남아있는 예치금을 알고 싶어요",
+                            action_id="open_deposit_view",
+                            value="open_deposit_view",
+                        ),
+                        ButtonElement(
+                            text="지금까지 제출한 글을 확인하고 싶어요",
+                            action_id="open_submission_history_view",
+                            value="open_submission_history_view",
+                        ),
+                        ButtonElement(
+                            text="또봇에 어떤 기능들이 있는지 궁금해요",
+                            action_id="open_help_view",
+                            value="open_help_view",
+                        ),
+                    ],
+                ),
+                DividerBlock(),
+                HeaderBlock(
+                    text=f"✏️ {user.name}님의 `자루` 현황이에요!",
+                ),
+                ContextBlock(
+                    elements=[
+                        TextObject(
+                            type="mrkdwn",
+                            text="`자루`는 글또 내에서 서로 주고 받을 수 있는 `커뮤니티 점수`를 의미해요.\n자루는 멤버에게 직접 받을 수도 있고, 슬랙 커뮤니티 활동을 통해 얻을 수도 있어요. :moneybag:\n자루를 보내려면 어디서든 `/자루보내기` 명령어를 입력해보세요. 단, 자루는 하루에 하나만 보낼 수 있답니다. 🤭",
+                        )
+                    ],
+                ),
+                SectionBlock(
+                    text="지금까지 받은 자루 : *13.7 X* ✏️\n지금까지 보낸 자루 : *5 X* ✏️",
+                ),
+                ActionsBlock(
+                    elements=[
+                        ButtonElement(
+                            text="지금 바로 자루 보내기",
+                            action_id="3",
+                            value="3",
+                            style="primary",
+                        ),
+                        ButtonElement(
+                            text="지금까지 받은 자루 확인하기",
+                            action_id="1",
+                            value="1",
+                        ),
+                        ButtonElement(
+                            text="지금까지 보낸 자루 확인하기",
+                            action_id="2",
+                            value="2",
+                        ),
+                        ButtonElement(
+                            text="내 자루 랭킹 확인하기",
+                            action_id="4",
+                            value="4",
+                        ),
+                    ],
+                ),
+                DividerBlock(),
+                HeaderBlock(
+                    text="📬 글또에서 발행한 콘텐츠를 확인해보세요.",
+                ),
+                ContextBlock(
+                    elements=[
+                        TextObject(
+                            type="mrkdwn",
+                            text="유용한 글쓰기 팁과 커뮤니티에서 벌어지는 다양한 이야기를 확인해보세요.",
+                        )
+                    ],
+                ),
+                SectionBlock(
+                    text="블라블라~\n블라블라~\n블라블라~\n",
+                ),
+                DividerBlock(),
+                HeaderBlock(
+                    text="📚 이런 소모임은 어떠세요?",
+                ),
+                ContextBlock(
+                    elements=[
+                        TextObject(
+                            type="mrkdwn",
+                            text="최근에 새롭게 열렸거나 활동이 많은 소모임을 추천해드려요.",
+                        )
+                    ],
+                ),
+                SectionBlock(
+                    text="블라블라~\n블라블라~\n블라블라~\n",
+                ),
+                DividerBlock(),
+                HeaderBlock(
+                    text="📅 글또 일정을 확인해보세요.",
+                ),
+                ContextBlock(
+                    elements=[
+                        TextObject(
+                            type="mrkdwn",
+                            text="글또의 다양한 일정들을 확인하고 참여해보세요.",
+                        )
+                    ],
+                ),
+                SectionBlock(
+                    text="블라블라~\n블라블라~\n블라블라~\n",
+                ),
+            ],
+        ),
     )
