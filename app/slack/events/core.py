@@ -212,7 +212,7 @@ async def handle_invite_channel(
             close="닫기",
             blocks=[
                 SectionBlock(
-                    text="초대하고 싶은 채널과 멤버를 선택해주세요.",
+                    text="초대하고 싶은 멤버와 채널을 선택해주세요.",
                 ),
                 InputBlock(
                     block_id="user",
