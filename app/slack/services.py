@@ -188,7 +188,7 @@ class SlackService:
                 .get("value")
             ):
                 return None
-            raise ValueError("노션은 하단의 '글 제목'을 필수로 입력해주세요.")
+            raise ValueError("노션 링크는 하단 '글 제목'을 필수로 입력해주세요.")
 
     def create_bookmark(
         self,
