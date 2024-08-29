@@ -77,18 +77,13 @@ async def handle_coffee_chat_message(
                     ButtonElement(
                         text="안내 닫기",
                         action_id="cancel_coffee_chat_proof_button",
-                        style="danger",
-                    )
-                ]
-            ),
-            ActionsBlock(
-                elements=[
+                    ),
                     ButtonElement(
                         text="커피챗 인증",
                         action_id="submit_coffee_chat_proof_button",
                         value=body["event"]["ts"],
                         style="primary",
-                    )
+                    ),
                 ]
             ),
         ],
