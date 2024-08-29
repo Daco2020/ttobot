@@ -258,7 +258,7 @@ async def handle_invite_channel_view(
 
     await client.chat_postMessage(
         channel=settings.ADMIN_CHANNEL,
-        text=f"<@{user_id}> 님의 채널 초대를 시작합니다.\n\n채널 수 : {len(channel_ids)} 개\n채널 아이디 : {channel_ids}\n",
+        text=f"<@{user_id}> 님의 채널 초대를 시작합니다.\n\n채널 수 : {len(channel_ids)} 개\n",
     )
 
     for channel_id in channel_ids:
