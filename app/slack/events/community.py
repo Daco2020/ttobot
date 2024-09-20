@@ -63,6 +63,12 @@ async def handle_coffee_chat_message(
             timestamp=body["event"]["ts"],
             name="white_check_mark",
         )
+
+        # 포인트 지급
+        point_service.grant_if_coffee_chat_verified(
+            user_id=body["event"]["user"], client=client
+        )
+
         return
 
     # 2초 대기하는 이유는 메시지 보다 더 먼저 전송 될 수 있기 때문임
@@ -201,6 +207,9 @@ async def submit_coffee_chat_proof_view(
         timestamp=message_ts,
         name="white_check_mark",
     )
+
+    # 포인트 지급
+    point_service.grant_if_coffee_chat_verified(user_id=user.user_id, client=client)
 
     user_call_text = ",".join(
         f"<@{selected_user}>"

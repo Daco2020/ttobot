@@ -91,7 +91,7 @@ async def dependency_injection_middleware(
     user = repo.get_user(cast(str, user_id))
     if user:
         req.context["service"] = SlackService(repo=repo, user=user)
-        req.context["point_service"] = PointService(repo=repo, user=user)
+        req.context["point_service"] = PointService(repo=repo)
         req.context["user"] = user
         await next()
         return
@@ -193,7 +193,7 @@ async def handle_message(
         )
 
         service = SlackService(repo=repo, user=user)
-        point_service = PointService(repo=repo, user=user)
+        point_service = PointService(repo=repo)
         await community_events.handle_coffee_chat_message(
             ack=ack,
             body=body,

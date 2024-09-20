@@ -274,6 +274,12 @@ async def submit_view(
         content.ts = message.get("ts", "")
         await service.update_user_content(content)
 
+        # 포인트 지급
+        point_service.grant_if_post_submitted(user_id=content.user_id)
+
+        if content.curation_flag == "Y":
+            point_service.grant_if_curation_requested(user_id=content.user_id)
+
         # TODO: 방학기간에 담소에도 글을 보낼지에 대한 메시지 전송 로직
         # 2초 대기하는 이유는 메시지 보다 더 먼저 전송 될 수 있기 때문임
         await asyncio.sleep(2)
