@@ -256,6 +256,14 @@ async def handle_reaction_added(
         item_ts=body["event"]["item"]["ts"],
     )
 
+    # 공지사항을 이모지로 확인하면 포인트를 지급합니다.
+    if (
+        body["event"]["item"]["channel"] == settings.NOTICE_CHANNEL
+        and body["event"]["reaction"] == "white_check_mark"
+    ):
+        point_service.grant_if_notice_emoji_checked(user_id=body["event"]["user"])
+        return
+
 
 async def handle_reaction_removed(
     ack: AsyncAck,

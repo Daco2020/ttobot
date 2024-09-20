@@ -5,7 +5,6 @@ import pandas as pd
 from app import store
 from app import models
 from app.exception import BotException
-from app.slack.services.point import PointCategory
 from app.utils import tz_now_to_str
 
 
@@ -235,22 +234,8 @@ class SlackRepository:
             writer = csv.writer(f, quoting=csv.QUOTE_ALL)
             writer.writerow(reaction.to_list_for_csv())
 
-    def add_point(
-        self,
-        user_id: str,
-        reason: str,
-        point: int,
-        category: PointCategory,
-    ) -> None:
+    def add_point(self, point_history: models.PointHistory) -> None:
         """포인트를 추가합니다."""
         with open("store/point_histories.csv", "a", newline="", encoding="utf-8") as f:
             writer = csv.writer(f, quoting=csv.QUOTE_ALL)
-            writer.writerow(
-                [
-                    user_id,
-                    reason,
-                    point,
-                    category,
-                    tz_now_to_str(),
-                ]
-            )
+            writer.writerow(point_history.to_list_for_csv())

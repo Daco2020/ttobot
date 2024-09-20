@@ -1,54 +1,44 @@
+from app.models import PointCategory, PointHistory
 from app.slack.repositories import SlackRepository
 from slack_sdk.web.async_client import AsyncWebClient
 
-from pydantic import BaseModel
-from datetime import datetime
 from enum import Enum
-
-
-class PointCategory(str, Enum):
-    WRITING = "글쓰기"
-    NETWORKING = "네트워크"
-    USER_TO_USER = "유저 간"
-    OTHER = "기타"
-
-
-class PointHistory(BaseModel):
-    id: str
-    user_id: str
-    giver_user_id: str = ""
-    reason: str
-    point: int
-    category: PointCategory
-    created_at: datetime
-
 
 # TODO: 주고 받기, 피드백 등은 구체화 후 추가 예정
 # 동기부여와 자극을 주는 포인트는 공개 채널에 알림을 준다.
 # 수동으로 받는 포인트는 디엠 으로 알림을 준다.
-class PointReasonMap(Enum):
-    글_제출_기본 = {"point": 100, "reason": "글 제출"}
-    글_제출_추가 = {"point": 10, "reason": "추가 글 제출"}
-    글_제출_콤보 = {"point": 10, "reason": "글 제출 콤보"}
-    글_제출_3콤보_보너스 = {"point": 300, "reason": "글 제출 3콤보 보너스"}
-    글_제출_6콤보_보너스 = {"point": 600, "reason": "글 제출 6콤보 보너스"}
-    글_제출_9콤보_보너스 = {"point": 900, "reason": "글 제출 9콤보 보너스"}
-    글_제출_코어채널_1등 = {"point": 50, "reason": "코어채널 글 제출 1등"}
-    글_제출_코어채널_2등 = {"point": 30, "reason": "코어채널 글 제출 2등"}
-    글_제출_코어채널_3등 = {"point": 20, "reason": "코어채널 글 제출 3등"}
-    커피챗_인증 = {"point": 50, "reason": "커피챗 인증"}
-    공지사항_확인_이모지 = {"point": 10, "reason": "공지사항 확인"}
-    큐레이션_요청 = {"point": 10, "reason": "큐레이션 요청"}
-    큐레이션_선정 = {"point": 10, "reason": "큐레이션 선정 축하 보너스"}
-    빌리지_반상회_참여 = {"point": 50, "reason": "빌리지 반상회 참여 보너스"}
-    자기소개_작성 = {"point": 100, "reason": "자기소개 작성 보너스"}
 
+# fmt: off
+class PointReasonMap(Enum):
+    글_제출_기본 = {"point": 100, "reason": "글 제출", "category": PointCategory.WRITING}
+    글_제출_추가 = {"point": 10, "reason": "추가 글 제출", "category": PointCategory.WRITING}
+    글_제출_콤보 = {"point": 10, "reason": "글 제출 콤보", "category": PointCategory.WRITING}
+    글_제출_3콤보_보너스 = {"point": 300, "reason": "글 제출 3콤보 보너스", "category": PointCategory.WRITING}
+    글_제출_6콤보_보너스 = {"point": 600, "reason": "글 제출 6콤보 보너스", "category": PointCategory.WRITING}
+    글_제출_9콤보_보너스 = {"point": 900, "reason": "글 제출 9콤보 보너스", "category": PointCategory.WRITING}
+    글_제출_코어채널_1등 = {"point": 50, "reason": "코어채널 글 제출 1등", "category": PointCategory.WRITING}
+    글_제출_코어채널_2등 = {"point": 30, "reason": "코어채널 글 제출 2등", "category": PointCategory.WRITING}
+    글_제출_코어채널_3등 = {"point": 20, "reason": "코어채널 글 제출 3등", "category": PointCategory.WRITING}
+    커피챗_인증 = {"point": 50, "reason": "커피챗 인증", "category": PointCategory.NETWORKING}
+    공지사항_확인_이모지 = {"point": 10, "reason": "공지사항 확인", "category": PointCategory.OTHER}
+    큐레이션_요청 = {"point": 10, "reason": "큐레이션 요청", "category": PointCategory.WRITING}
+    큐레이션_선정 = {"point": 10, "reason": "큐레이션 선정 축하 보너스", "category": PointCategory.WRITING}
+    빌리지_반상회_참여 = {"point": 50, "reason": "빌리지 반상회 참여 보너스", "category": PointCategory.NETWORKING}
+    자기소개_작성 = {"point": 100, "reason": "자기소개 작성 보너스", "category": PointCategory.OTHER}
+
+# fmt: on
+
+    @property
     def point(self):
         return self.value["point"]
 
+    @property
     def reason(self):
         return self.value["reason"]
 
+    @property
+    def category(self):
+        return self.value["category"]
 
 class PointService:
     def __init__(self, repo: SlackRepository) -> None:
@@ -59,10 +49,12 @@ class PointService:
         point_info = PointReasonMap.글_제출_기본
 
         self._repo.add_point(
-            user_id=user_id,
-            reason=point_info.reason(),
-            point=point_info.point(),
-            category=PointCategory.WRITING,
+            point_history=PointHistory(
+                user_id=user_id,
+                reason=point_info.reason,
+                point=point_info.point,
+                category=point_info.category,
+            )
         )
 
         # user = self._repo.get_user(user_id)
@@ -81,10 +73,12 @@ class PointService:
         point_info = PointReasonMap.커피챗_인증
 
         self._repo.add_point(
-            user_id=user_id,
-            reason=point_info.reason(),
-            point=point_info.point(),
-            category=PointCategory.NETWORKING,
+            point_history=PointHistory(
+                user_id=user_id,
+                reason=point_info.reason,
+                point=point_info.point,
+                category=point_info.category,
+            )
         )
 
         # TODO: 추가 예정
@@ -92,14 +86,15 @@ class PointService:
 
     def grant_if_notice_emoji_checked(self, user_id: str):
         """공지사항을 확인한 경우 포인트를 지급합니다."""
-        # TODO: 공지사항 메시지 핸들러 필요
         point_info = PointReasonMap.공지사항_확인_이모지
 
         self._repo.add_point(
-            user_id=user_id,
-            reason=point_info.reason(),
-            point=point_info.point(),
-            category=PointCategory.OTHER,
+            point_history=PointHistory(
+                user_id=user_id,
+                reason=point_info.reason,
+                point=point_info.point,
+                category=point_info.category,
+            )
         )
 
     def grant_if_curation_requested(self, user_id: str):
@@ -107,10 +102,12 @@ class PointService:
         point_info = PointReasonMap.큐레이션_요청
 
         self._repo.add_point(
-            user_id=user_id,
-            reason=point_info.reason(),
-            point=point_info.point(),
-            category=PointCategory.WRITING,
+            point_history=PointHistory(
+                user_id=user_id,
+                reason=point_info.reason,
+                point=point_info.point,
+                category=point_info.category,
+            )
         )
 
     def grant_if_curation_selected(self, user_id: str, client: AsyncWebClient):
@@ -121,10 +118,12 @@ class PointService:
         point_info = PointReasonMap.큐레이션_선정
 
         self._repo.add_point(
-            user_id=user_id,
-            reason=point_info.reason(),
-            point=point_info.point(),
-            category=PointCategory.WRITING,
+            point_history=PointHistory(
+                user_id=user_id,
+                reason=point_info.reason,
+                point=point_info.point,
+                category=point_info.category,
+            )
         )
 
         # TODO: 추가 예정
@@ -140,10 +139,12 @@ class PointService:
         point_info = PointReasonMap.빌리지_반상회_참여
 
         self._repo.add_point(
-            user_id=user_id,
-            reason=point_info.reason(),
-            point=point_info.point(),
-            category=PointCategory.NETWORKING,
+            point_history=PointHistory(
+                user_id=user_id,
+                reason=point_info.reason,
+                point=point_info.point,
+                category=point_info.category,
+            )
         )
 
         # TODO: 추가 예정
@@ -157,10 +158,12 @@ class PointService:
         point_info = PointReasonMap.자기소개_작성
 
         self._repo.add_point(
-            user_id=user_id,
-            reason=point_info.reason(),
-            point=point_info.point(),
-            category=PointCategory.OTHER,
+            point_history=PointHistory(
+                user_id=user_id,
+                reason=point_info.reason,
+                point=point_info.point,
+                category=point_info.category,
+            )
         )
 
         # TODO: 추가 예정
@@ -174,7 +177,7 @@ class PointService:
     #         giver_user_id=user_id,
     #         reason=reason,
     #         point=point,
-    #         category=PointCategory.USER_TO_USER,
+    #         category=point_info.category,
     #     )
 
     #     client.chat_postMessage()

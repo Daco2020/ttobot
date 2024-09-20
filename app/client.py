@@ -28,6 +28,7 @@ class SpreadSheetClient:
                 "bookmark": self._doc.worksheet("bookmark"),
                 "coffee_chat_proof": self._doc.worksheet("coffee_chat_proof"),
                 "reactions": self._doc.worksheet("reactions"),
+                "point_histories": self._doc.worksheet("point_histories"),
             }
             if not sheets
             else sheets

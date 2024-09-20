@@ -1,4 +1,6 @@
 import csv
+import random
+import string
 from typing import Any
 import orjson
 import regex as re
@@ -17,6 +19,13 @@ def tz_now(tz: str = "Asia/Seoul") -> datetime.datetime:
 def tz_now_to_str(tz: str = "Asia/Seoul") -> str:
     """현재시간을 문자열로 반환합니다."""
     return datetime.datetime.strftime(tz_now(tz), "%Y-%m-%d %H:%M:%S")
+
+
+def generate_unique_id() -> str:
+    """고유한 ID를 생성합니다."""
+    # 무작위 문자열 6자리 + 밀리 세컨즈(문자로 치환된)
+    random_str = "".join(random.choices(string.ascii_letters + string.digits, k=6))
+    return f"{random_str}{str(int(datetime.datetime.now().timestamp() * 1000))}"
 
 
 def is_english(text):

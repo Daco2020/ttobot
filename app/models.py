@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from abc import abstractmethod
+
 from enum import Enum
 from zoneinfo import ZoneInfo
 from pydantic import BaseModel, Field, field_validator
@@ -8,7 +9,7 @@ import datetime
 from app.constants import DUE_DATES, MAX_PASS_COUNT
 from app.exception import BotException
 
-from app.utils import tz_now, tz_now_to_str
+from app.utils import generate_unique_id, tz_now, tz_now_to_str
 
 
 class User(BaseModel):
@@ -346,4 +347,43 @@ class Reaction(StoreModel):
             self.item_user_id,
             self.item_channel,
             self.item_ts,
+        ]
+
+
+class PointCategory(str, Enum):
+    WRITING = "글쓰기"
+    NETWORKING = "네트워크"
+    USER_TO_USER = "유저 간"
+    OTHER = "기타"
+
+
+class PointHistory(BaseModel):
+    id: str = Field(default_factory=generate_unique_id)
+    user_id: str
+    giver_user_id: str = ""
+    reason: str
+    point: int
+    category: PointCategory
+    created_at: str = Field(default_factory=tz_now_to_str)
+
+    def to_list_for_csv(self) -> list[str]:
+        return [
+            self.id,
+            self.user_id,
+            self.giver_user_id,
+            self.reason,
+            str(self.point),
+            self.category,
+            self.created_at,
+        ]
+
+    def to_list_for_sheet(self) -> list[str]:
+        return [
+            self.id,
+            self.user_id,
+            self.giver_user_id,
+            self.reason,
+            str(self.point),
+            self.category,
+            self.created_at,
         ]
