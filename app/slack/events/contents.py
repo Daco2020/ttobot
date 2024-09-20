@@ -26,7 +26,8 @@ from slack_sdk.models.blocks import (
 from slack_bolt.async_app import AsyncAck, AsyncSay
 
 from app import models
-from app.slack.services import SlackService
+from app.slack.services.base import SlackService
+from app.slack.services.point import PointService
 from app.slack.types import (
     ActionBodyType,
     BlockActionBodyType,
@@ -45,6 +46,7 @@ async def submit_command(
     client: AsyncWebClient,
     user: models.User,
     service: SlackService,
+    point_service: PointService,
 ) -> None:
     """글 제출 시작"""
     await ack()
@@ -208,6 +210,7 @@ async def submit_view(
     say: AsyncSay,
     user: models.User,
     service: SlackService,
+    point_service: PointService,
 ) -> None:
     """글 제출 완료"""
     # 슬랙 앱이 구 버전일 경우 일부 block 이 사라져 키에러가 발생할 수 있음
@@ -305,6 +308,7 @@ async def forward_message(
     body: ActionBodyType,
     client: AsyncWebClient,
     service: SlackService,
+    point_service: PointService,
 ) -> None:
     # TODO: 방학기간에 담소에도 글을 보낼지에 대한 메시지 전송 로직
     await ack()
@@ -342,6 +346,7 @@ async def open_intro_modal(
     client: AsyncWebClient,
     user: models.User,
     service: SlackService,
+    point_service: PointService,
 ) -> None:
     """다른 유저의 자기소개 확인"""
     await ack()
@@ -373,6 +378,7 @@ async def edit_intro_view(
     say: AsyncSay,
     user: models.User,
     service: SlackService,
+    point_service: PointService,
 ) -> None:
     """자기소개 수정 시작"""
     await ack(
@@ -412,6 +418,7 @@ async def submit_intro_view(
     say: AsyncSay,
     user: models.User,
     service: SlackService,
+    point_service: PointService,
 ) -> None:
     """자기소개 수정 완료"""
     new_intro = view["state"]["values"]["description"]["edit_intro"]["value"] or ""
@@ -452,6 +459,7 @@ async def contents_modal(
     body: ActionBodyType,
     client: AsyncWebClient,
     service: SlackService,
+    point_service: PointService,
 ) -> None:
     """다른 유저의 제출한 글 목록 확인"""
     await ack()
@@ -476,6 +484,7 @@ async def bookmark_modal(
     client: AsyncWebClient,
     user: models.User,
     service: SlackService,
+    point_service: PointService,
 ) -> None:
     """북마크 저장 시작"""
     await ack()
@@ -546,6 +555,7 @@ async def bookmark_view(
     say: AsyncSay,
     user: models.User,
     service: SlackService,
+    point_service: PointService,
 ) -> None:
     """북마크 저장 완료"""
     await ack()
@@ -581,6 +591,7 @@ async def pass_command(
     client: AsyncWebClient,
     user: models.User,
     service: SlackService,
+    point_service: PointService,
 ) -> None:
     """글 패스 시작"""
     await ack()
@@ -640,6 +651,7 @@ async def pass_view(
     say: AsyncSay,
     user: models.User,
     service: SlackService,
+    point_service: PointService,
 ) -> None:
     """글 패스 완료"""
     await ack()
@@ -665,6 +677,7 @@ async def search_command(
     say: AsyncSay,
     client: AsyncWebClient,
     service: SlackService,
+    point_service: PointService,
 ) -> None:
     """글 검색 시작"""
     await ack()
@@ -680,6 +693,7 @@ async def submit_search(
     body: ViewBodyType | ActionBodyType,
     client: AsyncWebClient,
     service: SlackService,
+    point_service: PointService,
 ) -> None:
     """글 검색 완료"""
     name = _get_name(body)
@@ -705,6 +719,7 @@ async def web_search(
     body: ActionBodyType,
     client: AsyncWebClient,
     service: SlackService,
+    point_service: PointService,
 ) -> None:
     """웹 검색 시작(외부 링크로 이동)"""
     await ack()
@@ -762,6 +777,7 @@ async def back_to_search_view(
     say: AsyncSay,
     client: AsyncWebClient,
     service: SlackService,
+    point_service: PointService,
 ) -> None:
     """글 검색 다시 시작"""
     await ack(
@@ -814,6 +830,7 @@ async def bookmark_command(
     client: AsyncWebClient,
     user: models.User,
     service: SlackService,
+    point_service: PointService,
 ) -> None:
     """북마크 조회"""
     await ack()
@@ -857,6 +874,7 @@ async def handle_bookmark_page(
     client: AsyncWebClient,
     user: models.User,
     service: SlackService,
+    point_service: PointService,
 ) -> None:
     """북마크 페이지 이동"""
     await ack()
@@ -980,6 +998,7 @@ async def open_overflow_action(
     say: AsyncSay,
     user: models.User,
     service: SlackService,
+    point_service: PointService,
 ) -> None:
     """북마크 메뉴 선택"""
     await ack()

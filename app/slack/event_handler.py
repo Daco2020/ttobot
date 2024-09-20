@@ -19,7 +19,8 @@ from app.slack.events import contents as contents_events
 from app.slack.events import core as core_events
 from app.exception import BotException
 from app.slack.repositories import SlackRepository
-from app.slack.services import SlackService
+from app.slack.services.base import SlackService
+from app.slack.services.point import PointService
 from app.slack.types import MessageBodyType
 
 app = AsyncApp(
@@ -90,6 +91,7 @@ async def dependency_injection_middleware(
     user = repo.get_user(cast(str, user_id))
     if user:
         req.context["service"] = SlackService(repo=repo, user=user)
+        req.context["point_service"] = PointService(repo=repo, user=user)
         req.context["user"] = user
         await next()
         return
@@ -191,6 +193,7 @@ async def handle_message(
         )
 
         service = SlackService(repo=repo, user=user)
+        point_service = PointService(repo=repo, user=user)
         await community_events.handle_coffee_chat_message(
             ack=ack,
             body=body,
@@ -198,6 +201,7 @@ async def handle_message(
             client=client,
             user=user,
             service=service,
+            point_service=point_service,
         )
         return
 

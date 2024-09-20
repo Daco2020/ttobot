@@ -1,20 +1,15 @@
-import asyncio
 import re
 from typing import Any
 
 import httpx
 from app.constants import URL_REGEX
-from app.logging import log_event, logger
+from app.logging import logger
 from app.exception import BotException, ClientException
 from app.slack.repositories import SlackRepository
-from app.constants import remind_message
 from app import models
 from app import store
 
 from bs4 import BeautifulSoup
-
-
-from slack_bolt.async_app import AsyncApp
 
 
 class SlackService:
@@ -349,35 +344,5 @@ class SlackService:
         store.reaction_upload_queue.append(reaction_model.to_list_for_sheet())
         return reaction_model
 
-
-class BackgroundService:
-    def __init__(self, repo: SlackRepository) -> None:
-        self._repo = repo
-
-    async def send_reminder_message_to_user(self, slack_app: AsyncApp) -> None:
-        """사용자에게 리마인드 메시지를 전송합니다."""
-        users = self._repo.fetch_users()
-        for user in users:
-            if user.is_submit:
-                continue
-            if user.cohort == "8기":
-                continue
-            if user.cohort == "9기":
-                continue
-            if user.channel_name == "슬랙봇":
-                continue
-
-            log_event(
-                actor="slack_reminder_service",
-                event="send_reminder_message_to_user",
-                type="reminder",
-                description=f"{user.name} 님에게 리마인드 메시지를 전송합니다.",
-            )
-
-            await slack_app.client.chat_postMessage(
-                channel=user.user_id,
-                text=remind_message.format(user_name=user.name),
-            )
-            await asyncio.sleep(1)
-            # 슬랙은 메시지 전송을 초당 1개를 권장하기 때문에 1초 대기합니다.
-            # 참고문서: https://api.slack.com/methods/chat.postMessage#rate_limiting
+        # 슬랙은 메시지 전송을 초당 1개를 권장하기 때문에 1초 대기합니다.
+        # 참고문서: https://api.slack.com/methods/chat.postMessage#rate_limiting

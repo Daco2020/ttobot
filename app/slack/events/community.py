@@ -3,7 +3,8 @@ import requests
 from slack_sdk.web.async_client import AsyncWebClient
 from app.exception import BotException
 from app.models import User
-from app.slack.services import SlackService
+from app.slack.services.base import SlackService
+from app.slack.services.point import PointService
 from app.slack.types import (
     ActionBodyType,
     MessageBodyType,
@@ -32,6 +33,7 @@ async def handle_coffee_chat_message(
     client: AsyncWebClient,
     user: User,
     service: SlackService,
+    point_service: PointService,
 ) -> None:
     """커피챗 인증 메시지인지 확인하고, 인증 모달을 전송합니다."""
     await ack()
@@ -96,6 +98,7 @@ async def cancel_coffee_chat_proof_button(
     client: AsyncWebClient,
     user: User,
     service: SlackService,
+    point_service: PointService,
 ) -> None:
     """커피챗 인증 안내를 닫습니다."""
     await ack()
@@ -116,6 +119,7 @@ async def submit_coffee_chat_proof_button(
     client: AsyncWebClient,
     user: User,
     service: SlackService,
+    point_service: PointService,
 ) -> None:
     """커피챗 인증을 제출합니다."""
     await ack()
@@ -159,6 +163,7 @@ async def submit_coffee_chat_proof_view(
     say: AsyncSay,
     user: User,
     service: SlackService,
+    point_service: PointService,
 ) -> None:
     """커피챗 인증을 처리합니다."""
     await ack()
@@ -226,6 +231,7 @@ async def handle_reaction_added(
     body: ReactionBodyType,
     user: User,
     service: SlackService,
+    point_service: PointService,
 ) -> None:
     """리액션 추가 이벤트를 처리합니다."""
     await ack()
@@ -247,6 +253,7 @@ async def handle_reaction_removed(
     body: ReactionBodyType,
     user: User,
     service: SlackService,
+    point_service: PointService,
 ):
     """리액션 삭제 이벤트를 처리합니다."""
     await ack()

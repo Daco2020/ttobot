@@ -4,7 +4,8 @@ from app.client import SpreadSheetClient
 from app.config import settings
 from app.constants import HELP_TEXT
 from app.models import User
-from app.slack.services import SlackService
+from app.slack.services.base import SlackService
+from app.slack.services.point import PointService
 from app.slack.types import (
     ActionBodyType,
     AppMentionBodyType,
@@ -50,6 +51,7 @@ async def open_deposit_view(
     client: AsyncWebClient,
     user: User,
     service: SlackService,
+    point_service: PointService,
 ) -> None:
     """예치금을 조회합니다."""
     await ack()
@@ -85,6 +87,7 @@ async def open_submission_history_view(
     client: AsyncWebClient,
     user: User,
     service: SlackService,
+    point_service: PointService,
 ) -> None:
     """제출 내역을 조회합니다."""
     await ack()
@@ -114,6 +117,7 @@ async def open_help_view(
     client: AsyncWebClient,
     user: User,
     service: SlackService,
+    point_service: PointService,
 ) -> None:
     """도움말을 조회합니다."""
     await ack()
@@ -136,6 +140,7 @@ async def admin_command(
     client: AsyncWebClient,
     user: User,
     service: SlackService,
+    point_service: PointService,
 ) -> None:
     """관리자 메뉴를 조회합니다."""
     await ack()
@@ -175,6 +180,7 @@ async def handle_sync_store(
     client: AsyncWebClient,
     user: User,
     service: SlackService,
+    point_service: PointService,
 ) -> None:
     """데이터 동기화를 수행합니다."""
     await ack()
@@ -205,6 +211,7 @@ async def handle_invite_channel(
     client: AsyncWebClient,
     user: User,
     service: SlackService,
+    point_service: PointService,
 ) -> None:
     """채널 초대를 수행합니다."""
     await ack()
@@ -252,6 +259,7 @@ async def handle_invite_channel_view(
     say: AsyncSay,
     user: User,
     service: SlackService,
+    point_service: PointService,
 ) -> None:
     """채널 초대를 수행합니다."""
     await ack()
@@ -327,6 +335,7 @@ async def handle_home_tab(
     client: AsyncWebClient,
     user: User,
     service: SlackService,
+    point_service: PointService,
 ):
     """홈 탭을 열었을 때의 이벤트를 처리합니다."""
 
