@@ -13,7 +13,7 @@ from app.api.views.community import router as community_router
 from app.api.views.login import router as login_router
 from slack_bolt.adapter.socket_mode.aiohttp import AsyncSocketModeHandler
 from fastapi.middleware.cors import CORSMiddleware
-from app.slack.services import BackgroundService
+from app.slack.services.background import BackgroundService
 
 
 from slack_bolt.async_app import AsyncApp

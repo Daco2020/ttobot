@@ -7,7 +7,7 @@ import pytest
 from pytest_mock import MockerFixture
 from app.models import Content, User
 from app.slack.repositories import SlackRepository
-from app.slack.services import BackgroundService
+from app.slack.services.background import BackgroundService
 from app.utils import tz_now
 from test.conftest import FakeSlackApp
 

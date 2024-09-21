@@ -3,7 +3,8 @@ import requests
 from slack_sdk.web.async_client import AsyncWebClient
 from app.exception import BotException
 from app.models import User
-from app.slack.services import SlackService
+from app.slack.services.base import SlackService
+from app.slack.services.point import PointService
 from app.slack.types import (
     ActionBodyType,
     MessageBodyType,
@@ -32,6 +33,7 @@ async def handle_coffee_chat_message(
     client: AsyncWebClient,
     user: User,
     service: SlackService,
+    point_service: PointService,
 ) -> None:
     """커피챗 인증 메시지인지 확인하고, 인증 모달을 전송합니다."""
     await ack()
@@ -61,6 +63,12 @@ async def handle_coffee_chat_message(
             timestamp=body["event"]["ts"],
             name="white_check_mark",
         )
+
+        # 포인트 지급
+        point_service.grant_if_coffee_chat_verified(
+            user_id=body["event"]["user"], client=client
+        )
+
         return
 
     # 2초 대기하는 이유는 메시지 보다 더 먼저 전송 될 수 있기 때문임
@@ -96,6 +104,7 @@ async def cancel_coffee_chat_proof_button(
     client: AsyncWebClient,
     user: User,
     service: SlackService,
+    point_service: PointService,
 ) -> None:
     """커피챗 인증 안내를 닫습니다."""
     await ack()
@@ -116,6 +125,7 @@ async def submit_coffee_chat_proof_button(
     client: AsyncWebClient,
     user: User,
     service: SlackService,
+    point_service: PointService,
 ) -> None:
     """커피챗 인증을 제출합니다."""
     await ack()
@@ -159,6 +169,7 @@ async def submit_coffee_chat_proof_view(
     say: AsyncSay,
     user: User,
     service: SlackService,
+    point_service: PointService,
 ) -> None:
     """커피챗 인증을 처리합니다."""
     await ack()
@@ -197,6 +208,9 @@ async def submit_coffee_chat_proof_view(
         name="white_check_mark",
     )
 
+    # 포인트 지급
+    point_service.grant_if_coffee_chat_verified(user_id=user.user_id, client=client)
+
     user_call_text = ",".join(
         f"<@{selected_user}>"
         for selected_user in selected_users
@@ -226,6 +240,7 @@ async def handle_reaction_added(
     body: ReactionBodyType,
     user: User,
     service: SlackService,
+    point_service: PointService,
 ) -> None:
     """리액션 추가 이벤트를 처리합니다."""
     await ack()
@@ -241,12 +256,21 @@ async def handle_reaction_added(
         item_ts=body["event"]["item"]["ts"],
     )
 
+    # 공지사항을 이모지로 확인하면 포인트를 지급합니다.
+    if (
+        body["event"]["item"]["channel"] == settings.NOTICE_CHANNEL
+        and body["event"]["reaction"] == "white_check_mark"
+    ):
+        point_service.grant_if_notice_emoji_checked(user_id=body["event"]["user"])
+        return
+
 
 async def handle_reaction_removed(
     ack: AsyncAck,
     body: ReactionBodyType,
     user: User,
     service: SlackService,
+    point_service: PointService,
 ):
     """리액션 삭제 이벤트를 처리합니다."""
     await ack()

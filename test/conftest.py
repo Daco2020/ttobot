@@ -1,7 +1,7 @@
 import pytest
 
 from app.slack.repositories import SlackRepository
-from app.slack.services import BackgroundService
+from app.slack.services.background import BackgroundService
 
 
 @pytest.fixture

@@ -19,7 +19,8 @@ from app.slack.events import contents as contents_events
 from app.slack.events import core as core_events
 from app.exception import BotException
 from app.slack.repositories import SlackRepository
-from app.slack.services import SlackService
+from app.slack.services.base import SlackService
+from app.slack.services.point import PointService
 from app.slack.types import MessageBodyType
 
 app = AsyncApp(
@@ -90,6 +91,7 @@ async def dependency_injection_middleware(
     user = repo.get_user(cast(str, user_id))
     if user:
         req.context["service"] = SlackService(repo=repo, user=user)
+        req.context["point_service"] = PointService(repo=repo)
         req.context["user"] = user
         await next()
         return
@@ -191,6 +193,7 @@ async def handle_message(
         )
 
         service = SlackService(repo=repo, user=user)
+        point_service = PointService(repo=repo)
         await community_events.handle_coffee_chat_message(
             ack=ack,
             body=body,
@@ -198,6 +201,7 @@ async def handle_message(
             client=client,
             user=user,
             service=service,
+            point_service=point_service,
         )
         return
 
@@ -230,7 +234,7 @@ app.view("edit_intro_view")(contents_events.edit_intro_view)
 app.view("submit_intro_view")(contents_events.submit_intro_view)
 app.action("contents_modal")(contents_events.contents_modal)
 app.action("bookmark_modal")(contents_events.bookmark_modal)
-app.view("bookmark_view")(contents_events.bookmark_view)
+app.view("bookmark_view")(contents_events.create_bookmark_view)
 app.command("/패스")(contents_events.pass_command)
 app.view("pass_view")(contents_events.pass_view)
 app.command("/검색")(contents_events.search_command)
@@ -238,6 +242,7 @@ app.view("submit_search")(contents_events.submit_search)
 app.action("web_search")(contents_events.web_search)
 app.view("back_to_search_view")(contents_events.back_to_search_view)
 app.command("/북마크")(contents_events.bookmark_command)
+app.action("open_bookmark_page_view")(contents_events.bookmark_page_view)
 app.action("bookmark_overflow_action")(contents_events.open_overflow_action)
 app.action("next_bookmark_page_action")(contents_events.handle_bookmark_page)
 app.action("prev_bookmark_page_action")(contents_events.handle_bookmark_page)

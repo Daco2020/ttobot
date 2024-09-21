@@ -17,10 +17,13 @@ class Settings(BaseSettings):
     DEPOSIT_SHEETS_URL: str
     SECRET_KEY: str
 
+    NOTICE_CHANNEL: str
     SUPPORT_CHANNEL: str
     COFFEE_CHAT_PROOF_CHANNEL: str
     ADMIN_CHANNEL: str
     ADMIN_IDS: list[str]
+
+    POINT_MAP: dict[str, Any]
 
     class Config:
         env_file = ".env"
