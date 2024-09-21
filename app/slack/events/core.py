@@ -350,13 +350,18 @@ async def handle_home_tab(
             blocks=[
                 # 포인트 시스템 섹션
                 HeaderBlock(
-                    text="🍭 내 포인트",
+                    text="🍭 내 글또 포인트",
                 ),
                 SectionBlock(
-                    text=f"현재 *{user.name}* 님의 포인트는 *{user_point_history.total_point} point* 입니다.",
+                    text=f"현재 *{user.name}* 님이 획득한 포인트는 *{user_point_history.total_point} point* 입니다.",
                 ),
-                SectionBlock(
-                    text="다음 글 제출 시 얻을 포인트: *120 point* 입니다.",
+                ContextBlock(
+                    elements=[
+                        TextObject(
+                            type="mrkdwn",
+                            text="다음 글을 제출하면 *120 point* 를 얻을 수 있어요. (콤보 보너스 적용)",
+                        ),
+                    ],
                 ),
                 ActionsBlock(
                     elements=[
@@ -381,7 +386,7 @@ async def handle_home_tab(
                     elements=[
                         TextObject(
                             type="mrkdwn",
-                            text=f"칭찬하고 싶은 멤버가 있나요? 비둘기로 *{user.name}* 님의 마음을 전해보세요.",
+                            text=f"칭찬하고 싶은 멤버가 있나요? 비둘기로 *{user.name}* 님의 마음을 전해보세요. \n *비둘기 전보* 는 하루에 한 번만 보낼 수 있어요. \n *비둘기 전보* 를 보내면 소정의 포인트를 얻을 수 있어요.",
                         ),
                     ],
                 ),
@@ -393,14 +398,14 @@ async def handle_home_tab(
                             value="send_pigeon_message",
                         ),
                         ButtonElement(
-                            text="내가 보낸 비둘기 전보 보기",
+                            text="주고 받은 비둘기 보기",
                             action_id="view_sent_pigeon_messages",
                             value="view_sent_pigeon_messages",
                         ),
                         ButtonElement(
-                            text="내가 받은 비둘기 전보 보기",
-                            action_id="view_recent_pigeon_messages",
-                            value="view_recent_pigeon_messages",
+                            text="누구에게 보내면 좋을까요?",
+                            action_id="send_pigeon_message_guide",
+                            value="send_pigeon_message_guide",
                         ),
                     ],
                 ),
@@ -413,24 +418,29 @@ async def handle_home_tab(
                     elements=[
                         TextObject(
                             type="mrkdwn",
-                            text=f"*{user.name}* 님의 글또 생활을 돕는 기능들을 모아봤어요.",
+                            text=f"*{user.name}* 님이 궁금해할만한 내용들을 모아봤어요.",
                         ),
                     ],
                 ),
                 ActionsBlock(
                     elements=[
                         ButtonElement(
-                            text="내가 제출한 글 내역 보기",
+                            text="내가 제출한 글 보기",
                             action_id="open_submission_history_view",
                             value="open_submission_history_view",
                         ),
                         ButtonElement(
                             text="내가 북마크한 글 보기",
-                            action_id="view_bookmarked_posts",
-                            value="view_bookmarked_posts",
+                            action_id="open_bookmark_page_view",
+                            value="open_bookmark_page_view",
                         ),
                         ButtonElement(
-                            text="현재 남아있는 예치금 보기",
+                            text="내가 참여한 커피챗 보기",
+                            action_id="open_coffee_chat_history_view",
+                            value="open_coffee_chat_history_view",
+                        ),
+                        ButtonElement(
+                            text="남아있는 예치금 보기",
                             action_id="open_deposit_view",
                             value="open_deposit_view",
                         ),
@@ -442,7 +452,7 @@ async def handle_home_tab(
                     ],
                 ),
                 DividerBlock(),
-                # # TODO: 추후 확정 후 추가
+                # # TODO: 추후 논의 후 추가
                 # HeaderBlock(
                 #     text="😻 지금 핫한 소모임 TOP 5",
                 # ),

@@ -23,6 +23,8 @@ class Settings(BaseSettings):
     ADMIN_CHANNEL: str
     ADMIN_IDS: list[str]
 
+    POINT_MAP: dict[str, Any]
+
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"

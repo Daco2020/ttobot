@@ -553,7 +553,7 @@ async def bookmark_modal(
         await client.views_open(trigger_id=body["trigger_id"], view=view)
 
 
-async def bookmark_view(
+async def create_bookmark_view(
     ack: AsyncAck,
     body: ViewBodyType,
     client: AsyncWebClient,
@@ -832,6 +832,50 @@ def _get_keyword(body) -> str:
 async def bookmark_command(
     ack: AsyncAck,
     body: CommandBodyType,
+    say: AsyncSay,
+    client: AsyncWebClient,
+    user: models.User,
+    service: SlackService,
+    point_service: PointService,
+) -> None:
+    """북마크 조회"""
+    await ack()
+
+    bookmarks = service.fetch_bookmarks(user.user_id)
+    content_ids = [bookmark.content_ts for bookmark in bookmarks]
+    contents = service.fetch_contents_by_ids(content_ids)
+    content_matrix = _get_content_metrix(contents)
+
+    view = View(
+        type="modal",
+        title=f"총 {len(contents)} 개의 북마크가 있어요.",
+        blocks=_fetch_bookmark_blocks(content_matrix, bookmarks),
+        callback_id="handle_bookmark_page_view",
+        private_metadata=dict_to_json_str({"page": 1}),
+    )
+
+    if len(content_matrix) > 1:
+        view.blocks.append(
+            ActionsBlock(
+                elements=[
+                    ButtonElement(
+                        text="다음 페이지",
+                        style="primary",
+                        action_id="next_bookmark_page_action",
+                    )
+                ]
+            )
+        )
+
+    await client.views_open(
+        trigger_id=body["trigger_id"],
+        view=view,
+    )
+
+
+async def bookmark_page_view(
+    ack: AsyncAck,
+    body: ActionBodyType,
     say: AsyncSay,
     client: AsyncWebClient,
     user: models.User,

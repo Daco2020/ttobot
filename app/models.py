@@ -363,7 +363,7 @@ class PointHistory(BaseModel):
     giver_user_id: str = ""
     reason: str
     point: int
-    category: PointCategory
+    category: PointCategory | str
     created_at: str = Field(default_factory=tz_now_to_str)
 
     def to_list_for_csv(self) -> list[str]:
