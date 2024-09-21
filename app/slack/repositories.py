@@ -239,3 +239,16 @@ class SlackRepository:
         with open("store/point_histories.csv", "a", newline="", encoding="utf-8") as f:
             writer = csv.writer(f, quoting=csv.QUOTE_ALL)
             writer.writerow(point_history.to_list_for_csv())
+
+    def fetch_point_histories(self, user_id: str) -> list[models.PointHistory]:
+        """포인트 히스토리를 가져옵니다."""
+        with open("store/point_histories.csv") as f:
+            reader = csv.DictReader(f)
+            point_histories = [
+                models.PointHistory(**point_history)  # type: ignore
+                for point_history in reader
+                if point_history["user_id"] == user_id
+            ]
+            return sorted(
+                point_histories, key=lambda point: point.created_at, reverse=True
+            )

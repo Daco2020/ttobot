@@ -1,4 +1,6 @@
-from app.models import PointCategory, PointHistory
+from pydantic import BaseModel
+from app.exception import BotException
+from app.models import PointCategory, PointHistory, User
 from app.slack.repositories import SlackRepository
 from slack_sdk.web.async_client import AsyncWebClient
 
@@ -40,11 +42,29 @@ class PointReasonMap(Enum):
     def category(self):
         return self.value["category"]
 
+
+class UserPointHisrory(BaseModel):
+    user: User
+    point_histories: list[PointHistory]
+    
+    @property
+    def total_point(self) -> int:
+        return sum([point_history.point for point_history in self.point_histories])
+
 class PointService:
     def __init__(self, repo: SlackRepository) -> None:
         self._repo = repo
 
-    def grant_if_post_submitted(self, user_id: str):
+    def get_user_point_history(self, user_id: str) -> UserPointHisrory:
+        """포인트 히스토리를 포함한 유저를 가져옵니다."""
+        user = self._repo.get_user(user_id)
+        if not user:
+            raise BotException("존재하지 않는 유저입니다.")
+        point_histories = self._repo.fetch_point_histories(user_id)
+        return UserPointHisrory(user=user, point_histories=point_histories)
+
+
+    def grant_if_post_submitted(self, user_id: str) -> None:
         """글을 제출했다면 포인트를 지급합니다."""
         point_info = PointReasonMap.글_제출_기본
 
@@ -65,7 +85,7 @@ class PointService:
         # if 글을 3,6,9콤보로 제출한다면: 공개 알림
         # if 코어채널 제출 순위: 공개 알림
 
-    def grant_if_coffee_chat_verified(self, user_id: str, client: AsyncWebClient):
+    def grant_if_coffee_chat_verified(self, user_id: str, client: AsyncWebClient) -> None:
         """
         공개: 커피챗 인증을 한 경우 포인트를 지급합니다.
         공개채널에 알림을 줍니다.
@@ -84,7 +104,7 @@ class PointService:
         # TODO: 추가 예정
         # client.chat_postMessage()
 
-    def grant_if_notice_emoji_checked(self, user_id: str):
+    def grant_if_notice_emoji_checked(self, user_id: str) -> None:
         """공지사항을 확인한 경우 포인트를 지급합니다."""
         point_info = PointReasonMap.공지사항_확인_이모지
 
@@ -97,7 +117,7 @@ class PointService:
             )
         )
 
-    def grant_if_curation_requested(self, user_id: str):
+    def grant_if_curation_requested(self, user_id: str) -> None:
         """큐레이션을 요청한 경우 포인트를 지급합니다."""
         point_info = PointReasonMap.큐레이션_요청
 
@@ -110,7 +130,7 @@ class PointService:
             )
         )
 
-    def grant_if_curation_selected(self, user_id: str, client: AsyncWebClient):
+    def grant_if_curation_selected(self, user_id: str, client: AsyncWebClient) -> None:
         """
         수동: 큐레이션이 선정된 경우 포인트를 지급합니다.
         DM으로 알림을 줍니다.
@@ -150,7 +170,7 @@ class PointService:
         # TODO: 추가 예정
         # client.chat_postMessage()
 
-    def grant_if_introduction_written(self, user_id: str, client: AsyncWebClient):
+    def grant_if_introduction_written(self, user_id: str, client: AsyncWebClient) -> None:
         """
         수동: 자기소개를 작성한 경우 포인트를 지급합니다.
         DM으로 알림을 줍니다.
@@ -170,7 +190,7 @@ class PointService:
         # client.chat_postMessage()
 
     # TODO: 추가 예정
-    # def grant_user_to_user_points(self, user_id: str, target_user_id: str, point: int, reason: str, client: AsyncWebClient):
+    # def grant_user_to_user_points(self, user_id: str, target_user_id: str, point: int, reason: str, client: AsyncWebClient) -> None:
     #     """유저가 다른 유저에게 포인트를 지급합니다."""
     #     self._repo.add_point(
     #         user_id=target_user_id,
