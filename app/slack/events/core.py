@@ -17,6 +17,7 @@ from app.slack.types import (
 from app.store import Store
 
 from slack_sdk.models.blocks import (
+    Block,
     SectionBlock,
     DividerBlock,
     ActionsBlock,
@@ -28,11 +29,14 @@ from slack_sdk.models.blocks import (
     TextObject,
     HeaderBlock,
     ContextBlock,
+    MarkdownTextObject,
 )
 from slack_sdk.models.views import View
 from slack_bolt.async_app import AsyncAck, AsyncSay
 from slack_sdk.web.async_client import AsyncWebClient
 from slack_sdk.errors import SlackApiError
+
+from app.utils import ts_to_dt
 
 
 async def handle_app_mention(
@@ -436,7 +440,7 @@ async def handle_home_tab(
                             value="open_bookmark_page_view",
                         ),
                         ButtonElement(
-                            text="내가 참여한 커피챗 보기",
+                            text="내 커피챗 인증 내역 보기",
                             action_id="open_coffee_chat_history_view",
                             value="open_coffee_chat_history_view",
                         ),
@@ -648,5 +652,51 @@ async def open_paper_airplane_guide_view(
                     text="종이비행기 사용 방법은 추후 업데이트 예정입니다.",
                 ),
             ],
+        ),
+    )
+
+
+async def open_coffee_chat_history_view(
+    ack: AsyncAck,
+    body: ActionBodyType,
+    say: AsyncSay,
+    client: AsyncWebClient,
+    user: User,
+    service: SlackService,
+    point_service: PointService,
+) -> None:
+    """커피챗 히스토리를 조회합니다."""
+    await ack()
+
+    coffee_chat_proofs = service.fetch_coffee_chat_proofs(user_id=user.user_id)
+
+    blocks: list[Block] = []
+    for proof in coffee_chat_proofs:
+        blocks.append(SectionBlock(text=f"*{ts_to_dt(proof.ts).strftime('%Y-%m-%d')}*"))
+        text = proof.text[:100] + " ..." if len(proof.text) >= 100 else proof.text
+        blocks.append(ContextBlock(elements=[MarkdownTextObject(text=text)]))
+
+    await client.views_open(
+        trigger_id=body["trigger_id"],
+        view=View(
+            type="modal",
+            title=f"{user.name}님의 커피챗 내역",
+            close="닫기",
+            blocks=(
+                SectionBlock(
+                    text=f"총 *{len(blocks) // 2}* 개의 커피챗 내역이 있어요.",
+                ),
+                DividerBlock(),
+                *(
+                    blocks[:20]
+                    if blocks
+                    else [SectionBlock(text="커피챗 내역이 없어요.")]
+                ),
+                DividerBlock(),
+                SectionBlock(
+                    text="커피챗 내역은 최근 10개까지만 표시됩니다.",
+                ),
+                # TODO: csv 파일 다운로드 기능 추가
+            ),
         ),
     )

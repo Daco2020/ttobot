@@ -217,14 +217,25 @@ class SlackRepository:
         row = df.iloc[0]
         return models.CoffeeChatProof(**row)
 
-    def fetch_coffee_chat_proofs(self, thread_ts: str) -> list[models.CoffeeChatProof]:
+    def fetch_coffee_chat_proofs(
+        self,
+        *,
+        thread_ts: str | None = None,
+        user_id: str | None = None,
+    ) -> list[models.CoffeeChatProof]:
         """thread_ts로 커피챗 인증을 조회합니다."""
         df = pd.read_csv("store/coffee_chat_proof.csv", dtype=str, na_filter=False)
 
-        df = df[df["thread_ts"] == thread_ts]
+        if user_id:
+            df = df[df["user_id"] == user_id]
+
+        if thread_ts:
+            df = df[df["thread_ts"] == thread_ts]
 
         if df.empty:
             return []
+
+        df = df.sort_values(by="ts", ascending=False)
 
         return [models.CoffeeChatProof(**row) for row in df.to_dict(orient="records")]
 

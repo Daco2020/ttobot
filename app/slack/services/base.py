@@ -269,6 +269,13 @@ class SlackService:
 
         return content
 
+    def fetch_coffee_chat_proofs(
+        self,
+        user_id: str,
+    ) -> list[models.CoffeeChatProof]:
+        """커피챗 인증 내역을 가져옵니다."""
+        return self._repo.fetch_coffee_chat_proofs(user_id=user_id)
+
     def create_coffee_chat_proof(
         self,
         ts: str,

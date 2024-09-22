@@ -390,7 +390,6 @@ class PointCategory(str, Enum):
 class PointHistory(BaseModel):
     id: str = Field(default_factory=generate_unique_id)
     user_id: str
-    giver_user_id: str = ""
     reason: str
     point: int
     category: PointCategory | str
@@ -400,7 +399,6 @@ class PointHistory(BaseModel):
         return [
             self.id,
             self.user_id,
-            self.giver_user_id,
             self.reason,
             str(self.point),
             self.category,
@@ -411,7 +409,6 @@ class PointHistory(BaseModel):
         return [
             self.id,
             self.user_id,
-            self.giver_user_id,
             self.reason,
             str(self.point),
             self.category,

@@ -268,6 +268,7 @@ app.action("open_paper_airplane_history_view")(
     core_events.open_paper_airplane_history_view
 )
 app.action("open_paper_airplane_guide_view")(core_events.open_paper_airplane_guide_view)
+app.action("open_coffee_chat_history_view")(core_events.open_coffee_chat_history_view)
 
 
 event_descriptions = {
@@ -314,4 +315,5 @@ event_descriptions = {
     "send_paper_airplane_message": "종이비행기 메시지 전송",
     "open_paper_airplane_history_view": "종이비행기 내역 조회",
     "open_paper_airplane_guide_view": "종이비행기 가이드 조회",
+    "open_coffee_chat_history_view": "커피챗 내역 조회",
 }
