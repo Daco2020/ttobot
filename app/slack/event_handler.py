@@ -261,6 +261,7 @@ app.event("app_home_opened")(core_events.handle_home_tab)
 app.action("open_deposit_view")(core_events.open_deposit_view)
 app.action("open_submission_history_view")(core_events.open_submission_history_view)
 app.action("open_help_view")(core_events.open_help_view)
+app.action("open_point_history_view")(core_events.open_point_history_view)
 
 
 event_descriptions = {
@@ -302,4 +303,5 @@ event_descriptions = {
     "open_deposit_view": "예치금 조회",
     "open_submission_history_view": "제출내역 조회",
     "open_help_view": "도움말 조회",
+    "open_point_history_view": "포인트 내역 조회",
 }

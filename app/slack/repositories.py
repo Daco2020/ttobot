@@ -252,3 +252,14 @@ class SlackRepository:
             return sorted(
                 point_histories, key=lambda point: point.created_at, reverse=True
             )
+
+    def fetch_channel_users(self, channel_id: str) -> list[models.User]:
+        """채널의 유저를 가져옵니다."""
+        with open("store/users.csv") as f:
+            reader = csv.DictReader(f)
+            users = [
+                models.User(**user)  # type: ignore
+                for user in reader
+                if user["channel_id"] == channel_id
+            ]
+            return users

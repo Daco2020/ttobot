@@ -367,13 +367,13 @@ async def handle_home_tab(
                     elements=[
                         ButtonElement(
                             text="포인트 획득 내역 보기",
-                            action_id="",
-                            value="",
+                            action_id="open_point_history_view",
+                            value="open_point_history_view",
                         ),
                         ButtonElement(
                             text="포인트 획득 방법 알아보기",
-                            action_id="",
-                            value="",
+                            action_id="open_point_guide_view",
+                            value="open_point_guide_view",
                         ),
                     ],
                 ),
@@ -479,6 +479,42 @@ async def handle_home_tab(
                 # SectionBlock(
                 #     text="<#C05J87UPC3F> 이 채널은 어쩌고 저쩌고 이런 소모임입니다.",
                 # ),
+            ],
+        ),
+    )
+
+
+async def open_point_history_view(
+    ack: AsyncAck,
+    body: ActionBodyType,
+    say: AsyncSay,
+    client: AsyncWebClient,
+    user: User,
+    service: SlackService,
+    point_service: PointService,
+) -> None:
+    """포인트 히스토리를 조회합니다."""
+    await ack()
+
+    user_point_history = point_service.get_user_point_history(user_id=user.user_id)
+
+    await client.views_open(
+        trigger_id=body["trigger_id"],
+        view=View(
+            type="modal",
+            title=f"{user_point_history.user.name}님의 포인트 획득 내역",
+            close="닫기",
+            blocks=[
+                SectionBlock(
+                    text=f"총 *{user_point_history.total_point} point* 를 획득하셨어요.",
+                ),
+                DividerBlock(),
+                SectionBlock(text=user_point_history.point_history_text),
+                DividerBlock(),
+                SectionBlock(
+                    text="포인트 획득 내역은 최근 20개까지만 표시됩니다.",
+                ),
+                # TODO: csv 파일 다운로드 기능 추가
             ],
         ),
     )

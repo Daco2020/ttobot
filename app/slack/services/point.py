@@ -31,16 +31,19 @@ class PointMap(Enum):
 
 # fmt: on
 
+    def set_point(self, point: int) -> None:
+        self.value["point"] = point
+
     @property
-    def point(self):
+    def point(self) -> int:
         return self.value["point"]
 
     @property
-    def reason(self):
+    def reason(self) -> str:
         return self.value["reason"]
 
     @property
-    def category(self):
+    def category(self) -> str:
         return self.value["category"]
 
 
@@ -51,6 +54,16 @@ class UserPointHisrory(BaseModel):
     @property
     def total_point(self) -> int:
         return sum([point_history.point for point_history in self.point_histories])
+
+
+    @property
+    def point_history_text(self) -> str:
+        text = ""
+        for point_history in self.point_histories[:20]:
+            text += f"[{point_history.created_at}] - *{point_history.point}점* :: {point_history.reason}\n"
+        return text
+
+
 
 class PointService:
     def __init__(self, repo: SlackRepository) -> None:
@@ -65,10 +78,7 @@ class PointService:
         return UserPointHisrory(user=user, point_histories=point_histories)
 
 
-    def grant_if_post_submitted(self, user_id: str) -> None:
-        """글을 제출했다면 포인트를 지급합니다."""
-        point_info = PointMap.글_제출_기본
-
+    def add_point_history(self, user_id: str, point_info: PointMap) -> None:
         point_history=PointHistory(
             user_id=user_id,
             reason=point_info.reason,
@@ -78,13 +88,64 @@ class PointService:
         self._repo.add_point(point_history=point_history)
         store.point_history_upload_queue.append(point_history.to_list_for_sheet())
 
-        # user = self._repo.get_user(user_id)
 
-        # TODO: 추가 예정
-        # if 글을 추가로 제출한다면:
-        # if 글을 콤보로 제출한다면: 공개 알림
-        # if 글을 3,6,9콤보로 제출한다면: 공개 알림
-        # if 코어채널 제출 순위: 공개 알림
+    def grant_if_post_submitted(self, user_id: str) -> None:
+        """글을 제출했다면 포인트를 지급합니다."""
+        user = self._repo.get_user(user_id)
+
+        if not user:
+            raise BotException("유저 정보가 없어 글 제출 포인트를 지급할 수 없습니다.")
+
+        # 추가 지급 1. 글을 이미 제출했다면 추가 포인트를 지급합니다. 공개 알림.
+        if user.is_submit:
+            point_info = PointMap.글_제출_추가
+            self.add_point_history(user_id, point_info)
+            # TODO: 공개 알림
+        else: 
+            # 글을 처음 제출했다면 기본 포인트를 지급합니다.
+            point_info = PointMap.글_제출_기본
+            self.add_point_history(user_id, point_info)
+        
+        # 추가 지급 2. 글을 연속으로 제출한다면 추가 포인트를 지급합니다. 공개 알림.
+        continuous_submit_count = user.get_continuous_submit_count()
+        if continuous_submit_count > 0:
+            if continuous_submit_count == 9:
+                point_info = PointMap.글_제출_9콤보_보너스
+            elif continuous_submit_count == 6:
+                point_info = PointMap.글_제출_6콤보_보너스
+            elif continuous_submit_count == 3:
+                point_info = PointMap.글_제출_3콤보_보너스
+            else:
+                # 연속 제출 횟수에 따라 누적 포인트를 지급합니다.
+                point_info = PointMap.글_제출_콤보
+                combo_point = point_info.point * continuous_submit_count
+                point_info.set_point(combo_point)
+
+            self.add_point_history(user_id, point_info)
+            # TODO: 공개 알림
+
+
+        # 추가 지급 3. 코어채널 제출 순위에 따라 추가 포인트를 지급합니다. 공개 알림.
+        rank_map = {}
+        channel_users = self._repo.fetch_channel_users(user.channel_id)
+        for channel_user in channel_users:
+            if channel_user.is_submit is True:
+                content = channel_user.recent_content
+                rank_map[channel_user.user_id] = content.ts
+        
+        rank_user_ids = sorted(rank_map, key=lambda x: rank_map[x], reverse=True)[:3]
+        if user.user_id in rank_user_ids:
+            rank = rank_user_ids.index(user.user_id) + 1
+            if rank == 1:
+                point_info = PointMap.글_제출_코어채널_1등
+            elif rank == 2:
+                point_info = PointMap.글_제출_코어채널_2등
+            else:
+                point_info = PointMap.글_제출_코어채널_3등
+
+            self.add_point_history(user_id, point_info)
+            # TODO: 공개 알림
+
 
     def grant_if_coffee_chat_verified(self, user_id: str, client: AsyncWebClient) -> None:
         """
@@ -92,15 +153,7 @@ class PointService:
         공개채널에 알림을 줍니다.
         """
         point_info = PointMap.커피챗_인증
-
-        point_history=PointHistory(
-            user_id=user_id,
-            reason=point_info.reason,
-            point=point_info.point,
-            category=point_info.category,
-        )
-        self._repo.add_point(point_history=point_history)
-        store.point_history_upload_queue.append(point_history.to_list_for_sheet())
+        self.add_point_history(user_id, point_info)
 
         # TODO: 추가 예정
         # client.chat_postMessage()
@@ -108,29 +161,13 @@ class PointService:
     def grant_if_notice_emoji_checked(self, user_id: str) -> None:
         """공지사항을 확인한 경우 포인트를 지급합니다."""
         point_info = PointMap.공지사항_확인_이모지
-
-        point_history=PointHistory(
-            user_id=user_id,
-            reason=point_info.reason,
-            point=point_info.point,
-            category=point_info.category,
-        )
-        self._repo.add_point(point_history=point_history)
-        store.point_history_upload_queue.append(point_history.to_list_for_sheet())
+        self.add_point_history(user_id, point_info)
 
 
     def grant_if_curation_requested(self, user_id: str) -> None:
         """큐레이션을 요청한 경우 포인트를 지급합니다."""
         point_info = PointMap.큐레이션_요청
-
-        point_history=PointHistory(
-            user_id=user_id,
-            reason=point_info.reason,
-            point=point_info.point,
-            category=point_info.category,
-        )
-        self._repo.add_point(point_history=point_history)
-        store.point_history_upload_queue.append(point_history.to_list_for_sheet())
+        self.add_point_history(user_id, point_info)
 
     def grant_if_curation_selected(self, user_id: str, client: AsyncWebClient) -> None:
         """
@@ -138,15 +175,7 @@ class PointService:
         DM으로 알림을 줍니다.
         """
         point_info = PointMap.큐레이션_선정
-
-        point_history=PointHistory(
-            user_id=user_id,
-            reason=point_info.reason,
-            point=point_info.point,
-            category=point_info.category,
-        )
-        self._repo.add_point(point_history=point_history)
-        store.point_history_upload_queue.append(point_history.to_list_for_sheet())
+        self.add_point_history(user_id, point_info)
 
         # TODO: 추가 예정
         # client.chat_postMessage()
@@ -159,15 +188,7 @@ class PointService:
         DM으로 알림을 줍니다.
         """
         point_info = PointMap.빌리지_반상회_참여
-
-        point_history=PointHistory(
-            user_id=user_id,
-            reason=point_info.reason,
-            point=point_info.point,
-            category=point_info.category,
-        )
-        self._repo.add_point(point_history=point_history)
-        store.point_history_upload_queue.append(point_history.to_list_for_sheet())
+        self.add_point_history(user_id, point_info)
 
         # TODO: 추가 예정
         # client.chat_postMessage()
@@ -178,29 +199,7 @@ class PointService:
         DM으로 알림을 줍니다.
         """
         point_info = PointMap.자기소개_작성
-
-        point_history=PointHistory(
-            user_id=user_id,
-            reason=point_info.reason,
-            point=point_info.point,
-            category=point_info.category,
-        )
-        self._repo.add_point(point_history=point_history)
-        store.point_history_upload_queue.append(point_history.to_list_for_sheet())
+        self.add_point_history(user_id, point_info)
 
         # TODO: 추가 예정
         # client.chat_postMessage()
-
-    # TODO: 추가 예정
-    # def grant_user_to_user_points(self, user_id: str, target_user_id: str, point: int, reason: str, client: AsyncWebClient) -> None:
-    #     """유저가 다른 유저에게 포인트를 지급합니다."""
-        # point_history=PointHistory(
-        #     user_id=user_id,
-        #     reason=point_info.reason,
-        #     point=point_info.point,
-        #     category=point_info.category,
-        # )
-        # self._repo.add_point(point_history=point_history)
-        # store.point_history_upload_queue.append(point_history.to_list_for_sheet())
-
-    #     client.chat_postMessage()
