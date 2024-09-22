@@ -21,6 +21,7 @@ from slack_sdk.models.blocks import (
     DividerBlock,
     ActionsBlock,
     ButtonElement,
+    PlainTextInputElement,
     ChannelMultiSelectElement,
     UserSelectElement,
     InputBlock,
@@ -378,34 +379,34 @@ async def handle_home_tab(
                     ],
                 ),
                 DividerBlock(),
-                # 비둘기 전보 섹션
+                # 종이비행기 섹션
                 HeaderBlock(
-                    text="📬 비둘기 전보",
+                    text="💌 종이비행기 보내기",
                 ),
                 ContextBlock(
                     elements=[
                         TextObject(
                             type="mrkdwn",
-                            text=f"칭찬하고 싶은 멤버가 있나요? 비둘기로 *{user.name}* 님의 마음을 전해보세요. \n *비둘기 전보* 는 하루에 한 번만 보낼 수 있어요. \n *비둘기 전보* 를 보내면 소정의 포인트를 얻을 수 있어요.",
+                            text="감사한 마음을 전하고 싶은 멤버가 있나요? 종이비행기로 따뜻한 메시지를 전해주세요!\n*종이비행기* 는 하루에 한 번만 보낼 수 있어요.",
                         ),
                     ],
                 ),
                 ActionsBlock(
                     elements=[
                         ButtonElement(
-                            text="지금 바로 비둘기 보내기",
-                            action_id="send_pigeon_message",
-                            value="send_pigeon_message",
+                            text="종이비행기 보내기",
+                            action_id="send_paper_airplane_message",
+                            value="send_paper_airplane_message",
                         ),
                         ButtonElement(
-                            text="주고 받은 비둘기 보기",
-                            action_id="view_sent_pigeon_messages",
-                            value="view_sent_pigeon_messages",
+                            text="주고받은 종이비행기 보기",
+                            action_id="open_paper_airplane_history_view",
+                            value="open_paper_airplane_history_view",
                         ),
                         ButtonElement(
                             text="누구에게 보내면 좋을까요?",
-                            action_id="send_pigeon_message_guide",
-                            value="send_pigeon_message_guide",
+                            action_id="open_paper_airplane_guide_view",
+                            value="open_paper_airplane_guide_view",
                         ),
                     ],
                 ),
@@ -515,6 +516,137 @@ async def open_point_history_view(
                     text="포인트 획득 내역은 최근 20개까지만 표시됩니다.",
                 ),
                 # TODO: csv 파일 다운로드 기능 추가
+            ],
+        ),
+    )
+
+
+async def open_point_guide_view(
+    ack: AsyncAck,
+    body: ActionBodyType,
+    say: AsyncSay,
+    client: AsyncWebClient,
+    user: User,
+    service: SlackService,
+    point_service: PointService,
+) -> None:
+    """포인트 획득 방법을 조회합니다."""
+    await ack()
+
+    await client.views_open(
+        trigger_id=body["trigger_id"],
+        view=View(
+            type="modal",
+            title="포인트 획득 방법",
+            close="닫기",
+            blocks=[
+                SectionBlock(
+                    text="포인트는 다음과 같은 방법으로 획득할 수 있어요.",
+                ),
+                SectionBlock(
+                    text="1. 글 제출하기\n"
+                    "2. 추가 글 제출하기(동일 회차)\n"
+                    "3. 글 제출 콤보(패스를 해도 콤보는 이어집니다)\n"
+                    "4. 커피챗 참여 인증하기\n"
+                    "5. 공지사항 확인하기(공지확인 이모지를 남겨주세요) \n"
+                    "6. 큐레이션 요청하기(글 제출 시 선택할 수 있어요)\n"
+                    "7. 큐레이션 선정되기\n"
+                    "8. 빌리지 반상회 참여하기\n"
+                    "9. 자기소개 작성하기",
+                ),
+            ],
+        ),
+    )
+
+
+async def send_paper_airplane_message(
+    ack: AsyncAck,
+    body: ActionBodyType,
+    say: AsyncSay,
+    client: AsyncWebClient,
+    user: User,
+    service: SlackService,
+    point_service: PointService,
+) -> None:
+    """종이비행기 메시지를 전송합니다."""
+    await ack()
+
+    # 종이비행기 메시지 전송
+    await client.views_open(
+        trigger_id=body["trigger_id"],
+        view=View(
+            type="modal",
+            title="종이비행기 보내기",
+            callback_id="send_paper_airplane_message_view",
+            close="닫기",
+            submit="보내기",
+            blocks=[
+                SectionBlock(
+                    text="종이비행기로 전하고 싶은 마음을 적어주세요.",
+                ),
+                InputBlock(
+                    block_id="paper_airplane_message",
+                    label="메시지",
+                    element=PlainTextInputElement(
+                        action_id="paper_airplane_message",
+                        placeholder="종이비행기로 전할 마음을 적어주세요.",
+                        multiline=True,
+                    ),
+                ),
+            ],
+        ),
+    )
+
+
+async def open_paper_airplane_history_view(
+    ack: AsyncAck,
+    body: ActionBodyType,
+    say: AsyncSay,
+    client: AsyncWebClient,
+    user: User,
+    service: SlackService,
+    point_service: PointService,
+) -> None:
+    """종이비행기 히스토리를 조회합니다."""
+    await ack()
+
+    await client.views_open(
+        trigger_id=body["trigger_id"],
+        view=View(
+            type="modal",
+            title="종이비행기 히스토리",
+            close="닫기",
+            blocks=[
+                SectionBlock(
+                    text="종이비행기 히스토리는 추후 업데이트 예정입니다.",
+                ),
+            ],
+        ),
+    )
+
+
+async def open_paper_airplane_guide_view(
+    ack: AsyncAck,
+    body: ActionBodyType,
+    say: AsyncSay,
+    client: AsyncWebClient,
+    user: User,
+    service: SlackService,
+    point_service: PointService,
+) -> None:
+    """종이비행기 사용 방법을 조회합니다."""
+    await ack()
+
+    await client.views_open(
+        trigger_id=body["trigger_id"],
+        view=View(
+            type="modal",
+            title="종이비행기 사용 방법",
+            close="닫기",
+            blocks=[
+                SectionBlock(
+                    text="종이비행기 사용 방법은 추후 업데이트 예정입니다.",
+                ),
             ],
         ),
     )
