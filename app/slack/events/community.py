@@ -23,8 +23,6 @@ from slack_sdk.models.blocks import (
 from app.config import settings
 from app.utils import dict_to_json_str, json_str_to_dict
 
-# TODO: 커피 챗 인증 횟수 확인 방법 강구. 앱 홈 화면에 표시할 수 있도록?
-
 
 async def handle_coffee_chat_message(
     ack: AsyncAck,

@@ -344,6 +344,17 @@ class CoffeeChatProof(StoreModel):
             self.selected_user_ids,
         ]
 
+    @classmethod
+    def fieldnames(self) -> list[str]:
+        return [
+            "ts",
+            "thread_ts",
+            "user_id",
+            "text",
+            "image_urls",
+            "selected_user_ids",
+        ]
+
 
 class Reaction(StoreModel):
     type: str
@@ -413,4 +424,15 @@ class PointHistory(BaseModel):
             str(self.point),
             self.category,
             self.created_at,
+        ]
+
+    @classmethod
+    def fieldnames(self) -> list[str]:
+        return [
+            "id",
+            "user_id",
+            "reason",
+            "point",
+            "category",
+            "created_at",
         ]

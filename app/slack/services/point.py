@@ -7,7 +7,6 @@ from app.config import settings
 from app import store
 from enum import Enum
 
-# TODO: 주고 받기, 피드백 등은 구체화 후 추가 예정
 # 동기부여와 자극을 주는 포인트는 공개 채널에 알림을 준다.
 # 수동으로 받는 포인트는 디엠 으로 알림을 준다.
 
@@ -47,7 +46,7 @@ class PointMap(Enum):
         return self.value["category"]
 
 
-class UserPointHisrory(BaseModel):
+class UserPoint(BaseModel):
     user: User
     point_histories: list[PointHistory]
     
@@ -69,13 +68,13 @@ class PointService:
     def __init__(self, repo: SlackRepository) -> None:
         self._repo = repo
 
-    def get_user_point_history(self, user_id: str) -> UserPointHisrory:
+    def get_user_point(self, user_id: str) -> UserPoint:
         """포인트 히스토리를 포함한 유저를 가져옵니다."""
         user = self._repo.get_user(user_id)
         if not user:
             raise BotException("존재하지 않는 유저입니다.")
         point_histories = self._repo.fetch_point_histories(user_id)
-        return UserPointHisrory(user=user, point_histories=point_histories)
+        return UserPoint(user=user, point_histories=point_histories)
 
 
     def add_point_history(self, user_id: str, point_info: PointMap) -> None:

@@ -1,9 +1,11 @@
+import csv
+import os
 import tenacity
 
 from app.client import SpreadSheetClient
 from app.config import settings
 from app.constants import HELP_TEXT
-from app.models import User
+from app.models import CoffeeChatProof, PointHistory, User
 from app.slack.services.base import SlackService
 from app.slack.services.point import PointService
 from app.slack.types import (
@@ -345,7 +347,7 @@ async def handle_home_tab(
     """홈 탭을 열었을 때의 이벤트를 처리합니다."""
 
     # 포인트 히스토리를 포함한 유저를 가져온다.
-    user_point_history = point_service.get_user_point_history(user_id=user.user_id)
+    user_point_history = point_service.get_user_point(user_id=user.user_id)
 
     # 홈 탭 메시지 구성
     await client.views_publish(
@@ -385,7 +387,7 @@ async def handle_home_tab(
                 DividerBlock(),
                 # 종이비행기 섹션
                 HeaderBlock(
-                    text="💌 종이비행기 보내기",
+                    text="📭 종이비행기 보내기",
                 ),
                 ContextBlock(
                     elements=[
@@ -457,33 +459,6 @@ async def handle_home_tab(
                     ],
                 ),
                 DividerBlock(),
-                # # TODO: 추후 논의 후 추가
-                # HeaderBlock(
-                #     text="😻 지금 핫한 소모임 TOP 5",
-                # ),
-                # ContextBlock(
-                #     elements=[
-                #         TextObject(
-                #             type="mrkdwn",
-                #             text="글또에서 추천하는 인기 소모임을 소개합니다. 매주 활동량을 기반으로 업데이트됩니다.",
-                #         ),
-                #     ],
-                # ),
-                # SectionBlock(
-                #     text="<#C05J87UPC3F> 이 채널은 어쩌고 저쩌고 이런 소모임입니다.",
-                # ),
-                # SectionBlock(
-                #     text="<#C05J87UPC3F> 이 채널은 어쩌고 저쩌고 이런 소모임입니다.",
-                # ),
-                # SectionBlock(
-                #     text="<#C05J87UPC3F> 이 채널은 어쩌고 저쩌고 이런 소모임입니다.",
-                # ),
-                # SectionBlock(
-                #     text="<#C05J87UPC3F> 이 채널은 어쩌고 저쩌고 이런 소모임입니다.",
-                # ),
-                # SectionBlock(
-                #     text="<#C05J87UPC3F> 이 채널은 어쩌고 저쩌고 이런 소모임입니다.",
-                # ),
             ],
         ),
     )
@@ -501,7 +476,7 @@ async def open_point_history_view(
     """포인트 히스토리를 조회합니다."""
     await ack()
 
-    user_point_history = point_service.get_user_point_history(user_id=user.user_id)
+    user_point_history = point_service.get_user_point(user_id=user.user_id)
 
     await client.views_open(
         trigger_id=body["trigger_id"],
@@ -517,12 +492,69 @@ async def open_point_history_view(
                 SectionBlock(text=user_point_history.point_history_text),
                 DividerBlock(),
                 SectionBlock(
-                    text="포인트 획득 내역은 최근 20개까지만 표시됩니다.",
+                    text="포인트 획득 내역은 최근 20개까지만 표시됩니다.\n전체 내역을 확인하려면 아래 버튼을 눌러주세요.",
                 ),
-                # TODO: csv 파일 다운로드 기능 추가
+                ActionsBlock(
+                    elements=[
+                        ButtonElement(
+                            text="전체 내역 다운로드",
+                            action_id="download_point_history",
+                            value="download_point_history",
+                            style="primary",
+                        ),
+                    ],
+                ),
             ],
         ),
     )
+
+
+async def download_point_history(
+    ack: AsyncAck,
+    body: ActionBodyType,
+    say: AsyncSay,
+    client: AsyncWebClient,
+    user: User,
+    service: SlackService,
+    point_service: PointService,
+) -> None:
+    """포인트 히스토리를 CSV 파일로 다운로드합니다."""
+    await ack()
+
+    response = await client.conversations_open(users=user.user_id)
+    dm_channel_id = response["channel"]["id"]
+
+    user_point = point_service.get_user_point(user_id=user.user_id)
+    if not user_point.point_histories:
+        await client.chat_postMessage(
+            channel=dm_channel_id, text="포인트 획득 내역이 없습니다."
+        )
+        return None
+
+    # 사용자의 제출내역을 CSV 파일로 임시 저장 후 전송
+    temp_dir = "temp/point_histories"
+    if not os.path.exists(temp_dir):
+        os.makedirs(temp_dir)
+
+    temp_file_path = f"{temp_dir}/{user.user_id}.csv"
+    with open(temp_file_path, "w", newline="") as csvfile:
+        writer = csv.DictWriter(
+            csvfile,
+            PointHistory.fieldnames(),
+            quoting=csv.QUOTE_ALL,
+        )
+        writer.writeheader()
+        writer.writerows([each.model_dump() for each in user_point.point_histories])
+
+    await client.files_upload_v2(
+        # channel=dm_channel_id,
+        channel=dm_channel_id,
+        file=temp_file_path,
+        initial_comment=f"<@{user.user_id}> 님의 제출내역 입니다!",
+    )
+
+    # 임시로 생성한 CSV 파일을 삭제
+    os.remove(temp_file_path)
 
 
 async def open_point_guide_view(
@@ -674,7 +706,7 @@ async def open_coffee_chat_history_view(
     for proof in coffee_chat_proofs:
         blocks.append(SectionBlock(text=f"*{ts_to_dt(proof.ts).strftime('%Y-%m-%d')}*"))
         text = proof.text[:100] + " ..." if len(proof.text) >= 100 else proof.text
-        blocks.append(ContextBlock(elements=[MarkdownTextObject(text=text)]))
+        blocks.append(ContextBlock(elements=[MarkdownTextObject(text=f"> {text}")]))
 
     await client.views_open(
         trigger_id=body["trigger_id"],
@@ -684,7 +716,7 @@ async def open_coffee_chat_history_view(
             close="닫기",
             blocks=(
                 SectionBlock(
-                    text=f"총 *{len(blocks) // 2}* 개의 커피챗 내역이 있어요.",
+                    text=f"총 *{len(coffee_chat_proofs)}* 개의 커피챗 내역이 있어요.",
                 ),
                 DividerBlock(),
                 *(
@@ -694,9 +726,66 @@ async def open_coffee_chat_history_view(
                 ),
                 DividerBlock(),
                 SectionBlock(
-                    text="커피챗 내역은 최근 10개까지만 표시됩니다.",
+                    text="커피챗 내역은 최근 10개까지만 표시됩니다.\n전체 내역을 확인하려면 아래 버튼을 눌러주세요.",
                 ),
-                # TODO: csv 파일 다운로드 기능 추가
+                ActionsBlock(
+                    elements=[
+                        ButtonElement(
+                            text="전체 내역 다운로드",
+                            action_id="download_coffee_chat_history",
+                            value="download_coffee_chat_history",
+                            style="primary",
+                        ),
+                    ],
+                ),
             ),
         ),
     )
+
+
+async def download_coffee_chat_history(
+    ack: AsyncAck,
+    body: ActionBodyType,
+    say: AsyncSay,
+    client: AsyncWebClient,
+    user: User,
+    service: SlackService,
+    point_service: PointService,
+) -> None:
+    """커피챗 히스토리를 CSV 파일로 다운로드합니다."""
+    await ack()
+
+    response = await client.conversations_open(users=user.user_id)
+    dm_channel_id = response["channel"]["id"]
+
+    proofs = service.fetch_coffee_chat_proofs(user_id=user.user_id)
+    if not proofs:
+        await client.chat_postMessage(
+            channel=dm_channel_id, text="커피챗 인증 내역이 없습니다."
+        )
+        return None
+
+    # 사용자의 제출내역을 CSV 파일로 임시 저장 후 전송
+    temp_dir = "temp/coffee_chat_proofs"
+    if not os.path.exists(temp_dir):
+        os.makedirs(temp_dir)
+
+    temp_file_path = f"{temp_dir}/{user.user_id}.csv"
+    with open(temp_file_path, "w", newline="") as csvfile:
+        writer = csv.DictWriter(
+            csvfile,
+            CoffeeChatProof.fieldnames(),
+            quoting=csv.QUOTE_ALL,
+        )
+        writer.writeheader()
+        writer.writerows([each.model_dump() for each in proofs])
+
+    await client.files_upload_v2(
+        # channel=dm_channel_id,
+        channel=dm_channel_id,
+        file=temp_file_path,
+        initial_comment=f"<@{user.user_id}> 님의 제출내역 입니다!",
+    )
+
+    # 임시로 생성한 CSV 파일을 삭제
+    os.remove(temp_file_path)

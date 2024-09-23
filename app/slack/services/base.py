@@ -62,7 +62,7 @@ class SlackService:
             description=self._get_description(view),
             type="submit",
             tags=self._get_tags(view),
-            # curation_flag=self._get_curation_flag(view), # TODO: 방학기간에는 제거, 10기에 활성화 필요
+            curation_flag=self._get_curation_flag(view),
         )
         return content
 
