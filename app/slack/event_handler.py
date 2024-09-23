@@ -96,6 +96,11 @@ async def dependency_injection_middleware(
         await next()
         return
 
+    if event == "channel_created":
+        # 채널 생성 이벤트는 사용자 아이디가 없을 수 있습니다.
+        await next()
+        return
+
     if user_id is None:
         # TODO: 추후 에러 코드 정의할 것
         raise BotException("사용자 아이디가 없습니다.")
@@ -223,7 +228,7 @@ app.view("submit_coffee_chat_proof_view")(
 )
 app.event("reaction_added")(community_events.handle_reaction_added)
 app.event("reaction_removed")(community_events.handle_reaction_removed)
-
+app.event("channel_created")(core_events.handle_channel_created)
 
 # contents
 app.command("/제출")(contents_events.submit_command)

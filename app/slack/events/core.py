@@ -11,6 +11,7 @@ from app.slack.services.point import PointService
 from app.slack.types import (
     ActionBodyType,
     AppMentionBodyType,
+    ChannelCreatedBodyType,
     CommandBodyType,
     HomeTabEventType,
     ViewBodyType,
@@ -797,3 +798,15 @@ async def download_coffee_chat_history(
 
     # 임시로 생성한 CSV 파일을 삭제
     os.remove(temp_file_path)
+
+
+async def handle_channel_created(
+    ack: AsyncAck,
+    body: ChannelCreatedBodyType,
+    client: AsyncWebClient,
+):
+    """공개 채널 생성 이벤트를 처리합니다."""
+    await ack()
+
+    channel_id = body["event"]["channel"]["id"]
+    await client.conversations_join(channel=channel_id)

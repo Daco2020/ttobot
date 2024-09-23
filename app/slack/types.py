@@ -252,3 +252,51 @@ class HomeTabEventType(TypedDict):
     tab: str  # home
     view: ViewType
     event_ts: str
+
+
+class ChannelCreatedChannelType(TypedDict):
+    id: str
+    name: str
+    is_channel: bool
+    is_group: bool
+    is_im: bool
+    is_mpim: bool
+    is_private: bool
+    created: int
+    is_archived: bool
+    is_general: bool
+    unlinked: int
+    name_normalized: str
+    is_shared: bool
+    is_frozen: bool
+    is_org_shared: bool
+    is_pending_ext_shared: bool
+    pending_shared: list
+    context_team_id: str
+    updated: int
+    parent_conversation: None
+    creator: str
+    is_ext_shared: bool
+    shared_team_ids: list[str]
+    pending_connected_team_ids: list
+    topic: dict[str, str]
+    purpose: dict[str, str]
+    previous_names: list[str]
+
+
+class ChannelCreatedEventType(TypedDict):
+    type: str
+    channel: ChannelCreatedChannelType
+    event_ts: str
+
+
+class ChannelCreatedBodyType(TypedDict):
+    token: str
+    team_id: str
+    api_app_id: str
+    event: ChannelCreatedEventType
+    type: str
+    event_id: str
+    event_time: int
+    authorizations: list[Authorization]
+    is_ext_shared_channel: bool
