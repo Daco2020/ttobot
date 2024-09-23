@@ -536,7 +536,7 @@ async def download_point_history(
     if not os.path.exists(temp_dir):
         os.makedirs(temp_dir)
 
-    temp_file_path = f"{temp_dir}/{user.user_id}.csv"
+    temp_file_path = f"{temp_dir}/{user.name}-포인트-획득-내역.csv"
     with open(temp_file_path, "w", newline="") as csvfile:
         writer = csv.DictWriter(
             csvfile,
@@ -546,11 +546,15 @@ async def download_point_history(
         writer.writeheader()
         writer.writerows([each.model_dump() for each in user_point.point_histories])
 
-    await client.files_upload_v2(
-        # channel=dm_channel_id,
+    res = await client.files_upload_v2(
         channel=dm_channel_id,
         file=temp_file_path,
-        initial_comment=f"<@{user.user_id}> 님의 제출내역 입니다!",
+        initial_comment=f"<@{user.user_id}> 님의 포인트 획득 내역 입니다.",
+    )
+
+    await client.chat_postMessage(
+        channel=dm_channel_id,
+        text=f"<@{user.user_id}> 님의 <{res['file']['permalink']}|포인트 획득 내역> 입니다.",
     )
 
     # 임시로 생성한 CSV 파일을 삭제
@@ -770,7 +774,7 @@ async def download_coffee_chat_history(
     if not os.path.exists(temp_dir):
         os.makedirs(temp_dir)
 
-    temp_file_path = f"{temp_dir}/{user.user_id}.csv"
+    temp_file_path = f"{temp_dir}/{user.name}-커피챗-인증-내역.csv"
     with open(temp_file_path, "w", newline="") as csvfile:
         writer = csv.DictWriter(
             csvfile,
@@ -780,11 +784,15 @@ async def download_coffee_chat_history(
         writer.writeheader()
         writer.writerows([each.model_dump() for each in proofs])
 
-    await client.files_upload_v2(
-        # channel=dm_channel_id,
+    res = await client.files_upload_v2(
         channel=dm_channel_id,
         file=temp_file_path,
-        initial_comment=f"<@{user.user_id}> 님의 제출내역 입니다!",
+        initial_comment=f"<@{user.user_id}> 님의 커피챗 인증 내역 입니다.",
+    )
+
+    await client.chat_postMessage(
+        channel=dm_channel_id,
+        text=f"<@{user.user_id}> 님의 <{res['file']['permalink']}|커피챗 인증 내역> 입니다.",
     )
 
     # 임시로 생성한 CSV 파일을 삭제
