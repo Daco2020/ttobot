@@ -11,6 +11,7 @@ user_update_queue: list[list[str]] = []
 coffee_chat_proof_upload_queue: list[list[str]] = []
 reaction_upload_queue: list[list[str]] = []
 point_history_upload_queue: list[list[str]] = []
+paper_airplane_upload_queue: list[list[str]] = []
 
 
 class Store:
@@ -28,6 +29,7 @@ class Store:
         )
         self.write("reactions", values=self._client.get_values("reactions"))
         self.write("point_histories", values=self._client.get_values("point_histories"))
+        self.write("paper_airplane", values=self._client.get_values("paper_airplane"))
 
     def write(self, table_name: str, values: list[list[str]]) -> None:
         with open(f"store/{table_name}.csv", "w", newline="", encoding="utf-8") as f:
@@ -135,6 +137,18 @@ class Store:
                 body={"point_history_upload_queue": point_history_upload_queue},
             )
             point_history_upload_queue = []
+
+        global paper_airplane_upload_queue
+        if paper_airplane_upload_queue:
+            self._client.upload("paper_airplane", paper_airplane_upload_queue)
+            log_event(
+                actor="system",
+                event="uploaded_paper_airplane",
+                type="community",
+                description=f"{len(paper_airplane_upload_queue)}개 종이비행기 업로드",
+                body={"paper_airplane_upload_queue": paper_airplane_upload_queue},
+            )
+            paper_airplane_upload_queue = []
 
     def backup(self, table_name: str) -> None:
         values = self.read(table_name)
