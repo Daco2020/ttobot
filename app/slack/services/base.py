@@ -62,7 +62,7 @@ class SlackService:
             description=self._get_description(view),
             type="submit",
             tags=self._get_tags(view),
-            # curation_flag=self._get_curation_flag(view), # TODO: 방학기간에는 제거, 10기에 활성화 필요
+            curation_flag=self._get_curation_flag(view),
         )
         return content
 
@@ -268,6 +268,13 @@ class SlackService:
             raise BotException("해당 콘텐츠 정보가 없어요.")
 
         return content
+
+    def fetch_coffee_chat_proofs(
+        self,
+        user_id: str,
+    ) -> list[models.CoffeeChatProof]:
+        """커피챗 인증 내역을 가져옵니다."""
+        return self._repo.fetch_coffee_chat_proofs(user_id=user_id)
 
     def create_coffee_chat_proof(
         self,

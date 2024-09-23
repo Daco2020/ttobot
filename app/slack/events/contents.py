@@ -1,4 +1,3 @@
-import asyncio
 import re
 import requests
 
@@ -54,86 +53,6 @@ async def submit_command(
     channel_id = body["channel_id"]
     user.check_channel(channel_id)
 
-    # await client.views_open(
-    #     trigger_id=body["trigger_id"],
-    #     view=View(
-    #         type="modal",
-    #         private_metadata=channel_id,
-    #         callback_id=callback_id,
-    #         title="또봇",
-    #         submit="제출",
-    #         blocks=[
-    #             SectionBlock(
-    #                 block_id="required_section",
-    #                 text=user.submission_guide_message,
-    #             ),
-    #             InputBlock(
-    #                 block_id="content_url",
-    #                 label="글 링크",
-    #                 element=UrlInputElement(
-    #                     action_id="url_text_input-action",
-    #                     placeholder="노션 링크는 하단 '글 제목'을 필수로 입력해주세요.",
-    #                 ),
-    #             ),
-    #             InputBlock(
-    #                 block_id="category",
-    #                 label="카테고리",
-    #                 element=StaticSelectElement(
-    #                     action_id="category_select",
-    #                     placeholder="글의 카테고리를 선택해주세요.",
-    #                     options=static_select.options(
-    #                         [category.value for category in ContentCategoryEnum]
-    #                     ),
-    #                 ),
-    #             ),
-    #             InputBlock(
-    #                 block_id="curation",
-    #                 label="큐레이션",
-    #                 element=StaticSelectElement(
-    #                     action_id="curation_select",
-    #                     placeholder="글을 큐레이션 대상에 포함할까요?",
-    #                     options=[
-    #                         Option(text="큐레이션 대상이 되고 싶어요!", value="Y"),
-    #                         Option(text="아직은 부끄러워요~", value="N"),
-    #                     ],
-    #                 ),
-    #             ),
-    #             DividerBlock(),
-    #             InputBlock(
-    #                 block_id="tag",
-    #                 label="태그",
-    #                 optional=True,
-    #                 element=PlainTextInputElement(
-    #                     action_id="tags_input",
-    #                     placeholder="태그1,태그2,태그3, ... ",
-    #                     multiline=False,
-    #                 ),
-    #             ),
-    #             InputBlock(
-    #                 block_id="description",
-    #                 label="하고 싶은 말",
-    #                 optional=True,
-    #                 element=PlainTextInputElement(
-    #                     action_id="text_input",
-    #                     placeholder="하고 싶은 말이 있다면 남겨주세요.",
-    #                     multiline=True,
-    #                 ),
-    #             ),
-    #             InputBlock(
-    #                 block_id="manual_title_input",
-    #                 label="글 제목(직접 입력)",
-    #                 optional=True,
-    #                 element=PlainTextInputElement(
-    #                     action_id="title_input",
-    #                     placeholder="'글 제목'을 직접 입력합니다.",
-    #                     multiline=False,
-    #                 ),
-    #             ),
-    #         ],
-    #     ),
-    # )
-
-    # TODO: 방학용 제출 모달
     await client.views_open(
         trigger_id=body["trigger_id"],
         view=View(
@@ -144,8 +63,8 @@ async def submit_command(
             submit="제출",
             blocks=[
                 SectionBlock(
-                    text="글또 방학기간에도 글을 제출할 수 있어요.😊",
                     block_id="required_section",
+                    text=user.submission_guide_message,
                 ),
                 InputBlock(
                     block_id="content_url",
@@ -164,6 +83,18 @@ async def submit_command(
                         options=static_select.options(
                             [category.value for category in ContentCategoryEnum]
                         ),
+                    ),
+                ),
+                InputBlock(
+                    block_id="curation",
+                    label="큐레이션",
+                    element=StaticSelectElement(
+                        action_id="curation_select",
+                        placeholder="글을 큐레이션 대상에 포함할까요?",
+                        options=[
+                            Option(text="큐레이션 대상이 되고 싶어요!", value="Y"),
+                            Option(text="아직은 부끄러워요~", value="N"),
+                        ],
                     ),
                 ),
                 DividerBlock(),
@@ -282,27 +213,27 @@ async def submit_view(
 
         # TODO: 방학기간에 담소에도 글을 보낼지에 대한 메시지 전송 로직
         # 2초 대기하는 이유는 메시지 보다 더 먼저 전송 될 수 있기 때문임
-        await asyncio.sleep(2)
-        await client.chat_postEphemeral(
-            user=content.user_id,
-            channel=channel_id,
-            text="여러분의 소중한 글을 더 많은 분들에게 보여드리고 싶어요. 자유로운 담소에도 전송하시겠어요?",
-            blocks=[
-                SectionBlock(
-                    text="🤗여러분의 소중한 글을 더 많은 분들에게 보여드리고 싶어요. \n자유로운 담소 채널에도 전송하시겠어요?"
-                ),
-                ActionsBlock(
-                    elements=[
-                        ButtonElement(
-                            text="전송하기",
-                            action_id="forward_message",
-                            value=content.ts,
-                            style="primary",
-                        )
-                    ]
-                ),
-            ],
-        )
+        # await asyncio.sleep(2)
+        # await client.chat_postEphemeral(
+        #     user=content.user_id,
+        #     channel=channel_id,
+        #     text="여러분의 소중한 글을 더 많은 분들에게 보여드리고 싶어요. 자유로운 담소에도 전송하시겠어요?",
+        #     blocks=[
+        #         SectionBlock(
+        #             text="🤗여러분의 소중한 글을 더 많은 분들에게 보여드리고 싶어요. \n자유로운 담소 채널에도 전송하시겠어요?"
+        #         ),
+        #         ActionsBlock(
+        #             elements=[
+        #                 ButtonElement(
+        #                     text="전송하기",
+        #                     action_id="forward_message",
+        #                     value=content.ts,
+        #                     style="primary",
+        #                 )
+        #             ]
+        #         ),
+        #     ],
+        # )
 
     except Exception as e:
         message = f"{user.name}({user.channel_name}) 님의 제출이 실패했어요. {str(e)}"  # type: ignore

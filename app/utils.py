@@ -89,3 +89,8 @@ def dict_to_json_str(data: dict[str, Any]) -> str:
 def json_str_to_dict(data: str) -> dict[str, Any]:
     """json string을 dict로 변환합니다."""
     return orjson.loads(data)
+
+
+def ts_to_dt(ts: str) -> datetime.datetime:
+    """timestamp를 datetime으로 변환합니다."""
+    return datetime.datetime.fromtimestamp(float(ts))

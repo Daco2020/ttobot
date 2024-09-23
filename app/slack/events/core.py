@@ -1,9 +1,11 @@
+import csv
+import os
 import tenacity
 
 from app.client import SpreadSheetClient
 from app.config import settings
 from app.constants import HELP_TEXT
-from app.models import User
+from app.models import CoffeeChatProof, PointHistory, User
 from app.slack.services.base import SlackService
 from app.slack.services.point import PointService
 from app.slack.types import (
@@ -17,21 +19,26 @@ from app.slack.types import (
 from app.store import Store
 
 from slack_sdk.models.blocks import (
+    Block,
     SectionBlock,
     DividerBlock,
     ActionsBlock,
     ButtonElement,
+    PlainTextInputElement,
     ChannelMultiSelectElement,
     UserSelectElement,
     InputBlock,
     TextObject,
     HeaderBlock,
     ContextBlock,
+    MarkdownTextObject,
 )
 from slack_sdk.models.views import View
 from slack_bolt.async_app import AsyncAck, AsyncSay
 from slack_sdk.web.async_client import AsyncWebClient
 from slack_sdk.errors import SlackApiError
+
+from app.utils import ts_to_dt
 
 
 async def handle_app_mention(
@@ -340,7 +347,7 @@ async def handle_home_tab(
     """홈 탭을 열었을 때의 이벤트를 처리합니다."""
 
     # 포인트 히스토리를 포함한 유저를 가져온다.
-    user_point_history = point_service.get_user_point_history(user_id=user.user_id)
+    user_point_history = point_service.get_user_point(user_id=user.user_id)
 
     # 홈 탭 메시지 구성
     await client.views_publish(
@@ -367,45 +374,45 @@ async def handle_home_tab(
                     elements=[
                         ButtonElement(
                             text="포인트 획득 내역 보기",
-                            action_id="",
-                            value="",
+                            action_id="open_point_history_view",
+                            value="open_point_history_view",
                         ),
                         ButtonElement(
                             text="포인트 획득 방법 알아보기",
-                            action_id="",
-                            value="",
+                            action_id="open_point_guide_view",
+                            value="open_point_guide_view",
                         ),
                     ],
                 ),
                 DividerBlock(),
-                # 비둘기 전보 섹션
+                # 종이비행기 섹션
                 HeaderBlock(
-                    text="📬 비둘기 전보",
+                    text="📭 종이비행기 보내기",
                 ),
                 ContextBlock(
                     elements=[
                         TextObject(
                             type="mrkdwn",
-                            text=f"칭찬하고 싶은 멤버가 있나요? 비둘기로 *{user.name}* 님의 마음을 전해보세요. \n *비둘기 전보* 는 하루에 한 번만 보낼 수 있어요. \n *비둘기 전보* 를 보내면 소정의 포인트를 얻을 수 있어요.",
+                            text="감사한 마음을 전하고 싶은 멤버가 있나요? 종이비행기로 따뜻한 메시지를 전해주세요!\n*종이비행기* 는 하루에 한 번만 보낼 수 있어요.",
                         ),
                     ],
                 ),
                 ActionsBlock(
                     elements=[
                         ButtonElement(
-                            text="지금 바로 비둘기 보내기",
-                            action_id="send_pigeon_message",
-                            value="send_pigeon_message",
+                            text="종이비행기 보내기",
+                            action_id="send_paper_airplane_message",
+                            value="send_paper_airplane_message",
                         ),
                         ButtonElement(
-                            text="주고 받은 비둘기 보기",
-                            action_id="view_sent_pigeon_messages",
-                            value="view_sent_pigeon_messages",
+                            text="주고받은 종이비행기 보기",
+                            action_id="open_paper_airplane_history_view",
+                            value="open_paper_airplane_history_view",
                         ),
                         ButtonElement(
                             text="누구에게 보내면 좋을까요?",
-                            action_id="send_pigeon_message_guide",
-                            value="send_pigeon_message_guide",
+                            action_id="open_paper_airplane_guide_view",
+                            value="open_paper_airplane_guide_view",
                         ),
                     ],
                 ),
@@ -435,7 +442,7 @@ async def handle_home_tab(
                             value="open_bookmark_page_view",
                         ),
                         ButtonElement(
-                            text="내가 참여한 커피챗 보기",
+                            text="내 커피챗 인증 내역 보기",
                             action_id="open_coffee_chat_history_view",
                             value="open_coffee_chat_history_view",
                         ),
@@ -452,33 +459,333 @@ async def handle_home_tab(
                     ],
                 ),
                 DividerBlock(),
-                # # TODO: 추후 논의 후 추가
-                # HeaderBlock(
-                #     text="😻 지금 핫한 소모임 TOP 5",
-                # ),
-                # ContextBlock(
-                #     elements=[
-                #         TextObject(
-                #             type="mrkdwn",
-                #             text="글또에서 추천하는 인기 소모임을 소개합니다. 매주 활동량을 기반으로 업데이트됩니다.",
-                #         ),
-                #     ],
-                # ),
-                # SectionBlock(
-                #     text="<#C05J87UPC3F> 이 채널은 어쩌고 저쩌고 이런 소모임입니다.",
-                # ),
-                # SectionBlock(
-                #     text="<#C05J87UPC3F> 이 채널은 어쩌고 저쩌고 이런 소모임입니다.",
-                # ),
-                # SectionBlock(
-                #     text="<#C05J87UPC3F> 이 채널은 어쩌고 저쩌고 이런 소모임입니다.",
-                # ),
-                # SectionBlock(
-                #     text="<#C05J87UPC3F> 이 채널은 어쩌고 저쩌고 이런 소모임입니다.",
-                # ),
-                # SectionBlock(
-                #     text="<#C05J87UPC3F> 이 채널은 어쩌고 저쩌고 이런 소모임입니다.",
-                # ),
             ],
         ),
     )
+
+
+async def open_point_history_view(
+    ack: AsyncAck,
+    body: ActionBodyType,
+    say: AsyncSay,
+    client: AsyncWebClient,
+    user: User,
+    service: SlackService,
+    point_service: PointService,
+) -> None:
+    """포인트 히스토리를 조회합니다."""
+    await ack()
+
+    user_point_history = point_service.get_user_point(user_id=user.user_id)
+
+    await client.views_open(
+        trigger_id=body["trigger_id"],
+        view=View(
+            type="modal",
+            title=f"{user_point_history.user.name}님의 포인트 획득 내역",
+            close="닫기",
+            blocks=[
+                SectionBlock(
+                    text=f"총 *{user_point_history.total_point} point* 를 획득하셨어요.",
+                ),
+                DividerBlock(),
+                SectionBlock(text=user_point_history.point_history_text),
+                DividerBlock(),
+                SectionBlock(
+                    text="포인트 획득 내역은 최근 20개까지만 표시됩니다.\n전체 내역을 확인하려면 아래 버튼을 눌러주세요.",
+                ),
+                ActionsBlock(
+                    elements=[
+                        ButtonElement(
+                            text="전체 내역 다운로드",
+                            action_id="download_point_history",
+                            value="download_point_history",
+                            style="primary",
+                        ),
+                    ],
+                ),
+            ],
+        ),
+    )
+
+
+async def download_point_history(
+    ack: AsyncAck,
+    body: ActionBodyType,
+    say: AsyncSay,
+    client: AsyncWebClient,
+    user: User,
+    service: SlackService,
+    point_service: PointService,
+) -> None:
+    """포인트 히스토리를 CSV 파일로 다운로드합니다."""
+    await ack()
+
+    response = await client.conversations_open(users=user.user_id)
+    dm_channel_id = response["channel"]["id"]
+
+    user_point = point_service.get_user_point(user_id=user.user_id)
+    if not user_point.point_histories:
+        await client.chat_postMessage(
+            channel=dm_channel_id, text="포인트 획득 내역이 없습니다."
+        )
+        return None
+
+    # 사용자의 제출내역을 CSV 파일로 임시 저장 후 전송
+    temp_dir = "temp/point_histories"
+    if not os.path.exists(temp_dir):
+        os.makedirs(temp_dir)
+
+    temp_file_path = f"{temp_dir}/{user.user_id}.csv"
+    with open(temp_file_path, "w", newline="") as csvfile:
+        writer = csv.DictWriter(
+            csvfile,
+            PointHistory.fieldnames(),
+            quoting=csv.QUOTE_ALL,
+        )
+        writer.writeheader()
+        writer.writerows([each.model_dump() for each in user_point.point_histories])
+
+    await client.files_upload_v2(
+        # channel=dm_channel_id,
+        channel=dm_channel_id,
+        file=temp_file_path,
+        initial_comment=f"<@{user.user_id}> 님의 제출내역 입니다!",
+    )
+
+    # 임시로 생성한 CSV 파일을 삭제
+    os.remove(temp_file_path)
+
+
+async def open_point_guide_view(
+    ack: AsyncAck,
+    body: ActionBodyType,
+    say: AsyncSay,
+    client: AsyncWebClient,
+    user: User,
+    service: SlackService,
+    point_service: PointService,
+) -> None:
+    """포인트 획득 방법을 조회합니다."""
+    await ack()
+
+    await client.views_open(
+        trigger_id=body["trigger_id"],
+        view=View(
+            type="modal",
+            title="포인트 획득 방법",
+            close="닫기",
+            blocks=[
+                SectionBlock(
+                    text="포인트는 다음과 같은 방법으로 획득할 수 있어요.",
+                ),
+                SectionBlock(
+                    text="1. 글 제출하기\n"
+                    "2. 추가 글 제출하기(동일 회차)\n"
+                    "3. 글 제출 콤보(패스를 해도 콤보는 이어집니다)\n"
+                    "4. 커피챗 참여 인증하기\n"
+                    "5. 공지사항 확인하기(공지확인 이모지를 남겨주세요) \n"
+                    "6. 큐레이션 요청하기(글 제출 시 선택할 수 있어요)\n"
+                    "7. 큐레이션 선정되기\n"
+                    "8. 빌리지 반상회 참여하기\n"
+                    "9. 자기소개 작성하기",
+                ),
+            ],
+        ),
+    )
+
+
+async def send_paper_airplane_message(
+    ack: AsyncAck,
+    body: ActionBodyType,
+    say: AsyncSay,
+    client: AsyncWebClient,
+    user: User,
+    service: SlackService,
+    point_service: PointService,
+) -> None:
+    """종이비행기 메시지를 전송합니다."""
+    await ack()
+
+    # 종이비행기 메시지 전송
+    await client.views_open(
+        trigger_id=body["trigger_id"],
+        view=View(
+            type="modal",
+            title="종이비행기 보내기",
+            callback_id="send_paper_airplane_message_view",
+            close="닫기",
+            submit="보내기",
+            blocks=[
+                SectionBlock(
+                    text="종이비행기로 전하고 싶은 마음을 적어주세요.",
+                ),
+                InputBlock(
+                    block_id="paper_airplane_message",
+                    label="메시지",
+                    element=PlainTextInputElement(
+                        action_id="paper_airplane_message",
+                        placeholder="종이비행기로 전할 마음을 적어주세요.",
+                        multiline=True,
+                    ),
+                ),
+            ],
+        ),
+    )
+
+
+async def open_paper_airplane_history_view(
+    ack: AsyncAck,
+    body: ActionBodyType,
+    say: AsyncSay,
+    client: AsyncWebClient,
+    user: User,
+    service: SlackService,
+    point_service: PointService,
+) -> None:
+    """종이비행기 히스토리를 조회합니다."""
+    await ack()
+
+    await client.views_open(
+        trigger_id=body["trigger_id"],
+        view=View(
+            type="modal",
+            title="종이비행기 히스토리",
+            close="닫기",
+            blocks=[
+                SectionBlock(
+                    text="종이비행기 히스토리는 추후 업데이트 예정입니다.",
+                ),
+            ],
+        ),
+    )
+
+
+async def open_paper_airplane_guide_view(
+    ack: AsyncAck,
+    body: ActionBodyType,
+    say: AsyncSay,
+    client: AsyncWebClient,
+    user: User,
+    service: SlackService,
+    point_service: PointService,
+) -> None:
+    """종이비행기 사용 방법을 조회합니다."""
+    await ack()
+
+    await client.views_open(
+        trigger_id=body["trigger_id"],
+        view=View(
+            type="modal",
+            title="종이비행기 사용 방법",
+            close="닫기",
+            blocks=[
+                SectionBlock(
+                    text="종이비행기 사용 방법은 추후 업데이트 예정입니다.",
+                ),
+            ],
+        ),
+    )
+
+
+async def open_coffee_chat_history_view(
+    ack: AsyncAck,
+    body: ActionBodyType,
+    say: AsyncSay,
+    client: AsyncWebClient,
+    user: User,
+    service: SlackService,
+    point_service: PointService,
+) -> None:
+    """커피챗 히스토리를 조회합니다."""
+    await ack()
+
+    coffee_chat_proofs = service.fetch_coffee_chat_proofs(user_id=user.user_id)
+
+    blocks: list[Block] = []
+    for proof in coffee_chat_proofs:
+        blocks.append(SectionBlock(text=f"*{ts_to_dt(proof.ts).strftime('%Y-%m-%d')}*"))
+        text = proof.text[:100] + " ..." if len(proof.text) >= 100 else proof.text
+        blocks.append(ContextBlock(elements=[MarkdownTextObject(text=f"> {text}")]))
+
+    await client.views_open(
+        trigger_id=body["trigger_id"],
+        view=View(
+            type="modal",
+            title=f"{user.name}님의 커피챗 내역",
+            close="닫기",
+            blocks=(
+                SectionBlock(
+                    text=f"총 *{len(coffee_chat_proofs)}* 개의 커피챗 내역이 있어요.",
+                ),
+                DividerBlock(),
+                *(
+                    blocks[:20]
+                    if blocks
+                    else [SectionBlock(text="커피챗 내역이 없어요.")]
+                ),
+                DividerBlock(),
+                SectionBlock(
+                    text="커피챗 내역은 최근 10개까지만 표시됩니다.\n전체 내역을 확인하려면 아래 버튼을 눌러주세요.",
+                ),
+                ActionsBlock(
+                    elements=[
+                        ButtonElement(
+                            text="전체 내역 다운로드",
+                            action_id="download_coffee_chat_history",
+                            value="download_coffee_chat_history",
+                            style="primary",
+                        ),
+                    ],
+                ),
+            ),
+        ),
+    )
+
+
+async def download_coffee_chat_history(
+    ack: AsyncAck,
+    body: ActionBodyType,
+    say: AsyncSay,
+    client: AsyncWebClient,
+    user: User,
+    service: SlackService,
+    point_service: PointService,
+) -> None:
+    """커피챗 히스토리를 CSV 파일로 다운로드합니다."""
+    await ack()
+
+    response = await client.conversations_open(users=user.user_id)
+    dm_channel_id = response["channel"]["id"]
+
+    proofs = service.fetch_coffee_chat_proofs(user_id=user.user_id)
+    if not proofs:
+        await client.chat_postMessage(
+            channel=dm_channel_id, text="커피챗 인증 내역이 없습니다."
+        )
+        return None
+
+    # 사용자의 제출내역을 CSV 파일로 임시 저장 후 전송
+    temp_dir = "temp/coffee_chat_proofs"
+    if not os.path.exists(temp_dir):
+        os.makedirs(temp_dir)
+
+    temp_file_path = f"{temp_dir}/{user.user_id}.csv"
+    with open(temp_file_path, "w", newline="") as csvfile:
+        writer = csv.DictWriter(
+            csvfile,
+            CoffeeChatProof.fieldnames(),
+            quoting=csv.QUOTE_ALL,
+        )
+        writer.writeheader()
+        writer.writerows([each.model_dump() for each in proofs])
+
+    await client.files_upload_v2(
+        # channel=dm_channel_id,
+        channel=dm_channel_id,
+        file=temp_file_path,
+        initial_comment=f"<@{user.user_id}> 님의 제출내역 입니다!",
+    )
+
+    # 임시로 생성한 CSV 파일을 삭제
+    os.remove(temp_file_path)

@@ -261,6 +261,16 @@ app.event("app_home_opened")(core_events.handle_home_tab)
 app.action("open_deposit_view")(core_events.open_deposit_view)
 app.action("open_submission_history_view")(core_events.open_submission_history_view)
 app.action("open_help_view")(core_events.open_help_view)
+app.action("open_point_history_view")(core_events.open_point_history_view)
+app.action("open_point_guide_view")(core_events.open_point_guide_view)
+app.action("send_paper_airplane_message")(core_events.send_paper_airplane_message)
+app.action("open_paper_airplane_history_view")(
+    core_events.open_paper_airplane_history_view
+)
+app.action("open_paper_airplane_guide_view")(core_events.open_paper_airplane_guide_view)
+app.action("open_coffee_chat_history_view")(core_events.open_coffee_chat_history_view)
+app.action("download_point_history")(core_events.download_point_history)
+app.action("download_coffee_chat_history")(core_events.download_coffee_chat_history)
 
 
 event_descriptions = {
@@ -302,4 +312,12 @@ event_descriptions = {
     "open_deposit_view": "예치금 조회",
     "open_submission_history_view": "제출내역 조회",
     "open_help_view": "도움말 조회",
+    "open_point_history_view": "포인트 내역 조회",
+    "open_point_guide_view": "포인트 가이드 조회",
+    "send_paper_airplane_message": "종이비행기 메시지 전송",
+    "open_paper_airplane_history_view": "종이비행기 내역 조회",
+    "open_paper_airplane_guide_view": "종이비행기 가이드 조회",
+    "open_coffee_chat_history_view": "커피챗 내역 조회",
+    "download_point_history": "포인트 내역 다운로드",
+    "download_coffee_chat_history": "커피챗 내역 다운로드",
 }
