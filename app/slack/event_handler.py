@@ -272,11 +272,13 @@ app.action("send_paper_airplane_message")(core_events.send_paper_airplane_messag
 app.action("open_paper_airplane_history_view")(
     core_events.open_paper_airplane_history_view
 )
+app.view("send_paper_airplane_message_view")(
+    core_events.send_paper_airplane_message_view
+)
 app.action("open_paper_airplane_guide_view")(core_events.open_paper_airplane_guide_view)
 app.action("open_coffee_chat_history_view")(core_events.open_coffee_chat_history_view)
 app.action("download_point_history")(core_events.download_point_history)
 app.action("download_coffee_chat_history")(core_events.download_coffee_chat_history)
-
 
 event_descriptions = {
     "/제출": "글 제출 시작",
