@@ -75,3 +75,31 @@ class ContentSortEnum(str, Enum):
 remind_message = """오늘은 글또 제출 마감일이에요.
 지난 2주 동안 배우고 경험한 것들을 자정까지 나눠주세요.
 {user_name} 님의 이야기를 기다릴게요!🙂"""
+
+
+# fmt: off
+
+paper_airplane_color_maps = [
+    {"color_label": "fiery_red", "bg_color": "#FF4500", "text_color": "#FFFFFF"},  # 불꽃 같은 빨간색
+    {"color_label": "fresh_green", "bg_color": "#32CD32", "text_color": "#FFFFFF"},  # 싱그러운 초록색
+    {"color_label": "sky_blue", "bg_color": "#1E90FF", "text_color": "#FFFFFF"},  # 맑은 하늘색
+    {"color_label": "bright_gold", "bg_color": "#FFD700", "text_color": "#000000"},  # 밝은 금색
+    {"color_label": "deep_violet", "bg_color": "#8A2BE2", "text_color": "#FFFFFF"},  # 진한 보라색
+    {"color_label": "ripe_tomato", "bg_color": "#FF6347", "text_color": "#FFFFFF"},  # 잘 익은 토마토색
+    {"color_label": "cool_steelblue", "bg_color": "#4682B4", "text_color": "#FFFFFF"},  # 차가운 스틸블루
+    {"color_label": "soft_slateblue", "bg_color": "#6A5ACD", "text_color": "#FFFFFF"},  # 부드러운 슬레이트블루
+    {"color_label": "pastel_chartreuse", "bg_color": "#A9F2A5", "text_color": "#2F4F4F"},  # 파스텔 차트레즈
+    {"color_label": "vivid_deeppink", "bg_color": "#FF1493", "text_color": "#FFFFFF"},  # 선명한 딥핑크
+    {"color_label": "blush_rosybrown", "bg_color": "#BC8F8F", "text_color": "#FFFFFF"},  # 블러쉬 로지브라운
+    {"color_label": "peach_silver", "bg_color": "#FFDAB9", "text_color": "#8B4513"},  # 복숭아빛 실버
+    {"color_label": "muted_seagreen", "bg_color": "#8FBC8F", "text_color": "#FFFFFF"},  # 차분한 바다초록색
+    {"color_label": "soft_lightcoral", "bg_color": "#F08080", "text_color": "#FFFFFF"},  # 부드러운 라이트코랄
+    {"color_label": "lavender_gray", "bg_color": "#E6E6FA", "text_color": "#4B0082"},  # 라벤더 그레이
+    {"color_label": "sunset_orange", "bg_color": "#FF7F50", "text_color": "#FFFFFF"},  # 석양 오렌지
+    {"color_label": "ocean_teal", "bg_color": "#008080", "text_color": "#FFFFFF"},  # 바다 청록색
+    {"color_label": "midnight_blue", "bg_color": "#191970", "text_color": "#FFFFFF"},  # 자정의 파란색
+    {"color_label": "buttercup_yellow", "bg_color": "#FFDD44", "text_color": "#000000"},  # 버터컵 옐로우
+    {"color_label": "rosewood", "bg_color": "#65000B", "text_color": "#FFFFFF"}  # 로즈우드
+]
+
+# fmt: on

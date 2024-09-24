@@ -1,3 +1,4 @@
+import random
 import re
 from typing import Any
 
@@ -8,6 +9,7 @@ from app.exception import BotException, ClientException
 from app.slack.repositories import SlackRepository
 from app import models
 from app import store
+from app.constants import paper_airplane_color_maps
 
 from bs4 import BeautifulSoup
 
@@ -351,5 +353,25 @@ class SlackService:
         store.reaction_upload_queue.append(reaction_model.to_list_for_sheet())
         return reaction_model
 
-        # 슬랙은 메시지 전송을 초당 1개를 권장하기 때문에 1초 대기합니다.
-        # 참고문서: https://api.slack.com/methods/chat.postMessage#rate_limiting
+    def create_paper_airplane(
+        self,
+        *,
+        sender: models.User,
+        receiver: models.User,
+        text: str,
+    ) -> models.PaperAirplane:
+        """리액션을 생성합니다."""
+        color_map = random.choice(paper_airplane_color_maps)
+        model = models.PaperAirplane(
+            sender_id=sender.user_id,
+            sender_name=sender.name,
+            receiver_id=receiver.user_id,
+            receiver_name=receiver.name,
+            text=text,
+            text_color=color_map["text_color"],
+            bg_color=color_map["bg_color"],
+            color_label=color_map["color_label"],
+        )
+        self._repo.create_paper_airplane(model)
+        store.paper_airplane_upload_queue.append(model.to_list_for_sheet())
+        return model

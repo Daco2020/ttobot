@@ -658,9 +658,9 @@ async def send_paper_airplane_message_view(
     point_service: PointService,
 ) -> None:
     """종이비행기 메시지를 전송합니다."""
-
     values = body["view"]["state"]["values"]
     receiver_id = values["paper_airplane_receiver"]["select_user"]["selected_user"]
+    text = values["paper_airplane_message"]["paper_airplane_message"]["value"]
 
     if user.user_id == receiver_id:
         await ack(
@@ -672,6 +672,13 @@ async def send_paper_airplane_message_view(
         return
 
     await ack()
+
+    receiver = service.get_user(user_id=receiver_id)
+    service.create_paper_airplane(
+        sender=user,
+        receiver=receiver,
+        text=text,
+    )
 
     await client.chat_postMessage(
         channel=receiver_id,  # TODO: 공개 채널로 수정 필요

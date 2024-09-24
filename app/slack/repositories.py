@@ -274,3 +274,33 @@ class SlackRepository:
                 if user["channel_id"] == channel_id
             ]
             return users
+
+    def create_paper_airplane(self, paper_airplane: models.PaperAirplane) -> None:
+        """종이비행기를 생성합니다."""
+        with open("store/paper_airplane.csv", "a", newline="", encoding="utf-8") as f:
+            writer = csv.writer(f, quoting=csv.QUOTE_ALL)
+            writer.writerow(paper_airplane.to_list_for_csv())
+
+    def fetch_sent_paper_airplanes(self, user_id: str) -> list[models.PaperAirplane]:
+        """유저가 보낸 종이비행기를 가져옵니다."""
+        with open("store/paper_airplane.csv") as f:
+            reader = csv.DictReader(f)
+            paper_airplanes = [
+                models.PaperAirplane(**paper_airplane)
+                for paper_airplane in reader
+                if paper_airplane["sender_id"] == user_id
+            ]
+            return sorted(paper_airplanes, key=lambda x: x.created_at, reverse=True)
+
+    def fetch_received_paper_airplanes(
+        self, user_id: str
+    ) -> list[models.PaperAirplane]:
+        """유저가 받은 종이비행기를 가져옵니다."""
+        with open("store/paper_airplane.csv") as f:
+            reader = csv.DictReader(f)
+            paper_airplanes = [
+                models.PaperAirplane(**paper_airplane)
+                for paper_airplane in reader
+                if paper_airplane["receiver_id"] == user_id
+            ]
+            return sorted(paper_airplanes, key=lambda x: x.created_at, reverse=True)
