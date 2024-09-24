@@ -239,12 +239,6 @@ class SlackRepository:
 
         return [models.CoffeeChatProof(**row) for row in df.to_dict(orient="records")]
 
-    def create_reaction(self, reaction: models.Reaction) -> None:
-        """리액션을 생성합니다."""
-        with open("store/reactions.csv", "a", newline="", encoding="utf-8") as f:
-            writer = csv.writer(f, quoting=csv.QUOTE_ALL)
-            writer.writerow(reaction.to_list_for_csv())
-
     def add_point(self, point_history: models.PointHistory) -> None:
         """포인트를 추가합니다."""
         with open("store/point_histories.csv", "a", newline="", encoding="utf-8") as f:

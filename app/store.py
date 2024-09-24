@@ -9,9 +9,9 @@ bookmark_upload_queue: list[list[str]] = []
 bookmark_update_queue: list[Bookmark] = []  # TODO: 추후 타입 수정 필요
 user_update_queue: list[list[str]] = []
 coffee_chat_proof_upload_queue: list[list[str]] = []
-reaction_upload_queue: list[list[str]] = []
 point_history_upload_queue: list[list[str]] = []
 paper_airplane_upload_queue: list[list[str]] = []
+# reaction_upload_queue: list[list[str]] = []
 
 
 class Store:
@@ -114,17 +114,17 @@ class Store:
             )
             coffee_chat_proof_upload_queue = []
 
-        global reaction_upload_queue
-        if reaction_upload_queue:
-            self._client.upload("reactions", reaction_upload_queue)
-            log_event(
-                actor="system",
-                event="uploaded_reactions",
-                type="community",
-                description=f"{len(reaction_upload_queue)}개 리액션 업로드",
-                body={"reaction_upload_queue": reaction_upload_queue},
-            )
-            reaction_upload_queue = []
+        # global reaction_upload_queue
+        # if reaction_upload_queue:
+        #     self._client.upload("reactions", reaction_upload_queue)
+        #     log_event(
+        #         actor="system",
+        #         event="uploaded_reactions",
+        #         type="community",
+        #         description=f"{len(reaction_upload_queue)}개 리액션 업로드",
+        #         body={"reaction_upload_queue": reaction_upload_queue},
+        #     )
+        #     reaction_upload_queue = []
 
         global point_history_upload_queue
         if point_history_upload_queue:

@@ -8,7 +8,6 @@ from app.slack.services.point import PointService
 from app.slack.types import (
     ActionBodyType,
     MessageBodyType,
-    ReactionBodyType,
     ViewBodyType,
 )
 from slack_bolt.async_app import AsyncAck, AsyncSay
@@ -231,44 +230,3 @@ async def submit_coffee_chat_proof_view(
         },
         timeout=5.0,
     )
-
-
-async def handle_reaction_added(
-    ack: AsyncAck,
-    body: ReactionBodyType,
-    user: User,
-    service: SlackService,
-    point_service: PointService,
-) -> None:
-    """리액션 추가 이벤트를 처리합니다."""
-    await ack()
-
-    service.create_reaction(
-        type=body["event"]["type"],
-        user_id=body["event"]["user"],
-        reaction=body["event"]["reaction"],
-        reaction_ts=body["event"]["event_ts"],
-        item_type=body["event"]["item"]["type"],
-        item_user_id=body["event"].get("item_user", "알 수 없음"),
-        item_channel=body["event"]["item"]["channel"],
-        item_ts=body["event"]["item"]["ts"],
-    )
-
-    # 공지사항을 이모지로 확인하면 포인트를 지급합니다.
-    if (
-        body["event"]["item"]["channel"] == settings.NOTICE_CHANNEL
-        and body["event"]["reaction"] == "white_check_mark"
-    ):
-        point_service.grant_if_notice_emoji_checked(user_id=body["event"]["user"])
-        return
-
-
-async def handle_reaction_removed(
-    ack: AsyncAck,
-    body: ReactionBodyType,
-    user: User,
-    service: SlackService,
-    point_service: PointService,
-):
-    """리액션 삭제 이벤트를 처리합니다."""
-    await ack()

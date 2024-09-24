@@ -17,11 +17,13 @@ from typing import Callable, cast
 from app.slack.events import community as community_events
 from app.slack.events import contents as contents_events
 from app.slack.events import core as core_events
+from app.slack.events import log as log_events
 from app.exception import BotException
 from app.slack.repositories import SlackRepository
 from app.slack.services.base import SlackService
 from app.slack.services.point import PointService
 from app.slack.types import MessageBodyType
+
 
 app = AsyncApp(
     client=AsyncWebClient(
@@ -55,8 +57,13 @@ async def log_event_middleware(
         event = "unknown"
         type = "unknown"
 
-    if event not in ["message", "member_joined_channel"]:
-        # message 는 handle_message 에서 로깅합니다.
+    if event not in [
+        "message",
+        "member_joined_channel",
+        "reaction_added",
+        "reaction_removed",
+    ]:
+        # message 와 reaction 은 handle 함수에서 별도로 로깅합니다.
         description = event_descriptions.get(str(event), "알 수 없는 이벤트")
         log_event(
             actor=req.context.user_id,
@@ -183,9 +190,8 @@ async def handle_message(
         # 사용자가 문의사항을 남기면 관리자에게 알립니다.
         message = f"👋🏼 <#{user.channel_id}>채널의 {user.name}님이 <#{channel_id}>을 남겼어요."
         await client.chat_postMessage(channel=settings.ADMIN_CHANNEL, text=message)
-        return
 
-    if channel_id == settings.COFFEE_CHAT_PROOF_CHANNEL:
+    elif channel_id == settings.COFFEE_CHAT_PROOF_CHANNEL:
         description = event_descriptions.get(
             "coffee_chat_proof_message", "알 수 없는 이벤트"
         )
@@ -208,7 +214,11 @@ async def handle_message(
             service=service,
             point_service=point_service,
         )
-        return
+
+    if thread_ts:  # 스레드 메시지
+        await log_events.handle_comment_data(body=body)
+    else:
+        await log_events.handle_post_data(body=body)
 
 
 @app.event("member_joined_channel")
@@ -226,8 +236,6 @@ app.action("submit_coffee_chat_proof_button")(
 app.view("submit_coffee_chat_proof_view")(
     community_events.submit_coffee_chat_proof_view
 )
-app.event("reaction_added")(community_events.handle_reaction_added)
-app.event("reaction_removed")(community_events.handle_reaction_removed)
 app.event("channel_created")(core_events.handle_channel_created)
 
 # contents
@@ -280,6 +288,12 @@ app.action("open_coffee_chat_history_view")(core_events.open_coffee_chat_history
 app.action("download_point_history")(core_events.download_point_history)
 app.action("download_coffee_chat_history")(core_events.download_coffee_chat_history)
 
+
+# log
+app.event("reaction_added")(log_events.handle_reaction_added)
+app.event("reaction_removed")(log_events.handle_reaction_removed)
+
+
 event_descriptions = {
     "/제출": "글 제출 시작",
     "submit_view": "글 제출 완료",
@@ -310,8 +324,6 @@ event_descriptions = {
     "cancel_coffee_chat_proof_button": "커피챗 인증 안내 닫기",
     "submit_coffee_chat_proof_button": "커피챗 인증 제출 시작",
     "submit_coffee_chat_proof_view": "커피챗 인증 제출 완료",
-    "reaction_added": "리액션 추가",
-    "reaction_removed": "리액션 삭제",
     "sync_store": "데이터 동기화",
     "invite_channel": "채널 초대",
     "invite_channel_view": "채널 초대 완료",
