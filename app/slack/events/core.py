@@ -870,3 +870,7 @@ async def handle_channel_created(
 
     channel_id = body["event"]["channel"]["id"]
     await client.conversations_join(channel=channel_id)
+    await client.chat_postMessage(
+        channel=settings.ADMIN_CHANNEL,
+        text=f"새로 만들어진 <#{channel_id}> 채널에 또봇이 참여했습니다. 😋",
+    )

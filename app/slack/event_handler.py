@@ -327,4 +327,6 @@ event_descriptions = {
     "open_coffee_chat_history_view": "커피챗 내역 조회",
     "download_point_history": "포인트 내역 다운로드",
     "download_coffee_chat_history": "커피챗 내역 다운로드",
+    "send_paper_airplane_message_view": "종이비행기 메시지 전송 완료",
+    "channel_created": "채널 생성",
 }
