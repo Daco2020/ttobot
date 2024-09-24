@@ -9,8 +9,9 @@ from fastapi import FastAPI, Request
 from apscheduler.triggers.interval import IntervalTrigger
 from app.config import settings
 from app.store import Store
-from app.api.views.community import router as community_router
+from app.api.views.contents import router as contents_router
 from app.api.views.login import router as login_router
+from app.api.views.paper_airplanes import router as paper_airplanes_router
 from slack_bolt.adapter.socket_mode.aiohttp import AsyncSocketModeHandler
 from fastapi.middleware.cors import CORSMiddleware
 from app.slack.services.background import BackgroundService
@@ -43,8 +44,9 @@ async def health(request: Request) -> bool:
     return True
 
 
-app.include_router(community_router, prefix="/v1")
+app.include_router(contents_router, prefix="/v1")
 app.include_router(login_router, prefix="/v1")
+app.include_router(paper_airplanes_router, prefix="/v1")
 
 if settings.ENV == "prod":
     async_schedule = AsyncIOScheduler(daemon=True, timezone=ZoneInfo("Asia/Seoul"))

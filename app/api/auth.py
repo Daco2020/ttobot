@@ -8,8 +8,8 @@ from fastapi import Cookie, Depends, HTTPException, Response
 
 from datetime import datetime, timedelta, timezone
 from typing import Any, cast
-from app.api.deps import user_repo
-from app.api.repositories import UserRepository
+from app.api.deps import api_repo
+from app.api.repositories import ApiRepository
 
 from app.utils import tz_now
 
@@ -69,7 +69,7 @@ def decode_token(
 
 
 async def current_user(
-    user_repo: UserRepository = Depends(user_repo),
+    api_repo: ApiRepository = Depends(api_repo),
     access_token: str = Cookie(default=None),
 ) -> models.User:
     """현재 유저를 조회합니다."""
@@ -83,7 +83,7 @@ async def current_user(
             )
 
         if user_id := result.get("user_id", None):
-            user = user_repo.get_user(cast(str, user_id))
+            user = api_repo.get_user(cast(str, user_id))
         if not user_id or not user:
             raise HTTPException(
                 status_code=404,
