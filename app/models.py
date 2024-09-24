@@ -436,3 +436,44 @@ class PointHistory(BaseModel):
             "category",
             "created_at",
         ]
+
+
+class PaperAirplane(StoreModel):
+    id: str = Field(default_factory=generate_unique_id)
+    sender_id: str
+    sender_name: str
+    receiver_id: str
+    receiver_name: str
+    text: str
+    text_color: str
+    bg_color: str
+    color_label: str
+    created_at: str = Field(default_factory=tz_now_to_str)
+
+    def to_list_for_csv(self) -> list[str]:
+        return [
+            self.id,
+            self.sender_id,
+            self.sender_name,
+            self.receiver_id,
+            self.receiver_name,
+            self.text,
+            self.text_color,
+            self.bg_color,
+            self.color_label,
+            self.created_at,
+        ]
+
+    def to_list_for_sheet(self) -> list[str]:
+        return [
+            self.id,
+            self.sender_id,
+            self.sender_name,
+            self.receiver_id,
+            self.receiver_name,
+            self.text,
+            self.text_color,
+            self.bg_color,
+            self.color_label,
+            self.created_at,
+        ]

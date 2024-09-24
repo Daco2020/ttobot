@@ -404,6 +404,7 @@ async def handle_home_tab(
                             text="종이비행기 보내기",
                             action_id="send_paper_airplane_message",
                             value="send_paper_airplane_message",
+                            style="primary",
                         ),
                         ButtonElement(
                             text="주고받은 종이비행기 보기",
@@ -612,7 +613,6 @@ async def send_paper_airplane_message(
     """종이비행기 메시지를 전송합니다."""
     await ack()
 
-    # 종이비행기 메시지 전송
     await client.views_open(
         trigger_id=body["trigger_id"],
         view=View(
@@ -626,6 +626,14 @@ async def send_paper_airplane_message(
                     text="종이비행기로 전하고 싶은 마음을 적어주세요.",
                 ),
                 InputBlock(
+                    block_id="paper_airplane_receiver",
+                    label="받는 사람",
+                    element=UserSelectElement(
+                        action_id="select_user",
+                        placeholder="받는 사람을 선택해주세요.",
+                    ),
+                ),
+                InputBlock(
                     block_id="paper_airplane_message",
                     label="메시지",
                     element=PlainTextInputElement(
@@ -636,6 +644,57 @@ async def send_paper_airplane_message(
                 ),
             ],
         ),
+    )
+
+
+async def send_paper_airplane_message_view(
+    ack: AsyncAck,
+    body: ViewBodyType,
+    client: AsyncWebClient,
+    view: ViewType,
+    say: AsyncSay,
+    user: User,
+    service: SlackService,
+    point_service: PointService,
+) -> None:
+    """종이비행기 메시지를 전송합니다."""
+    values = body["view"]["state"]["values"]
+    receiver_id = values["paper_airplane_receiver"]["select_user"]["selected_user"]
+    text = values["paper_airplane_message"]["paper_airplane_message"]["value"]
+
+    if user.user_id == receiver_id:
+        await ack(
+            response_action="errors",
+            errors={
+                "paper_airplane_receiver": "종이비행기는 자신에게 보낼 수 없어요~😉",
+            },
+        )
+        return
+
+    await ack()
+
+    receiver = service.get_user(user_id=receiver_id)
+    service.create_paper_airplane(
+        sender=user,
+        receiver=receiver,
+        text=text,
+    )
+
+    await client.chat_postMessage(
+        channel=receiver_id,  # TODO: 공개 채널로 수정 필요
+        text=f"💌 *<@{receiver_id}>* 님에게 종이비행기가 도착했어요!😊",
+        blocks=[
+            SectionBlock(
+                text=f"💌 *<@{receiver_id}>* 님에게 종이비행기가 도착했어요!\n\n",
+            ),
+            ContextBlock(
+                elements=[
+                    MarkdownTextObject(
+                        text="> 받은 종이비행기는 또봇 [홈] 탭 -> [주고받은 종이비행기 보기] 에서 확인할 수 있어요.😉"
+                    )
+                ],
+            ),
+        ],
     )
 
 
@@ -678,6 +737,7 @@ async def open_paper_airplane_guide_view(
     """종이비행기 사용 방법을 조회합니다."""
     await ack()
 
+    # TODO: 가이드 문구와 최근 관계도가 높은 유저 추천하기
     await client.views_open(
         trigger_id=body["trigger_id"],
         view=View(

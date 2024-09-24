@@ -37,4 +37,7 @@ class BackgroundService:
                 channel=user.user_id,
                 text=remind_message.format(user_name=user.name),
             )
+
+            # 슬랙은 메시지 전송을 초당 1개를 권장하기 때문에 1초 대기합니다.
+            # 참고문서: https://api.slack.com/methods/chat.postMessage#rate_limiting
             await asyncio.sleep(1)
