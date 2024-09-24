@@ -72,7 +72,7 @@ if settings.ENV == "prod":
         async_schedule.add_job(upload_logs, trigger=trigger, args=[store])
 
         queue = BigqueryQueue(client=BigqueryClient())
-        trigger = IntervalTrigger(seconds=5, timezone=ZoneInfo("Asia/Seoul"))
+        trigger = IntervalTrigger(seconds=30, timezone=ZoneInfo("Asia/Seoul"))
         async_schedule.add_job(upload_bigquery, trigger=trigger, args=[queue])
 
         # 리마인드 스케줄러
@@ -97,7 +97,7 @@ if settings.ENV == "prod":
     async def upload_queue(store: Store, slack_app: AsyncApp) -> None:
         """업로드 큐에 있는 데이터를 업로드합니다."""
         try:
-            store.upload_queue()
+            await store.upload_queue()
         except Exception as e:
             trace = traceback.format_exc()
             error = f"시트 업로드 중 에러가 발생했어요. {str(e)} {trace}"
@@ -139,7 +139,7 @@ if settings.ENV == "prod":
         await slack_handler.close_async()
 
         store = Store(client=SpreadSheetClient())
-        store.upload_queue()
+        await store.upload_queue()
         store.bulk_upload("logs")
         store.initialize_logs()
 
