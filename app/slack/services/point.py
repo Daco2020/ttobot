@@ -60,6 +60,10 @@ class UserPoint(BaseModel):
         text = ""
         for point_history in self.point_histories[:20]:
             text += f"[{point_history.created_at}] - *{point_history.point}점* :: {point_history.reason}\n"
+
+        if not text:
+            text = "아직 포인트 획득 내역이 없어요. 😅\n또봇 [홈] 탭 -> [포인트 획득 방법 알아보기] 에서 방법을 확인해보세요."
+
         return text
 
 

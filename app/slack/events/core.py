@@ -480,6 +480,25 @@ async def open_point_history_view(
 
     user_point_history = point_service.get_user_point(user_id=user.user_id)
 
+    footer_blocks: list[Block] = []
+    if user_point_history.total_point > 0:
+        footer_blocks = [
+            DividerBlock(),
+            SectionBlock(
+                text="포인트 획득 내역은 최근 20개까지만 표시됩니다.\n전체 내역을 확인하려면 아래 버튼을 눌러주세요.",
+            ),
+            ActionsBlock(
+                elements=[
+                    ButtonElement(
+                        text="전체 내역 다운로드",
+                        action_id="download_point_history",
+                        value="download_point_history",
+                        style="primary",
+                    ),
+                ],
+            ),
+        ]
+
     await client.views_open(
         trigger_id=body["trigger_id"],
         view=View(
@@ -492,20 +511,7 @@ async def open_point_history_view(
                 ),
                 DividerBlock(),
                 SectionBlock(text=user_point_history.point_history_text),
-                DividerBlock(),
-                SectionBlock(
-                    text="포인트 획득 내역은 최근 20개까지만 표시됩니다.\n전체 내역을 확인하려면 아래 버튼을 눌러주세요.",
-                ),
-                ActionsBlock(
-                    elements=[
-                        ButtonElement(
-                            text="전체 내역 다운로드",
-                            action_id="download_point_history",
-                            value="download_point_history",
-                            style="primary",
-                        ),
-                    ],
-                ),
+                *footer_blocks,
             ],
         ),
     )
