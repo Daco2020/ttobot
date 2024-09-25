@@ -402,19 +402,19 @@ async def handle_home_tab(
                     elements=[
                         ButtonElement(
                             text="종이비행기 보내기",
-                            action_id="send_paper_airplane_message",
-                            value="send_paper_airplane_message",
+                            action_id="send_paper_plane_message",
+                            value="send_paper_plane_message",
                             style="primary",
                         ),
                         ButtonElement(
                             text="주고받은 종이비행기 보기",
-                            action_id="open_paper_airplane_history_view",
-                            value="open_paper_airplane_history_view",
+                            action_id="open_paper_plane_history_view",
+                            value="open_paper_plane_history_view",
                         ),
                         ButtonElement(
                             text="누구에게 보내면 좋을까요?",
-                            action_id="open_paper_airplane_guide_view",
-                            value="open_paper_airplane_guide_view",
+                            action_id="open_paper_plane_guide_view",
+                            value="open_paper_plane_guide_view",
                         ),
                     ],
                 ),
@@ -601,7 +601,7 @@ async def open_point_guide_view(
     )
 
 
-async def send_paper_airplane_message(
+async def send_paper_plane_message(
     ack: AsyncAck,
     body: ActionBodyType,
     say: AsyncSay,
@@ -618,7 +618,7 @@ async def send_paper_airplane_message(
         view=View(
             type="modal",
             title="종이비행기 보내기",
-            callback_id="send_paper_airplane_message_view",
+            callback_id="send_paper_plane_message_view",
             close="닫기",
             submit="보내기",
             blocks=[
@@ -626,7 +626,7 @@ async def send_paper_airplane_message(
                     text="종이비행기로 전하고 싶은 마음을 적어주세요.",
                 ),
                 InputBlock(
-                    block_id="paper_airplane_receiver",
+                    block_id="paper_plane_receiver",
                     label="받는 사람",
                     element=UserSelectElement(
                         action_id="select_user",
@@ -634,10 +634,10 @@ async def send_paper_airplane_message(
                     ),
                 ),
                 InputBlock(
-                    block_id="paper_airplane_message",
+                    block_id="paper_plane_message",
                     label="메시지",
                     element=PlainTextInputElement(
-                        action_id="paper_airplane_message",
+                        action_id="paper_plane_message",
                         placeholder="종이비행기로 전할 마음을 적어주세요.",
                         multiline=True,
                     ),
@@ -647,7 +647,7 @@ async def send_paper_airplane_message(
     )
 
 
-async def send_paper_airplane_message_view(
+async def send_paper_plane_message_view(
     ack: AsyncAck,
     body: ViewBodyType,
     client: AsyncWebClient,
@@ -659,14 +659,14 @@ async def send_paper_airplane_message_view(
 ) -> None:
     """종이비행기 메시지를 전송합니다."""
     values = body["view"]["state"]["values"]
-    receiver_id = values["paper_airplane_receiver"]["select_user"]["selected_user"]
-    text = values["paper_airplane_message"]["paper_airplane_message"]["value"]
+    receiver_id = values["paper_plane_receiver"]["select_user"]["selected_user"]
+    text = values["paper_plane_message"]["paper_plane_message"]["value"]
 
     if user.user_id == receiver_id:
         await ack(
             response_action="errors",
             errors={
-                "paper_airplane_receiver": "종이비행기는 자신에게 보낼 수 없어요~😉",
+                "paper_plane_receiver": "종이비행기는 자신에게 보낼 수 없어요~😉",
             },
         )
         return
@@ -674,7 +674,7 @@ async def send_paper_airplane_message_view(
     await ack()
 
     receiver = service.get_user(user_id=receiver_id)
-    service.create_paper_airplane(
+    service.create_paper_plane(
         sender=user,
         receiver=receiver,
         text=text,
@@ -698,7 +698,7 @@ async def send_paper_airplane_message_view(
     )
 
 
-async def open_paper_airplane_history_view(
+async def open_paper_plane_history_view(
     ack: AsyncAck,
     body: ActionBodyType,
     say: AsyncSay,
@@ -725,7 +725,7 @@ async def open_paper_airplane_history_view(
     )
 
 
-async def open_paper_airplane_guide_view(
+async def open_paper_plane_guide_view(
     ack: AsyncAck,
     body: ActionBodyType,
     say: AsyncSay,

@@ -25,7 +25,7 @@ class ContentResponse(BaseModel):
     )
 
 
-class PaperAirplaneResponse(BaseModel):
+class PaperPlaneResponse(BaseModel):
     count: int = Field(
         ..., description="조건에 맞는 종이비행기의 총 개수", examples=[1]
     )

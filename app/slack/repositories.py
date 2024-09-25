@@ -269,8 +269,8 @@ class SlackRepository:
             ]
             return users
 
-    def create_paper_airplane(self, paper_airplane: models.PaperAirplane) -> None:
+    def create_paper_plane(self, paper_plane: models.PaperPlane) -> None:
         """종이비행기를 생성합니다."""
-        with open("store/paper_airplane.csv", "a", newline="", encoding="utf-8") as f:
+        with open("store/paper_plane.csv", "a", newline="", encoding="utf-8") as f:
             writer = csv.writer(f, quoting=csv.QUOTE_ALL)
-            writer.writerow(paper_airplane.to_list_for_csv())
+            writer.writerow(paper_plane.to_list_for_csv())

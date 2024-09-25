@@ -403,7 +403,7 @@ class PointHistory(BaseModel):
         ]
 
 
-class PaperAirplane(StoreModel):
+class PaperPlane(StoreModel):
     id: str = Field(default_factory=generate_unique_id)
     sender_id: str
     sender_name: str

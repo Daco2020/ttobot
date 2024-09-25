@@ -79,7 +79,7 @@ remind_message = """오늘은 글또 제출 마감일이에요.
 
 # fmt: off
 
-paper_airplane_color_maps = [
+paper_plane_color_maps = [
     {"color_label": "fiery_red", "bg_color": "#FF4500", "text_color": "#FFFFFF"},  # 불꽃 같은 빨간색
     {"color_label": "fresh_green", "bg_color": "#32CD32", "text_color": "#FFFFFF"},  # 싱그러운 초록색
     {"color_label": "sky_blue", "bg_color": "#1E90FF", "text_color": "#FFFFFF"},  # 맑은 하늘색

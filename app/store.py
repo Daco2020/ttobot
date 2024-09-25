@@ -13,7 +13,7 @@ bookmark_update_queue: list[Bookmark] = []  # TODO: 추후 타입 수정 필요
 user_update_queue: list[list[str]] = []
 coffee_chat_proof_upload_queue: list[list[str]] = []
 point_history_upload_queue: list[list[str]] = []
-paper_airplane_upload_queue: list[list[str]] = []
+paper_plane_upload_queue: list[list[str]] = []
 
 
 class Store:
@@ -31,7 +31,7 @@ class Store:
         )
         self.write("reactions", values=self._client.get_values("reactions"))
         self.write("point_histories", values=self._client.get_values("point_histories"))
-        self.write("paper_airplane", values=self._client.get_values("paper_airplane"))
+        self.write("paper_plane", values=self._client.get_values("paper_plane"))
 
     def write(self, table_name: str, values: list[list[str]]) -> None:
         with open(f"store/{table_name}.csv", "w", newline="", encoding="utf-8") as f:
@@ -60,7 +60,7 @@ class Store:
         global user_update_queue
         global coffee_chat_proof_upload_queue
         global point_history_upload_queue
-        global paper_airplane_upload_queue
+        global paper_plane_upload_queue
 
         async with queue_lock:
             temp_content_upload_queue = list(content_upload_queue)
@@ -186,24 +186,24 @@ class Store:
                     },
                 )
 
-            temp_paper_airplane_upload_queue = list(paper_airplane_upload_queue)
-            if temp_paper_airplane_upload_queue:
+            temp_paper_plane_upload_queue = list(paper_plane_upload_queue)
+            if temp_paper_plane_upload_queue:
                 await asyncio.to_thread(
                     self._client.upload,
-                    "paper_airplane",
-                    temp_paper_airplane_upload_queue,
+                    "paper_plane",
+                    temp_paper_plane_upload_queue,
                 )
-                paper_airplane_upload_queue = self.initial_queue(
-                    queue=paper_airplane_upload_queue,
-                    temp_queue=temp_paper_airplane_upload_queue,
+                paper_plane_upload_queue = self.initial_queue(
+                    queue=paper_plane_upload_queue,
+                    temp_queue=temp_paper_plane_upload_queue,
                 )
                 log_event(
                     actor="system",
-                    event="uploaded_paper_airplane",
+                    event="uploaded_paper_plane",
                     type="community",
-                    description=f"{len(temp_paper_airplane_upload_queue)}개 종이비행기 업로드",
+                    description=f"{len(temp_paper_plane_upload_queue)}개 종이비행기 업로드",
                     body={
-                        "temp_paper_airplane_upload_queue": temp_paper_airplane_upload_queue
+                        "temp_paper_plane_upload_queue": temp_paper_plane_upload_queue
                     },
                 )
 

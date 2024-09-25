@@ -9,40 +9,40 @@ router = APIRouter()
 
 
 @router.get(
-    "/paper_airplanes/sent",
+    "/paper_planes/sent",
     status_code=status.HTTP_200_OK,
-    response_model=dto.PaperAirplaneResponse,
+    response_model=dto.PaperPlaneResponse,
 )
-async def fetch_sent_paper_airplanes(
+async def fetch_sent_paper_planes(
     user_id: str,
     offset: int = 0,
     limit: int = Query(default=50, le=50),
     service: ApiService = Depends(api_service),
-) -> dto.PaperAirplaneResponse:
+) -> dto.PaperPlaneResponse:
     """조건에 맞는 종이비행기를 가져옵니다."""
-    count, data = service.fetch_sent_paper_airplanes(
+    count, data = service.fetch_sent_paper_planes(
         user_id=user_id, offset=offset, limit=limit
     )
-    return dto.PaperAirplaneResponse(
+    return dto.PaperPlaneResponse(
         count=count, data=[each.model_dump() for each in data]
     )
 
 
 @router.get(
-    "/paper_airplanes/received",
+    "/paper_planes/received",
     status_code=status.HTTP_200_OK,
-    response_model=dto.PaperAirplaneResponse,
+    response_model=dto.PaperPlaneResponse,
 )
-async def fetch_received_paper_airplanes(
+async def fetch_received_paper_planes(
     user_id: str,
     offset: int = 0,
     limit: int = Query(default=50, le=50),
     service: ApiService = Depends(api_service),
-) -> dto.PaperAirplaneResponse:
+) -> dto.PaperPlaneResponse:
     """조건에 맞는 종이비행기를 가져옵니다."""
-    count, data = service.fetch_received_paper_airplanes(
+    count, data = service.fetch_received_paper_planes(
         user_id=user_id, offset=offset, limit=limit
     )
-    return dto.PaperAirplaneResponse(
+    return dto.PaperPlaneResponse(
         count=count, data=[each.model_dump() for each in data]
     )
