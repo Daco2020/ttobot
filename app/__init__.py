@@ -1,6 +1,6 @@
 import traceback
 
-from app.bigquery.client import BigqueryClient
+# from app.bigquery.client import BigqueryClient
 from app.bigquery.queue import BigqueryQueue
 from app.logging import logger
 
@@ -71,9 +71,10 @@ if settings.ENV == "prod":
         trigger = IntervalTrigger(minutes=1, timezone=ZoneInfo("Asia/Seoul"))
         async_schedule.add_job(upload_logs, trigger=trigger, args=[store])
 
-        queue = BigqueryQueue(client=BigqueryClient())
-        trigger = IntervalTrigger(seconds=30, timezone=ZoneInfo("Asia/Seoul"))
-        async_schedule.add_job(upload_bigquery, trigger=trigger, args=[queue])
+        # TODO: 추후 10기에 활성화
+        # queue = BigqueryQueue(client=BigqueryClient())
+        # trigger = IntervalTrigger(seconds=30, timezone=ZoneInfo("Asia/Seoul"))
+        # async_schedule.add_job(upload_bigquery, trigger=trigger, args=[queue])
 
         # 리마인드 스케줄러
         # TODO: 추후 10기에 활성화
