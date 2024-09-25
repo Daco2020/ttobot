@@ -20,7 +20,7 @@ oauth_settings = OAuthSettings(
     scopes=["channels:read", "groups:read", "chat:write"],
     state_store=FileOAuthStateStore(expiration_seconds=600, base_dir="./data/states"),
     user_scopes=["identity.basic"],
-    redirect_uri=f"https://{settings.DOMAIN}/v1/slack/callback",
+    redirect_uri=f"https://{settings.CLEINT_DOMAIN}/slack/callback",
 )
 
 oauth_flow = OAuthFlow(settings=oauth_settings)
@@ -33,8 +33,8 @@ async def slack_login(request: Request):
     return RedirectResponse(url=url)
 
 
-@router.get("/slack/callback")
-async def slack_callback(
+@router.get("/slack/auth")
+async def slack_auth(
     request: Request,
     code: str | None = None,
     state: str | None = None,

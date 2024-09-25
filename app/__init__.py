@@ -34,6 +34,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "https://geultto-post-board.netlify.app",
+        "https://geultto-paper-plane.vercel.app",
         "http://localhost:3000",
     ],
     allow_credentials=True,

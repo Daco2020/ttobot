@@ -31,7 +31,7 @@ def set_cookie(
         value=value,
         max_age=60 * 60 * 24,
         expires=datetime.now(timezone.utc) + timedelta(days=1),
-        domain=settings.DOMAIN,
+        domain=settings.SERVER_DOMAIN,
         path="/",
         httponly=True,
         secure=True,
