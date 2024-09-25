@@ -408,8 +408,8 @@ async def handle_home_tab(
                         ),
                         ButtonElement(
                             text="주고받은 종이비행기 보기",
-                            action_id="open_paper_plane_history_view",
-                            value="open_paper_plane_history_view",
+                            action_id="open_paper_plane_url",
+                            url="https://geultto-paper-plane.vercel.app",
                         ),
                         ButtonElement(
                             text="누구에게 보내면 좋을까요?",
@@ -698,7 +698,7 @@ async def send_paper_plane_message_view(
     )
 
 
-async def open_paper_plane_history_view(
+async def open_paper_plane_url(
     ack: AsyncAck,
     body: ActionBodyType,
     say: AsyncSay,
@@ -707,22 +707,9 @@ async def open_paper_plane_history_view(
     service: SlackService,
     point_service: PointService,
 ) -> None:
-    """종이비행기 히스토리를 조회합니다."""
+    """종이비행기 페이지를 엽니다."""
+    # 해당 이벤트는 로그를 위해 ack만 수행합니다.
     await ack()
-
-    await client.views_open(
-        trigger_id=body["trigger_id"],
-        view=View(
-            type="modal",
-            title="종이비행기 히스토리",
-            close="닫기",
-            blocks=[
-                SectionBlock(
-                    text="종이비행기 히스토리는 추후 업데이트 예정입니다.",
-                ),
-            ],
-        ),
-    )
 
 
 async def open_paper_plane_guide_view(
