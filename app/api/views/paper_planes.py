@@ -11,7 +11,7 @@ router = APIRouter()
 
 
 @router.get(
-    "/paper_planes/sent",
+    "/paper-planes/sent",
     status_code=status.HTTP_200_OK,
     response_model=dto.PaperPlaneResponse,
 )
@@ -31,7 +31,7 @@ async def fetch_sent_paper_planes(
 
 
 @router.get(
-    "/paper_planes/received",
+    "/paper-planes/received",
     status_code=status.HTTP_200_OK,
     response_model=dto.PaperPlaneResponse,
 )
