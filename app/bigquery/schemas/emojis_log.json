@@ -1,0 +1,37 @@
+[
+    {
+        "mode": "REQUIRED",
+        "name": "user_id",
+        "type": "STRING"
+    },
+    {
+        "mode": "REQUIRED",
+        "name": "channel_id",
+        "type": "STRING"
+    },
+    {
+        "mode": "REQUIRED",
+        "name": "ts",
+        "type": "STRING"
+    },
+    {
+        "mode": "REQUIRED",
+        "name": "reactions_ts",
+        "type": "STRING"
+    },
+    {
+        "mode": "REQUIRED",
+        "name": "tddate",
+        "type": "DATE"
+    },
+    {
+        "mode": "REQUIRED",
+        "name": "createtime",
+        "type": "DATETIME"
+    },
+    {
+        "mode": "REQUIRED",
+        "name": "reaction",
+        "type": "STRING"
+    }
+]

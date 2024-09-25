@@ -16,6 +16,8 @@ class Settings(BaseSettings):
     SPREAD_SHEETS_URL: str
     DEPOSIT_SHEETS_URL: str
     SECRET_KEY: str
+    BIGQUERY_CREDENTIALS: dict[str, Any]
+    BIGQUERY_DATABASE_ID: str
 
     NOTICE_CHANNEL: str
     SUPPORT_CHANNEL: str

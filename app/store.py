@@ -1,15 +1,17 @@
+import asyncio
 import csv
 import os
 from app.client import SpreadSheetClient
 from app.logging import log_event
 from app.models import Bookmark
 
+queue_lock = asyncio.Lock()
+
 content_upload_queue: list[list[str]] = []
 bookmark_upload_queue: list[list[str]] = []
 bookmark_update_queue: list[Bookmark] = []  # TODO: 추후 타입 수정 필요
 user_update_queue: list[list[str]] = []
 coffee_chat_proof_upload_queue: list[list[str]] = []
-reaction_upload_queue: list[list[str]] = []
 point_history_upload_queue: list[list[str]] = []
 paper_airplane_upload_queue: list[list[str]] = []
 
@@ -50,105 +52,160 @@ class Store:
         values = self.read(table_name)
         self._client.bulk_upload(table_name, values)
 
-    def upload_queue(self) -> None:
+    async def upload_queue(self) -> None:
         """새로 추가된 queue 가 있다면 upload 합니다."""
         global content_upload_queue
-        if content_upload_queue:
-            self._client.upload("contents", content_upload_queue)
-            log_event(
-                actor="system",
-                event="uploaded_contents",
-                type="content",
-                description=f"{len(content_upload_queue)}개 콘텐츠 업로드",
-                body={"content_upload_queue": content_upload_queue},
-            )
-            content_upload_queue = []
-
         global bookmark_upload_queue
-        if bookmark_upload_queue:
-            self._client.upload("bookmark", bookmark_upload_queue)
-            log_event(
-                actor="system",
-                event="uploaded_bookmarks",
-                type="content",
-                description=f"{len(bookmark_upload_queue)}개 북마크 업로드",
-                body={"bookmark_upload_queue": bookmark_upload_queue},
-            )
-            bookmark_upload_queue = []
-
         global bookmark_update_queue
-        if bookmark_update_queue:
-            for bookmark in bookmark_update_queue:
-                self._client.update(sheet_name="bookmark", obj=bookmark)
-            log_event(
-                actor="system",
-                event="updated_bookmarks",
-                type="content",
-                description=f"{len(bookmark_update_queue)}개 북마크 업데이트",
-                body={"bookmark_update_queue": bookmark_update_queue},
-            )
-            bookmark_update_queue = []
-
         global user_update_queue
-        if user_update_queue:
-            for values in user_update_queue:
-                self._client.update_user(sheet_name="users", values=values)
-            log_event(
-                actor="system",
-                event="updated_user_introduction",
-                type="user",
-                description=f"{len(user_update_queue)}개 유저 자기소개 업데이트",
-                body={"user_update_queue": user_update_queue},
-            )
-            user_update_queue = []
-
         global coffee_chat_proof_upload_queue
-        if coffee_chat_proof_upload_queue:
-            self._client.upload("coffee_chat_proof", coffee_chat_proof_upload_queue)
-            log_event(
-                actor="system",
-                event="uploaded_coffee_chat_proofs",
-                type="community",
-                description=f"{len(coffee_chat_proof_upload_queue)}개 커피챗 인증 업로드",
-                body={"coffee_chat_proof_upload_queue": coffee_chat_proof_upload_queue},
-            )
-            coffee_chat_proof_upload_queue = []
-
-        global reaction_upload_queue
-        if reaction_upload_queue:
-            self._client.upload("reactions", reaction_upload_queue)
-            log_event(
-                actor="system",
-                event="uploaded_reactions",
-                type="community",
-                description=f"{len(reaction_upload_queue)}개 리액션 업로드",
-                body={"reaction_upload_queue": reaction_upload_queue},
-            )
-            reaction_upload_queue = []
-
         global point_history_upload_queue
-        if point_history_upload_queue:
-            self._client.upload("point_histories", point_history_upload_queue)
-            log_event(
-                actor="system",
-                event="uploaded_point_histories",
-                type="point",
-                description=f"{len(point_history_upload_queue)}개 포인트 내역 업로드",
-                body={"point_history_upload_queue": point_history_upload_queue},
-            )
-            point_history_upload_queue = []
-
         global paper_airplane_upload_queue
-        if paper_airplane_upload_queue:
-            self._client.upload("paper_airplane", paper_airplane_upload_queue)
-            log_event(
-                actor="system",
-                event="uploaded_paper_airplane",
-                type="community",
-                description=f"{len(paper_airplane_upload_queue)}개 종이비행기 업로드",
-                body={"paper_airplane_upload_queue": paper_airplane_upload_queue},
-            )
-            paper_airplane_upload_queue = []
+
+        async with queue_lock:
+            temp_content_upload_queue = list(content_upload_queue)
+            if temp_content_upload_queue:
+                await asyncio.to_thread(
+                    self._client.upload,
+                    "contents",
+                    temp_content_upload_queue,
+                )
+                content_upload_queue = self.initial_queue(
+                    queue=content_upload_queue,
+                    temp_queue=temp_content_upload_queue,
+                )
+                log_event(
+                    actor="system",
+                    event="uploaded_contents",
+                    type="content",
+                    description=f"{len(temp_content_upload_queue)}개 콘텐츠 업로드",
+                    body={
+                        "temp_content_upload_queue": temp_content_upload_queue,
+                        "content_upload_queue": content_upload_queue,  # 디버깅을 위해 추가
+                    },
+                )
+
+            temp_bookmark_upload_queue = list(bookmark_upload_queue)
+            if temp_bookmark_upload_queue:
+                await asyncio.to_thread(
+                    self._client.upload,
+                    "bookmark",
+                    temp_bookmark_upload_queue,
+                )
+                bookmark_upload_queue = self.initial_queue(
+                    queue=bookmark_upload_queue,
+                    temp_queue=temp_bookmark_upload_queue,
+                )
+                log_event(
+                    actor="system",
+                    event="uploaded_bookmarks",
+                    type="content",
+                    description=f"{len(temp_bookmark_upload_queue)}개 북마크 업로드",
+                    body={"temp_bookmark_upload_queue": temp_bookmark_upload_queue},
+                )
+
+            temp_bookmark_update_queue = list(bookmark_update_queue)
+            if temp_bookmark_update_queue:
+                for bookmark in temp_bookmark_update_queue:
+                    await asyncio.to_thread(
+                        self._client.update,
+                        "bookmark",
+                        bookmark,
+                    )
+                bookmark_update_queue = self.initial_queue(
+                    queue=bookmark_update_queue,
+                    temp_queue=temp_bookmark_update_queue,
+                )
+                log_event(
+                    actor="system",
+                    event="updated_bookmarks",
+                    type="content",
+                    description=f"{len(temp_bookmark_update_queue)}개 북마크 업데이트",
+                    body={"temp_bookmark_update_queue": temp_bookmark_update_queue},
+                )
+
+            temp_user_update_queue = list(user_update_queue)
+            if temp_user_update_queue:
+                for values in temp_user_update_queue:
+                    await asyncio.to_thread(
+                        self._client.update_user,
+                        "users",
+                        values,
+                    )
+                user_update_queue = self.initial_queue(
+                    queue=user_update_queue,
+                    temp_queue=temp_user_update_queue,
+                )
+                log_event(
+                    actor="system",
+                    event="updated_user_introduction",
+                    type="user",
+                    description=f"{len(temp_user_update_queue)}개 유저 자기소개 업데이트",
+                    body={"temp_user_update_queue": temp_user_update_queue},
+                )
+
+            temp_coffee_chat_proof_upload_queue = list(coffee_chat_proof_upload_queue)
+            if temp_coffee_chat_proof_upload_queue:
+                await asyncio.to_thread(
+                    self._client.upload,
+                    "coffee_chat_proof",
+                    temp_coffee_chat_proof_upload_queue,
+                )
+                coffee_chat_proof_upload_queue = self.initial_queue(
+                    queue=coffee_chat_proof_upload_queue,
+                    temp_queue=temp_coffee_chat_proof_upload_queue,
+                )
+                log_event(
+                    actor="system",
+                    event="uploaded_coffee_chat_proofs",
+                    type="community",
+                    description=f"{len(temp_coffee_chat_proof_upload_queue)}개 커피챗 인증 업로드",
+                    body={
+                        "temp_coffee_chat_proof_upload_queue": temp_coffee_chat_proof_upload_queue
+                    },
+                )
+
+            temp_point_history_upload_queue = list(point_history_upload_queue)
+            if temp_point_history_upload_queue:
+                await asyncio.to_thread(
+                    self._client.upload,
+                    "point_histories",
+                    temp_point_history_upload_queue,
+                )
+                point_history_upload_queue = self.initial_queue(
+                    queue=point_history_upload_queue,
+                    temp_queue=temp_point_history_upload_queue,
+                )
+                log_event(
+                    actor="system",
+                    event="uploaded_point_histories",
+                    type="point",
+                    description=f"{len(temp_point_history_upload_queue)}개 포인트 내역 업로드",
+                    body={
+                        "temp_point_history_upload_queue": temp_point_history_upload_queue
+                    },
+                )
+
+            temp_paper_airplane_upload_queue = list(paper_airplane_upload_queue)
+            if temp_paper_airplane_upload_queue:
+                await asyncio.to_thread(
+                    self._client.upload,
+                    "paper_airplane",
+                    temp_paper_airplane_upload_queue,
+                )
+                paper_airplane_upload_queue = self.initial_queue(
+                    queue=paper_airplane_upload_queue,
+                    temp_queue=temp_paper_airplane_upload_queue,
+                )
+                log_event(
+                    actor="system",
+                    event="uploaded_paper_airplane",
+                    type="community",
+                    description=f"{len(temp_paper_airplane_upload_queue)}개 종이비행기 업로드",
+                    body={
+                        "temp_paper_airplane_upload_queue": temp_paper_airplane_upload_queue
+                    },
+                )
 
     def backup(self, table_name: str) -> None:
         values = self.read(table_name)
@@ -157,3 +214,7 @@ class Store:
     def initialize_logs(self) -> None:
         """로그를 초기화합니다."""
         open("store/logs.csv", "w").close()
+
+    def initial_queue(self, *, queue: list, temp_queue: list) -> list:
+        """queue 에서 temp_queue 를 제거한 값을 반환합니다."""
+        return [entry for entry in queue if entry not in temp_queue]

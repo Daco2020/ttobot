@@ -1,5 +1,7 @@
 import traceback
 
+from app.bigquery.client import BigqueryClient
+from app.bigquery.queue import BigqueryQueue
 from app.logging import logger
 
 from zoneinfo import ZoneInfo
@@ -36,7 +38,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-slack_handler = AsyncSocketModeHandler(slack_app, settings.SLACK_APP_TOKEN)
+slack_handler = AsyncSocketModeHandler(
+    app=slack_app,
+    app_token=settings.SLACK_APP_TOKEN,
+)
 
 
 @app.get("/")
@@ -66,7 +71,9 @@ if settings.ENV == "prod":
         trigger = IntervalTrigger(minutes=1, timezone=ZoneInfo("Asia/Seoul"))
         async_schedule.add_job(upload_logs, trigger=trigger, args=[store])
 
-        async_schedule.start()
+        queue = BigqueryQueue(client=BigqueryClient())
+        trigger = IntervalTrigger(seconds=30, timezone=ZoneInfo("Asia/Seoul"))
+        async_schedule.add_job(upload_bigquery, trigger=trigger, args=[queue])
 
         # 리마인드 스케줄러
         # TODO: 추후 10기에 활성화
@@ -82,7 +89,7 @@ if settings.ENV == "prod":
         # )
         # async_schedule.add_job(remind_job, trigger=remind_trigger, args=[slack_app])
 
-        # async_schedule.start()
+        async_schedule.start()
 
         # 슬랙 소켓 모드 실행
         await slack_handler.connect_async()
@@ -90,7 +97,7 @@ if settings.ENV == "prod":
     async def upload_queue(store: Store, slack_app: AsyncApp) -> None:
         """업로드 큐에 있는 데이터를 업로드합니다."""
         try:
-            store.upload_queue()
+            await store.upload_queue()
         except Exception as e:
             trace = traceback.format_exc()
             error = f"시트 업로드 중 에러가 발생했어요. {str(e)} {trace}"
@@ -107,6 +114,21 @@ if settings.ENV == "prod":
         store.bulk_upload("logs")
         store.initialize_logs()
 
+    async def upload_bigquery(queue: BigqueryQueue) -> None:
+        try:
+            await queue.upload()
+        except Exception as e:
+            trace = traceback.format_exc()
+            error = f"빅쿼리 업로드 중 에러가 발생했어요. {str(e)} {trace}"
+            message = f"🫢: {error=} 🕊️: {trace=}"
+            logger.error(message)
+
+            # 관리자에게 에러를 알립니다.
+            await slack_app.client.chat_postMessage(
+                channel=settings.ADMIN_CHANNEL,
+                text=message,
+            )
+
     async def remind_job(slack_app: AsyncApp) -> None:
         slack_service = BackgroundService(repo=SlackRepository())
         await slack_service.send_reminder_message_to_user(slack_app)
@@ -117,7 +139,7 @@ if settings.ENV == "prod":
         await slack_handler.close_async()
 
         store = Store(client=SpreadSheetClient())
-        store.upload_queue()
+        await store.upload_queue()
         store.bulk_upload("logs")
         store.initialize_logs()
 
