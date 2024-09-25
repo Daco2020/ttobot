@@ -55,7 +55,7 @@ async def slack_callback(
         )
 
     token = encode_token(
-        payload={"user_id": result.user_id}, expires_delta=timedelta(days=3)
+        payload={"user_id": result.user_id}, expires_delta=timedelta(days=1)
     )
     return JSONResponse(
         status_code=200, content={"access_token": token, "message": "success"}
