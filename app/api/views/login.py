@@ -1,9 +1,10 @@
+from datetime import timedelta
 from typing import cast
 from slack_bolt import BoltRequest
 from app import models
 from fastapi import APIRouter, Depends, Request, HTTPException
 from fastapi.responses import JSONResponse
-from app.api.auth import login
+from app.api.auth import encode_token
 from app.api.auth import current_user
 from app.config import settings
 from fastapi.responses import RedirectResponse
@@ -53,10 +54,12 @@ async def slack_callback(
             status_code=403, detail="Slack OAuth Error: Failed to run installation"
         )
 
-    response = JSONResponse(status_code=200, content={"message": "success"})
-    login(response, payload={"user_id": result.user_id})
-
-    return response
+    token = encode_token(
+        payload={"user_id": result.user_id}, expires_delta=timedelta(days=3)
+    )
+    return JSONResponse(
+        status_code=200, content={"access_token": token, "message": "success"}
+    )
 
 
 @router.get("/test-login")

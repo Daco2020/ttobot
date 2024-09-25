@@ -1,9 +1,10 @@
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 import jwt
 from app import models
 from app.config import settings
 
 
-from fastapi import Cookie, Depends, HTTPException, Response
+from fastapi import Depends, HTTPException, Response
 
 
 from datetime import datetime, timedelta, timezone
@@ -33,8 +34,7 @@ def set_cookie(
         domain=settings.DOMAIN,
         path="/",
         httponly=True,
-        # secure=True,
-        secure=False,
+        secure=True,
     )
 
 
@@ -69,29 +69,32 @@ def decode_token(
     )
 
 
+security = HTTPBearer(auto_error=False)
+
+
 async def current_user(
+    credentials: HTTPAuthorizationCredentials | None = Depends(security),
     api_repo: ApiRepository = Depends(api_repo),
-    access_token: str = Cookie(default=None),
 ) -> models.User:
     """현재 유저를 조회합니다."""
-    if access_token:
-        try:
-            result = decode_token(access_token)
-        except Exception:
-            raise HTTPException(
-                status_code=403,
-                detail=f"토큰이 유효하지 않습니다. token: {access_token}",
-            )
+    token = credentials and credentials.credentials
+    if not token:
+        raise HTTPException(status_code=403, detail="토큰이 존재하지 않습니다.")
 
-        if user_id := result.get("user_id", None):
-            user = api_repo.get_user(cast(str, user_id))
-        if not user_id or not user:
-            raise HTTPException(
-                status_code=404,
-                detail=f"유저가 존재하지 않습니다. user_id: {result.get('user_id')}",
-            )
-        return user
-    else:
+    try:
+        result = decode_token(token)
+    except Exception:
         raise HTTPException(
-            status_code=404, detail=f"토큰이 존재하지 않습니다. token: {access_token}"
+            status_code=403, detail=f"토큰이 유효하지 않습니다. token: {token}"
         )
+
+    user_id = result.get("user_id", None)
+    user = api_repo.get_user(cast(str, user_id)) if user_id else None
+
+    if not user:
+        raise HTTPException(
+            status_code=404,
+            detail=f"유저가 존재하지 않습니다. user_id: {result.get('user_id')}",
+        )
+
+    return user
