@@ -7,7 +7,6 @@ from fastapi.responses import JSONResponse
 from app.api.auth import encode_token
 from app.api.auth import current_user
 from app.config import settings
-from fastapi.responses import RedirectResponse
 from slack_bolt.oauth.oauth_settings import OAuthSettings
 from slack_sdk.oauth.state_store import FileOAuthStateStore
 from slack_bolt.oauth.oauth_flow import OAuthFlow
@@ -30,7 +29,7 @@ oauth_flow = OAuthFlow(settings=oauth_settings)
 async def slack_login(request: Request):
     state = oauth_flow.issue_new_state(request=cast(BoltRequest, request))
     url = oauth_settings.authorize_url_generator.generate(state=state)
-    return RedirectResponse(url=url)
+    return JSONResponse(content={"redirect_url": url})
 
 
 @router.get("/slack/auth")
