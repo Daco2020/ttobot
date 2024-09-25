@@ -86,7 +86,7 @@ async def dependency_injection_middleware(
     """서비스 객체를 주입합니다."""
     event = req.context.get("event")
     user_id = req.context.user_id
-    channel_id = req.context.channel_id
+    # channel_id = req.context.channel_id
 
     if event in ["app_mention", "member_joined_channel", "message"]:
         # 앱 멘션과 채널 입장은 서비스 객체를 주입하지 않는다.
@@ -109,17 +109,19 @@ async def dependency_injection_middleware(
         return
 
     if user_id is None:
-        # TODO: 추후 에러 코드 정의할 것
-        raise BotException("사용자 아이디가 없습니다.")
+        # TODO: 10기 멤버 등록 후 활성화
+        # raise BotException("사용자 아이디가 없습니다.")
+        pass
 
-    message = (
-        "🥲 사용자 정보를 추가해주세요. 👉🏼 "
-        f"event: `{event}` "
-        f"channel: <#{channel_id}> "
-        f"user_id: {user_id}"
-    )
-    await app.client.chat_postMessage(channel=settings.ADMIN_CHANNEL, text=message)
-    logger.error(message)
+    # TODO: 10기 멤버 등록 후 활성화
+    # message = (
+    #     "🥲 사용자 정보를 추가해주세요. 👉🏼 "
+    #     f"event: `{event}` "
+    #     f"channel: <#{channel_id}> "
+    #     f"user_id: {user_id}"
+    # )
+    # await app.client.chat_postMessage(channel=settings.ADMIN_CHANNEL, text=message)
+    # logger.error(message)
 
 
 @app.error
