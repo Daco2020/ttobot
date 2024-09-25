@@ -33,7 +33,8 @@ def set_cookie(
         domain=settings.DOMAIN,
         path="/",
         httponly=True,
-        secure=True,
+        # secure=True,
+        secure=False,
     )
 
 
