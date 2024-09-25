@@ -19,7 +19,7 @@ oauth_settings = OAuthSettings(
     scopes=["channels:read", "groups:read", "chat:write"],
     state_store=FileOAuthStateStore(expiration_seconds=600, base_dir="./data/states"),
     user_scopes=["identity.basic"],
-    redirect_uri=f"https://{settings.CLEINT_DOMAIN}/slack/callback",
+    redirect_uri=f"https://{settings.CLIENT_DOMAIN}/slack/callback",
 )
 
 oauth_flow = OAuthFlow(settings=oauth_settings)
@@ -62,7 +62,7 @@ async def slack_auth(
 
 
 @router.get("/test-login")
-async def test_login(user: models.User = Depends(current_user)):
+async def test_login(user: models.SimpleUser = Depends(current_user)):
     """
     로그인 테스트용 API 입니다.
     로그인에 성공한다면 유저 정보를 반환합니다.

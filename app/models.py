@@ -194,6 +194,15 @@ class User(BaseModel):
         ]
 
 
+class SimpleUser(BaseModel):
+    user_id: str
+    name: str
+    channel_name: str
+    channel_id: str
+    intro: str
+    cohort: str
+
+
 class StoreModel(BaseModel):
     ...
 

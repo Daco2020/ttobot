@@ -5,7 +5,7 @@ from pydantic_settings import BaseSettings
 class Settings(BaseSettings):
     ENV: str
     SERVER_DOMAIN: str
-    CLEINT_DOMAIN: str
+    CLIENT_DOMAIN: str
 
     SLACK_BOT_TOKEN: str
     SLACK_APP_TOKEN: str

@@ -8,7 +8,7 @@ from fastapi import Depends, HTTPException, Response
 
 
 from datetime import datetime, timedelta, timezone
-from typing import Any, cast
+from typing import Any
 from app.api.deps import api_repo
 from app.api.repositories import ApiRepository
 
@@ -75,7 +75,7 @@ security = HTTPBearer(auto_error=False)
 async def current_user(
     credentials: HTTPAuthorizationCredentials | None = Depends(security),
     api_repo: ApiRepository = Depends(api_repo),
-) -> models.User:
+) -> models.SimpleUser:
     """현재 유저를 조회합니다."""
     token = credentials and credentials.credentials
     if not token:
@@ -88,8 +88,8 @@ async def current_user(
             status_code=403, detail=f"토큰이 유효하지 않습니다. token: {token}"
         )
 
-    user_id = result.get("user_id", None)
-    user = api_repo.get_user(cast(str, user_id)) if user_id else None
+    user_id = result.get("user_id", "")
+    user = api_repo.get_user(user_id) if user_id else None
 
     if not user:
         raise HTTPException(
@@ -97,4 +97,4 @@ async def current_user(
             detail=f"유저가 존재하지 않습니다. user_id: {result.get('user_id')}",
         )
 
-    return user
+    return models.SimpleUser.model_validate(user.model_dump())
