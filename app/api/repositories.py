@@ -7,14 +7,16 @@ class ApiRepository:
 
     def get_user(self, user_id: str) -> models.User | None:
         """특정 유저를 조회합니다."""
-        df = pl.read_csv("store/users.csv")
+        df = pl.read_csv(
+            "store/users.csv", dtypes={"deposit": pl.Utf8}
+        )  # pl은 deposit 을 int로 인식하기 때문에 str로 변경
         users = df.filter(pl.col("user_id") == user_id).to_dicts()
 
         return models.User(**users[0]) if users else None
 
     def fetch_users(self) -> list[models.User]:
         """모든 유저를 조회합니다."""
-        df = pl.read_csv("store/users.csv")
+        df = pl.read_csv("store/users.csv", dtypes={"deposit": pl.Utf8})
         return [models.User(**row) for row in df.to_dicts()]
 
     def fetch_sent_paper_planes(
