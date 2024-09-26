@@ -12,3 +12,12 @@ freeze:
 
 install:
 	pip install -r requirements.txt
+
+kill-server:
+	@PID=$$(ps -ef | grep "ttobot" | grep -v "grep" | awk '{print $$2}'); \
+	if [ -z "$$PID" ]; then \
+		echo "또봇 서버를 찾을 수 없어요."; \
+	else \
+		echo "또봇 서버를 종료합니다. PID: $$PID"; \
+		kill $$PID; \
+	fi

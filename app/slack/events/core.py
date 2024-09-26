@@ -679,6 +679,8 @@ async def send_paper_plane_message_view(
 
     await ack()
 
+    # TODO: 종이비행기 횟수 제한 유효성 검사 추가하기
+
     receiver = service.get_user(user_id=receiver_id)
     service.create_paper_plane(
         sender=user,
@@ -687,7 +689,7 @@ async def send_paper_plane_message_view(
     )
 
     await client.chat_postMessage(
-        channel=receiver_id,  # TODO: 공개 채널로 수정 필요
+        channel=settings.THANKS_CHANNEL,  # TODO: 공개 채널로 수정 필요
         text=f"💌 *<@{receiver_id}>* 님에게 종이비행기가 도착했어요!😊",
         blocks=[
             SectionBlock(
@@ -697,6 +699,23 @@ async def send_paper_plane_message_view(
                 elements=[
                     MarkdownTextObject(
                         text="> 받은 종이비행기는 또봇 [홈] 탭 -> [주고받은 종이비행기 보기] 에서 확인할 수 있어요.😉"
+                    )
+                ],
+            ),
+        ],
+    )
+
+    await client.chat_postMessage(
+        channel=user.user_id,
+        text=f"💌 *<@{receiver_id}>* 님에게 종이비행기를 보냈어요!😊",
+        blocks=[
+            SectionBlock(
+                text=f"💌 *<@{receiver_id}>* 님에게 종이비행기를 보냈어요!\n\n",
+            ),
+            ContextBlock(
+                elements=[
+                    MarkdownTextObject(
+                        text="> 보낸 종이비행기는 또봇 [홈] 탭 -> [주고받은 종이비행기 보기] 에서 확인할 수 있어요.😉"
                     )
                 ],
             ),

@@ -22,6 +22,7 @@ class Settings(BaseSettings):
 
     NOTICE_CHANNEL: str
     SUPPORT_CHANNEL: str
+    THANKS_CHANNEL: str
     COFFEE_CHAT_PROOF_CHANNEL: str
     ADMIN_CHANNEL: str
     ADMIN_IDS: list[str]
