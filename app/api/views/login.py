@@ -61,10 +61,7 @@ async def slack_auth(
     )
 
 
-@router.get("/test-login")
-async def test_login(user: models.SimpleUser = Depends(current_user)):
-    """
-    로그인 테스트용 API 입니다.
-    로그인에 성공한다면 유저 정보를 반환합니다.
-    """
+@router.get("/slack/me")
+async def get_me(user: models.SimpleUser = Depends(current_user)):
+    """로그인 유저의 정보를 반환합니다."""
     return user
