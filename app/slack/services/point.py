@@ -89,7 +89,7 @@ class PointService:
         )
         self._repo.add_point(point_history=point_history)
         store.point_history_upload_queue.append(point_history.to_list_for_sheet())
-        return f"<@{user_id}>님 `{point_info.reason}`(으)로 `{point_info.point}`포인트를 획득했어요! 🎉\n획득한 총 포인트는 또봇 [홈] 탭에서 확인할 수 있어요."
+        return f"<@{user_id}>님 `{point_info.reason}`(으)로 `{point_info.point}`포인트를 획득했어요! 🎉\n총 포인트와 내역은 또봇 [홈] 탭에서 확인할 수 있어요."
 
     def grant_if_post_submitted(self, user_id: str) -> tuple[str, bool]:
         """글쓰기 포인트 지급 1. 글을 제출하면 기본 포인트를 지급합니다. 글을 이미 제출했다면 추가 포인트를 지급합니다."""

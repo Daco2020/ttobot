@@ -8,36 +8,28 @@ from slack_sdk.web.async_client import AsyncWebClient
 
 
 async def handle_comment_data(body: MessageBodyType) -> None:
-    user = body["event"].get("user")
-    if not user:
-        print(body["event"], "comment, 유저 없음")
-    else:
-        data = CommentDataType(
-            user_id=body["event"]["user"],
-            channel_id=body["event"]["channel"],
-            ts=body["event"]["thread_ts"],  # type: ignore
-            comment_ts=body["event"]["ts"],
-            tddate=datetime.fromtimestamp(float(body["event"]["ts"])).date(),
-            createtime=datetime.fromtimestamp(float(body["event"]["ts"])),
-            text=body["event"]["text"],
-        )
-        bigquery_queue.comments_upload_queue.append(data)
+    data = CommentDataType(
+        user_id=body["event"]["user"],
+        channel_id=body["event"]["channel"],
+        ts=body["event"]["thread_ts"],  # type: ignore
+        comment_ts=body["event"]["ts"],
+        tddate=datetime.fromtimestamp(float(body["event"]["ts"])).date(),
+        createtime=datetime.fromtimestamp(float(body["event"]["ts"])),
+        text=body["event"]["text"],
+    )
+    bigquery_queue.comments_upload_queue.append(data)
 
 
 async def handle_post_data(body: MessageBodyType) -> None:
-    user = body["event"].get("user")
-    if not user:
-        print(body["event"], "post, 유저 없음")
-    else:
-        data = PostDataType(
-            user_id=body["event"]["user"],
-            channel_id=body["event"]["channel"],
-            ts=body["event"]["ts"],
-            tddate=datetime.fromtimestamp(float(body["event"]["ts"])).date(),
-            createtime=datetime.fromtimestamp(float(body["event"]["ts"])),
-            text=body["event"]["text"],
-        )
-        bigquery_queue.posts_upload_queue.append(data)
+    data = PostDataType(
+        user_id=body["event"]["user"],
+        channel_id=body["event"]["channel"],
+        ts=body["event"]["ts"],
+        tddate=datetime.fromtimestamp(float(body["event"]["ts"])).date(),
+        createtime=datetime.fromtimestamp(float(body["event"]["ts"])),
+        text=body["event"]["text"],
+    )
+    bigquery_queue.posts_upload_queue.append(data)
 
 
 async def handle_reaction_added(

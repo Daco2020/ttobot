@@ -69,8 +69,8 @@ async def handle_coffee_chat_message(
 
         return
 
-    # 2초 대기하는 이유는 메시지 보다 더 먼저 전송 될 수 있기 때문임
-    await asyncio.sleep(2)
+    # 1초 대기하는 이유는 메시지 보다 더 먼저 전송 될 수 있기 때문임
+    await asyncio.sleep(1)
     text = "☕ 커피챗 인증을 시작하려면 아래 [ 커피챗 인증 ] 버튼을 눌러주세요."
     await client.chat_postEphemeral(
         user=user.user_id,

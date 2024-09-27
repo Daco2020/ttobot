@@ -174,11 +174,16 @@ async def handle_error(error, body):
 @app.event("message")
 async def handle_message(
     ack: AsyncAck,
-    body: MessageBodyType,
+    body: MessageBodyType,  # event_callback(생성) type임. message(수정/삭제) type과 body 가 다름.
     say: AsyncSay,
     client: AsyncWebClient,
 ) -> None:
     await ack()
+
+    if body.get("subtype"):
+        # 메시지 수정/삭제 이벤트는 핸들링하지 않습니다.
+        # 자세한 subtype 이 궁금하다면 https://api.slack.com/events/message 참고.
+        return
 
     event = body.get("event", {})
     user_id = event.get("user")
