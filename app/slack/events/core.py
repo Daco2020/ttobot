@@ -350,7 +350,6 @@ async def handle_home_tab(
     # 포인트 히스토리를 포함한 유저를 가져온다.
     user_point_history = point_service.get_user_point(user_id=user.user_id)
     combo_count = user.get_continuous_submit_count()
-    combo_count = 10
     next_combo_point = ""
     if combo_count == 0:
         pass
@@ -360,6 +359,9 @@ async def handle_home_tab(
         next_combo_point = (
             "*+ " + str(PointMap.글_제출_콤보.point * combo_count) + "(콤보 보너스)* "
         )
+
+    paper_planes = service.fetch_current_week_paper_planes(user_id=user.user_id)
+    remain_paper_planes = 7 - len(paper_planes) if len(paper_planes) < 7 else 0
 
     # 홈 탭 메시지 구성
     await client.views_publish(
@@ -405,7 +407,7 @@ async def handle_home_tab(
                     elements=[
                         TextObject(
                             type="mrkdwn",
-                            text="감사의 마음을 전하고 싶은 멤버가 있으신가요? 종이비행기로 따뜻한 메시지를 전해보세요!\n*종이비행기* 는 일주일에 7번 보낼 수 있으며, 매주 금요일 자정에 초기화됩니다. 😊\n현재 남은 종이비행기 : ",  # TODO: 횟수 추가
+                            text=f"감사의 마음을 전하고 싶은 멤버가 있으신가요? 종이비행기로 따뜻한 메시지를 전해보세요!\n*종이비행기* 는 매주 7개까지 보낼 수 있으며, 현재 남은 종이비행기 수는 *{remain_paper_planes}개* 입니다.\n종이비행기는 매주 토요일 0시에 충전됩니다. 😊",
                         ),
                     ],
                 ),
@@ -699,9 +701,17 @@ async def send_paper_plane_message_view(
         )
         return
 
-    await ack()
+    paper_planes = service.fetch_current_week_paper_planes(user_id=user.user_id)
+    if len(paper_planes) >= 7:
+        await ack(
+            response_action="errors",
+            errors={
+                "paper_plane_receiver": "종이비행기는 매주 7개까지만 보낼 수 있어요~😉",
+            },
+        )
+        return
 
-    # TODO: 종이비행기 횟수 제한 유효성 검사 추가하기
+    await ack()
 
     receiver = service.get_user(user_id=receiver_id)
     service.create_paper_plane(

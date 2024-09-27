@@ -1,6 +1,8 @@
+from datetime import datetime, timedelta
 import random
 import re
 from typing import Any
+from zoneinfo import ZoneInfo
 
 import httpx
 from app.constants import URL_REGEX
@@ -12,6 +14,8 @@ from app import store
 from app.constants import paper_plane_color_maps
 
 from bs4 import BeautifulSoup
+
+from app.utils import tz_now
 
 
 class SlackService:
@@ -349,3 +353,28 @@ class SlackService:
         self._repo.create_paper_plane(model)
         store.paper_plane_upload_queue.append(model.to_list_for_sheet())
         return model
+
+    def fetch_current_week_paper_planes(
+        self,
+        user_id: str,
+    ) -> list[models.PaperPlane]:
+        """이번 주 종이비행기를 가져옵니다."""
+        today = tz_now()
+
+        # 지난주 토요일 00시 계산
+        last_saturday = today - timedelta(days=(today.weekday() + 2) % 7)
+        start_dt = last_saturday.replace(hour=0, minute=0, second=0, microsecond=0)
+
+        # 이번주 금요일 23:59:59 계산
+        this_friday = start_dt + timedelta(days=6)
+        end_dt = this_friday.replace(hour=23, minute=59, second=59, microsecond=999999)
+
+        paper_planes = []
+        for plane in self._repo.fetch_paper_planes(sender_id=user_id):
+            plane_created_ad = datetime.fromisoformat(plane.created_at).replace(
+                tzinfo=ZoneInfo("Asia/Seoul")
+            )
+            if start_dt <= plane_created_ad <= end_dt:
+                paper_planes.append(plane)
+
+        return paper_planes

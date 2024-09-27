@@ -276,3 +276,14 @@ class SlackRepository:
         with open("store/paper_plane.csv", "a", newline="", encoding="utf-8") as f:
             writer = csv.writer(f, quoting=csv.QUOTE_ALL)
             writer.writerow(paper_plane.to_list_for_csv())
+
+    def fetch_paper_planes(self, sender_id: str) -> list[models.PaperPlane]:
+        """종이비행기를 가져옵니다."""
+        df = pd.read_csv("store/paper_plane.csv", dtype=str, na_filter=False)
+
+        df = df[df["sender_id"] == sender_id]
+
+        if df.empty:
+            return []
+
+        return [models.PaperPlane(**row) for row in df.to_dict(orient="records")]
