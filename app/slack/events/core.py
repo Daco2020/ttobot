@@ -374,13 +374,13 @@ async def handle_home_tab(
                     text="🍭 내 글또 포인트",
                 ),
                 SectionBlock(
-                    text=f"현재 *{user.name}* 님이 획득한 총 포인트는 *{user_point_history.total_point} point* 입니다.",
+                    text=f"현재 *{user.name[1:]}* 님이 획득한 총 포인트는 *{user_point_history.total_point} point* 입니다.",
                 ),
                 ContextBlock(
                     elements=[
                         TextObject(
                             type="mrkdwn",
-                            text=f"다음 글을 제출하면 *100* {next_combo_point}point 를 얻을 수 있어요.",
+                            text=f"다음 회차에 글을 제출하면 *100* {next_combo_point}point 를 얻을 수 있어요.",
                         ),
                     ],
                 ),
@@ -407,7 +407,7 @@ async def handle_home_tab(
                     elements=[
                         TextObject(
                             type="mrkdwn",
-                            text=f"감사의 마음을 전하고 싶은 멤버가 있으신가요? 종이비행기로 따뜻한 메시지를 전해보세요!\n*종이비행기* 는 매주 7개까지 보낼 수 있으며, 현재 남은 종이비행기 수는 *{remain_paper_planes}개* 입니다.\n종이비행기는 매주 토요일 0시에 충전됩니다. 😊",
+                            text=f"감사의 마음을 전하고 싶은 멤버가 있으신가요? 종이비행기로 따뜻한 메시지를 전해보세요!\n*종이비행기* 는 매주 7개까지 보낼 수 있으며 매주 토요일 0시에 충전됩니다. 😊\n*{user.name[1:]}* 님의 현재 남은 종이비행기 수는 *{remain_paper_planes}개* 입니다.",
                         ),
                     ],
                 ),
@@ -440,7 +440,7 @@ async def handle_home_tab(
                     elements=[
                         TextObject(
                             type="mrkdwn",
-                            text=f"*{user.name}* 님이 궁금해할만한 내용들을 모아봤어요.",
+                            text=f"*{user.name[1:]}* 님이 궁금해할만한 내용들을 모아봤어요.",
                         ),
                     ],
                 ),

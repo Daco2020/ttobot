@@ -1,10 +1,18 @@
+import csv
 from datetime import datetime
+import os
 
 from app.bigquery.queue import CommentDataType, EmojiDataType, PostDataType
+from app.logging import log_event
+from app.slack.repositories import SlackRepository
+from app.slack.services.point import PointService
 from app.slack.types import MessageBodyType, ReactionBodyType
 from app.bigquery import queue as bigquery_queue
+from app.config import settings
 from slack_bolt.async_app import AsyncAck
 from slack_sdk.web.async_client import AsyncWebClient
+
+from app.utils import tz_now_to_str
 
 
 async def handle_comment_data(body: MessageBodyType) -> None:
@@ -51,23 +59,72 @@ async def handle_reaction_added(
     )
     bigquery_queue.emojis_upload_queue.append(data)
 
-    # 공지사항을 이모지로 확인하면 포인트를 지급합니다. # TODO: 멤버 등록 후 활성화 필요
-    # if (
-    #     body["event"]["item"]["channel"] == settings.NOTICE_CHANNEL
-    #     and body["event"]["reaction"] == "white_check_mark"
-    # ):
-    # text = point_service.grant_if_notice_emoji_checked(
-    #     user_id=body["event"]["user"]
-    # )
-    # await client.chat_postMessage(channel=body["event"]["user"], text=text)
-    # log_event(
-    #     actor=body["event"]["user"],
-    #     event="checked_notice",
-    #     type=body["event"]["type"],
-    #     description="공지사항 확인",
-    #     body=body,
-    # )
-    # return
+    # 공지사항을 이모지로 확인하면 포인트를 지급합니다.
+    if (
+        body["event"]["item"]["channel"] == settings.NOTICE_CHANNEL
+        # and body["event"]["reaction"] == ":noti-check:"
+        and body["event"]["reaction"] == "piggy"
+    ):
+        user_id = body["event"]["user"]
+        notice_ts = body["event"]["item"]["ts"]
+
+        if _is_checked_notice(user_id, notice_ts):
+            return
+
+        point_service = PointService(repo=SlackRepository())
+        text = point_service.grant_if_notice_emoji_checked(user_id=user_id)
+        await client.chat_postMessage(channel=user_id, text=text)
+
+        _write_checked_notice(user_id, notice_ts)
+
+        log_event(
+            actor=user_id,
+            event="checked_notice",
+            type=body["event"]["type"],
+            description="공지사항 확인",
+            body=body,
+        )
+        return
+
+
+def _is_checked_notice(user_id: str, notice_ts: str) -> bool:
+    """이전에 공지를 확인한 적이 있는지 확인합니다."""
+    file_path = "store/_checked_notice.csv"
+    file_exists = os.path.isfile(file_path)
+
+    if file_exists:
+        with open(file_path) as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                if row["user_id"] == user_id and row["notice_ts"] == notice_ts:
+                    return True
+
+    return False
+
+
+def _write_checked_notice(user_id: str, notice_ts: str) -> None:
+    """공지 확인 기록을 저장합니다."""
+    # 공지 확인 기록은 스프레드시트에 업로드 하지 않습니다. 이 경우 파일명 앞에 _를 붙입니다.
+    file_path = "store/_checked_notice.csv"
+    file_exists = os.path.isfile(file_path)
+
+    with open(file_path, "a", newline="", encoding="utf-8") as f:
+        writer = csv.DictWriter(
+            f,
+            fieldnames=["user_id", "notice_ts", "created_at"],
+            quoting=csv.QUOTE_ALL,
+        )
+
+        if not file_exists:
+            writer.writeheader()
+
+        writer.writerow(
+            {
+                "user_id": user_id,
+                "notice_ts": notice_ts,
+                "created_at": tz_now_to_str(),
+            }
+        )
 
 
 async def handle_reaction_removed(
