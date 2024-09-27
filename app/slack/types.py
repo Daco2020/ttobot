@@ -186,6 +186,51 @@ class BlockActionBodyType(TypedDict):
     actions: list[ActionType]
 
 
+class MessageChangedMessageType(TypedDict):
+    user: str
+    type: str
+    client_msg_id: str
+    text: str
+    team: str
+    attachments: list[dict]
+    blocks: list[dict]
+    ts: str
+
+
+class PreviousMessageType(TypedDict):
+    user: str
+    type: str
+    ts: str
+    client_msg_id: str
+    text: str
+    team: str
+    blocks: list[dict]
+
+
+class MessageChangedEventType(TypedDict):
+    type: str
+    subtype: str
+    message: MessageChangedMessageType
+    previous_message: PreviousMessageType
+    channel: str
+    hidden: bool
+    ts: str
+    event_ts: str
+    channel_type: str
+
+
+class MessageDeletedEventType(TypedDict):
+    type: str
+    subtype: str
+    previous_message: PreviousMessageType
+    channel: str
+    hidden: bool
+    ts: str
+    event_ts: str
+    deleted_ts: str
+    channel_type: str
+
+
 class MessageEvent(TypedDict):
     user: str
     type: str
@@ -206,7 +251,7 @@ class MessageBodyType(TypedDict):
     context_team_id: str
     context_enterprise_id: str | None
     api_app_id: str
-    event: MessageEvent
+    event: MessageEvent  # | MessageChangedEventType | MessageDeletedEventType
     type: str  # event_callback
     event_id: str
     event_time: int
@@ -300,48 +345,3 @@ class ChannelCreatedBodyType(TypedDict):
     event_time: int
     authorizations: list[Authorization]
     is_ext_shared_channel: bool
-
-
-class MessageChangedMessageType(TypedDict):
-    user: str
-    type: str
-    client_msg_id: str
-    text: str
-    team: str
-    attachments: list[dict]
-    blocks: list[dict]
-    ts: str
-
-
-class MessageChangedPreviousMessageType(TypedDict):
-    user: str
-    type: str
-    ts: str
-    client_msg_id: str
-    text: str
-    team: str
-    blocks: list[dict]
-
-
-class MessageChangedBodyType(TypedDict):
-    type: str
-    subtype: str
-    message: MessageChangedMessageType
-    previous_message: MessageChangedPreviousMessageType
-    channel: str
-    hidden: bool
-    ts: str
-    event_ts: str
-    channel_type: str
-
-
-class MessageDeletedBodyType(TypedDict):
-    type: str  # message
-    subtype: str
-    previous_message: MessageChangedPreviousMessageType
-    channel: str
-    hidden: bool
-    ts: str
-    event_ts: str
-    deleted_ts: str
-    channel_type: str
