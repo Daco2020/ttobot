@@ -1,7 +1,6 @@
 from datetime import datetime
 
 from app.bigquery.queue import CommentDataType, EmojiDataType, PostDataType
-from app.slack.services.point import PointService
 from app.slack.types import MessageBodyType, ReactionBodyType
 from app.bigquery import queue as bigquery_queue
 from slack_bolt.async_app import AsyncAck
@@ -9,16 +8,20 @@ from slack_sdk.web.async_client import AsyncWebClient
 
 
 async def handle_comment_data(body: MessageBodyType) -> None:
-    data = CommentDataType(
-        user_id=body["event"]["user"],
-        channel_id=body["event"]["channel"],
-        ts=body["event"]["thread_ts"],  # type: ignore
-        comment_ts=body["event"]["ts"],
-        tddate=datetime.fromtimestamp(float(body["event"]["ts"])).date(),
-        createtime=datetime.fromtimestamp(float(body["event"]["ts"])),
-        text=body["event"]["text"],
-    )
-    bigquery_queue.comments_upload_queue.append(data)
+    user = body["event"].get("user")
+    if not user:
+        print(user)
+    else:
+        data = CommentDataType(
+            user_id=body["event"]["user"],
+            channel_id=body["event"]["channel"],
+            ts=body["event"]["thread_ts"],  # type: ignore
+            comment_ts=body["event"]["ts"],
+            tddate=datetime.fromtimestamp(float(body["event"]["ts"])).date(),
+            createtime=datetime.fromtimestamp(float(body["event"]["ts"])),
+            text=body["event"]["text"],
+        )
+        bigquery_queue.comments_upload_queue.append(data)
 
 
 async def handle_post_data(body: MessageBodyType) -> None:
@@ -37,7 +40,6 @@ async def handle_reaction_added(
     ack: AsyncAck,
     body: ReactionBodyType,
     client: AsyncWebClient,
-    point_service: PointService,
 ) -> None:
     """리액션 추가 이벤트를 처리합니다."""
     await ack()
