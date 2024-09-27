@@ -64,6 +64,16 @@ async def handle_reaction_added(
         body["event"]["item"]["channel"] == settings.NOTICE_CHANNEL
         and body["event"]["reaction"] == "noti-check"
     ):
+        channel_id = body["event"]["item"]["channel"]
+        ts = body["event"]["item"]["ts"]
+
+        if await _is_thread_message(
+            client=client,
+            channel_id=channel_id,
+            ts=ts,
+        ):
+            return
+
         user_id = body["event"]["user"]
         notice_ts = body["event"]["item"]["ts"]
 
@@ -84,6 +94,18 @@ async def handle_reaction_added(
             body=body,
         )
         return
+
+
+async def _is_thread_message(client: AsyncWebClient, channel_id: str, ts: str) -> bool:
+    """메시지가 스레드 메시지인지 확인합니다."""
+    res = await client.conversations_replies(channel=channel_id, ts=ts)
+
+    messages: list[dict] = res.get("messages", [])
+    if messages and messages[0].get("thread_ts"):
+        # thread_ts 키가 있으면 스레드 메시지입니다.
+        return True
+
+    return False
 
 
 def _is_checked_notice(user_id: str, notice_ts: str) -> bool:
