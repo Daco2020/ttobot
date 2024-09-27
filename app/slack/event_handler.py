@@ -179,6 +179,11 @@ async def handle_message(
     channel_id = event.get("channel")
     thread_ts = event.get("thread_ts")
 
+    if thread_ts:  # 스레드 메시지
+        await log_events.handle_comment_data(body=body)
+    else:
+        await log_events.handle_post_data(body=body)
+
     repo = SlackRepository()
     user = repo.get_user(user_id)  # type: ignore
 
@@ -216,11 +221,6 @@ async def handle_message(
             service=service,
             point_service=point_service,
         )
-
-    if thread_ts:  # 스레드 메시지
-        await log_events.handle_comment_data(body=body)
-    else:
-        await log_events.handle_post_data(body=body)
 
 
 @app.event("member_joined_channel")
