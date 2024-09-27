@@ -62,9 +62,10 @@ async def handle_coffee_chat_message(
         )
 
         # 포인트 지급
-        point_service.grant_if_coffee_chat_verified(
-            user_id=body["event"]["user"], client=client
+        text = point_service.grant_if_coffee_chat_verified(
+            user_id=body["event"]["user"]
         )
+        await client.chat_postMessage(channel=body["event"]["user"], text=text)
 
         return
 
@@ -206,7 +207,8 @@ async def submit_coffee_chat_proof_view(
     )
 
     # 포인트 지급
-    point_service.grant_if_coffee_chat_verified(user_id=user.user_id, client=client)
+    text = point_service.grant_if_coffee_chat_verified(user_id=user.user_id)
+    await client.chat_postMessage(channel=user.user_id, text=text)
 
     user_call_text = ",".join(
         f"<@{selected_user}>"

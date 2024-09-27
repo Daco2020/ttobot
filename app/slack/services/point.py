@@ -2,7 +2,6 @@ from pydantic import BaseModel
 from app.exception import BotException
 from app.models import PointHistory, User
 from app.slack.repositories import SlackRepository
-from slack_sdk.web.async_client import AsyncWebClient
 from app.config import settings
 from app import store
 from enum import Enum
@@ -80,8 +79,8 @@ class PointService:
         point_histories = self._repo.fetch_point_histories(user_id)
         return UserPoint(user=user, point_histories=point_histories)
 
-
-    def add_point_history(self, user_id: str, point_info: PointMap) -> None:
+    def add_point_history(self, user_id: str, point_info: PointMap) -> str:
+        """포인트 히스토리를 추가하고 알림 메시지를 반환합니다."""
         point_history=PointHistory(
             user_id=user_id,
             reason=point_info.reason,
@@ -90,28 +89,33 @@ class PointService:
         )
         self._repo.add_point(point_history=point_history)
         store.point_history_upload_queue.append(point_history.to_list_for_sheet())
+        return f"<@{user_id}>님 `{point_info.reason}`(으)로 `{point_info.point}`포인트를 획득했어요! 🎉\n획득한 총 포인트는 또봇 [홈] 탭에서 확인할 수 있어요."
 
-
-    def grant_if_post_submitted(self, user_id: str) -> None:
-        """글을 제출했다면 포인트를 지급합니다."""
+    def grant_if_post_submitted(self, user_id: str) -> tuple[str, bool]:
+        """글쓰기 포인트 지급 1. 글을 제출하면 기본 포인트를 지급합니다. 글을 이미 제출했다면 추가 포인트를 지급합니다."""
         user = self._repo.get_user(user_id)
 
         if not user:
             raise BotException("유저 정보가 없어 글 제출 포인트를 지급할 수 없습니다.")
 
-        # 추가 지급 1. 글을 이미 제출했다면 추가 포인트를 지급합니다. 공개 알림.
         if user.is_submit:
+            is_additional = True
             point_info = PointMap.글_제출_추가
-            self.add_point_history(user_id, point_info)
-            # TODO: 공개 알림
+            return self.add_point_history(user_id, point_info), is_additional
         else: 
-            # 글을 처음 제출했다면 기본 포인트를 지급합니다.
+            is_additional = False
             point_info = PointMap.글_제출_기본
-            self.add_point_history(user_id, point_info)
+            return self.add_point_history(user_id, point_info), is_additional
         
-        # 추가 지급 2. 글을 연속으로 제출한다면 추가 포인트를 지급합니다. 공개 알림.
+    def grant_if_post_submitted_continuously(self, user_id: str) -> str | None:
+        """글쓰기 포인트 지급 2. 글을 연속으로 제출한다면 추가 포인트를 지급합니다."""
+        user = self._repo.get_user(user_id)
+
+        if not user:
+            raise BotException("유저 정보가 없어 글 제출 포인트를 지급할 수 없습니다.")
+        
         continuous_submit_count = user.get_continuous_submit_count()
-        if continuous_submit_count > 0:
+        if continuous_submit_count > 1: # 1보다 크면 연속 제출이므로 추가 포인트 지급
             if continuous_submit_count == 9:
                 point_info = PointMap.글_제출_9콤보_보너스
             elif continuous_submit_count == 6:
@@ -119,16 +123,22 @@ class PointService:
             elif continuous_submit_count == 3:
                 point_info = PointMap.글_제출_3콤보_보너스
             else:
-                # 연속 제출 횟수에 따라 누적 포인트를 지급합니다.
+                # 3,6,9 외에는 연속 제출 횟수에 따라 연속 포인트를 지급합니다.
                 point_info = PointMap.글_제출_콤보
-                combo_point = point_info.point * continuous_submit_count
+                combo_point = point_info.point * (continuous_submit_count - 1) # 2부터 연속 제출이므로 -1
                 point_info.set_point(combo_point)
+                
+            return self.add_point_history(user_id, point_info)
+        
+        return None
 
-            self.add_point_history(user_id, point_info)
-            # TODO: 공개 알림
+    def grant_if_post_submitted_to_core_channel_ranking(self, user_id: str) -> str | None:
+        """글 제출 포인트 지급 3. 코어채널 제출 순위에 따라 추가 포인트를 지급합니다."""
+        user = self._repo.get_user(user_id)
 
-
-        # 추가 지급 3. 코어채널 제출 순위에 따라 추가 포인트를 지급합니다. 공개 알림.
+        if not user:
+            raise BotException("유저 정보가 없어 글 제출 포인트를 지급할 수 없습니다.")
+        
         rank_map = {}
         channel_users = self._repo.fetch_channel_users(user.channel_id)
         for channel_user in channel_users:
@@ -146,63 +156,51 @@ class PointService:
             else:
                 point_info = PointMap.글_제출_코어채널_3등
 
-            self.add_point_history(user_id, point_info)
-            # TODO: 공개 알림
+            return self.add_point_history(user_id, point_info)
+        
+        return None
 
-
-    def grant_if_coffee_chat_verified(self, user_id: str, client: AsyncWebClient) -> None:
+    def grant_if_coffee_chat_verified(self, user_id: str) -> str:
         """
         공개: 커피챗 인증을 한 경우 포인트를 지급합니다.
         공개채널에 알림을 줍니다.
         """
         point_info = PointMap.커피챗_인증
-        self.add_point_history(user_id, point_info)
+        return self.add_point_history(user_id, point_info)
 
-        # TODO: 추가 예정
-        # client.chat_postMessage()
-
-    def grant_if_notice_emoji_checked(self, user_id: str) -> None:
+    def grant_if_notice_emoji_checked(self, user_id: str) -> str:
         """공지사항을 확인한 경우 포인트를 지급합니다."""
         point_info = PointMap.공지사항_확인_이모지
-        self.add_point_history(user_id, point_info)
+        return self.add_point_history(user_id, point_info)
 
-
-    def grant_if_curation_requested(self, user_id: str) -> None:
+    def grant_if_curation_requested(self, user_id: str) -> str:
         """큐레이션을 요청한 경우 포인트를 지급합니다."""
         point_info = PointMap.큐레이션_요청
-        self.add_point_history(user_id, point_info)
+        return self.add_point_history(user_id, point_info)
 
-    def grant_if_curation_selected(self, user_id: str, client: AsyncWebClient) -> None:
+    def grant_if_curation_selected(self, user_id: str) -> str:
         """
         수동: 큐레이션이 선정된 경우 포인트를 지급합니다.
         DM으로 알림을 줍니다.
         """
         point_info = PointMap.큐레이션_선정
-        self.add_point_history(user_id, point_info)
+        return self.add_point_history(user_id, point_info)
 
-        # TODO: 추가 예정
-        # client.chat_postMessage()
 
     def grant_if_village_conference_participated(
-        self, user_id: str, client: AsyncWebClient
+        self, user_id: str
     ):
         """
         수동: 빌리지 반상회에 참여한 경우 포인트를 지급합니다.
         DM으로 알림을 줍니다.
         """
         point_info = PointMap.빌리지_반상회_참여
-        self.add_point_history(user_id, point_info)
+        return self.add_point_history(user_id, point_info)
 
-        # TODO: 추가 예정
-        # client.chat_postMessage()
-
-    def grant_if_introduction_written(self, user_id: str, client: AsyncWebClient) -> None:
+    def grant_if_introduction_written(self, user_id: str) -> str:
         """
         수동: 자기소개를 작성한 경우 포인트를 지급합니다.
         DM으로 알림을 줍니다.
         """
         point_info = PointMap.자기소개_작성
-        self.add_point_history(user_id, point_info)
-
-        # TODO: 추가 예정
-        # client.chat_postMessage()
+        return self.add_point_history(user_id, point_info)
