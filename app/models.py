@@ -117,7 +117,7 @@ class User(BaseModel):
         return submit_status
 
     def get_continuous_submit_count(self) -> int:
-        """최근을 기준으로 연속으로 제출한 횟수를 반환합니다."""
+        """내림차순으로 연속으로 제출한 횟수를 반환합니다."""
         continuous_submit_count = 0
         submit_status = self.get_submit_status()
         for _, v in sorted(submit_status.items(), reverse=True):

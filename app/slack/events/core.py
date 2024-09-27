@@ -7,7 +7,7 @@ from app.config import settings
 from app.constants import HELP_TEXT
 from app.models import CoffeeChatProof, PointHistory, User
 from app.slack.services.base import SlackService
-from app.slack.services.point import PointService
+from app.slack.services.point import PointMap, PointService
 from app.slack.types import (
     ActionBodyType,
     AppMentionBodyType,
@@ -349,6 +349,17 @@ async def handle_home_tab(
 
     # 포인트 히스토리를 포함한 유저를 가져온다.
     user_point_history = point_service.get_user_point(user_id=user.user_id)
+    combo_count = user.get_continuous_submit_count()
+    combo_count = 10
+    next_combo_point = ""
+    if combo_count == 0:
+        pass
+    elif combo_count in [3, 6, 9]:
+        next_combo_point = "*+ ???(특별 콤보 보너스)* "
+    else:
+        next_combo_point = (
+            "*+ " + str(PointMap.글_제출_콤보.point * combo_count) + "(콤보 보너스)* "
+        )
 
     # 홈 탭 메시지 구성
     await client.views_publish(
@@ -361,13 +372,13 @@ async def handle_home_tab(
                     text="🍭 내 글또 포인트",
                 ),
                 SectionBlock(
-                    text=f"현재 *{user.name}* 님이 획득한 포인트는 *{user_point_history.total_point} point* 입니다.",
+                    text=f"현재 *{user.name}* 님이 획득한 총 포인트는 *{user_point_history.total_point} point* 입니다.",
                 ),
                 ContextBlock(
                     elements=[
                         TextObject(
                             type="mrkdwn",
-                            text="다음 글을 제출하면 *120 point* 를 얻을 수 있어요. (콤보 보너스 적용)",
+                            text=f"다음 글을 제출하면 *100* {next_combo_point}point 를 얻을 수 있어요.",
                         ),
                     ],
                 ),
@@ -388,13 +399,13 @@ async def handle_home_tab(
                 DividerBlock(),
                 # 종이비행기 섹션
                 HeaderBlock(
-                    text="📭 종이비행기 보내기",
+                    text="✈️ 종이비행기 보내기",
                 ),
                 ContextBlock(
                     elements=[
                         TextObject(
                             type="mrkdwn",
-                            text="감사한 마음을 전하고 싶은 멤버가 있나요? 종이비행기로 따뜻한 메시지를 전해주세요!\n*종이비행기* 는 하루에 한 번만 보낼 수 있어요.",
+                            text="감사의 마음을 전하고 싶은 멤버가 있으신가요? 종이비행기로 따뜻한 메시지를 전해보세요!\n*종이비행기* 는 일주일에 7번 보낼 수 있으며, 매주 금요일 자정에 초기화됩니다. 😊\n현재 남은 종이비행기 : ",  # TODO: 횟수 추가
                         ),
                     ],
                 ),
@@ -461,6 +472,17 @@ async def handle_home_tab(
                     ],
                 ),
                 DividerBlock(),
+                HeaderBlock(
+                    text="🍧 또봇 실험실",
+                ),
+                ContextBlock(
+                    elements=[
+                        TextObject(
+                            type="mrkdwn",
+                            text="새로운 기능을 만나보세요. 더 나은 또봇을 위해 여러분의 의견을 기다립니다.\n\nComing Soon...🙇‍♂️",
+                        ),
+                    ],
+                ),
             ],
         ),
     )
@@ -689,7 +711,7 @@ async def send_paper_plane_message_view(
     )
 
     await client.chat_postMessage(
-        channel=settings.THANKS_CHANNEL,  # TODO: 공개 채널로 수정 필요
+        channel=settings.THANKS_CHANNEL,
         text=f"💌 *<@{receiver_id}>* 님에게 종이비행기가 도착했어요!😊",
         blocks=[
             SectionBlock(
@@ -785,11 +807,32 @@ async def open_coffee_chat_history_view(
         text = proof.text[:100] + " ..." if len(proof.text) >= 100 else proof.text
         blocks.append(ContextBlock(elements=[MarkdownTextObject(text=f"> {text}")]))
 
+    footer_blocks = (
+        [
+            DividerBlock(),
+            SectionBlock(
+                text="커피챗 내역은 최근 10개까지만 표시됩니다.\n전체 내역을 확인하려면 아래 버튼을 눌러주세요.",
+            ),
+            ActionsBlock(
+                elements=[
+                    ButtonElement(
+                        text="전체 내역 다운로드",
+                        action_id="download_coffee_chat_history",
+                        value="download_coffee_chat_history",
+                        style="primary",
+                    ),
+                ],
+            ),
+        ]
+        if blocks
+        else []
+    )
+
     await client.views_open(
         trigger_id=body["trigger_id"],
         view=View(
             type="modal",
-            title=f"{user.name}님의 커피챗 내역",
+            title=f"{user.name}님의 커피챗 인증 내역",
             close="닫기",
             blocks=(
                 SectionBlock(
@@ -799,22 +842,9 @@ async def open_coffee_chat_history_view(
                 *(
                     blocks[:20]
                     if blocks
-                    else [SectionBlock(text="커피챗 내역이 없어요.")]
+                    else [SectionBlock(text="아직 커피챗 인증 내역이 없어요.")]
                 ),
-                DividerBlock(),
-                SectionBlock(
-                    text="커피챗 내역은 최근 10개까지만 표시됩니다.\n전체 내역을 확인하려면 아래 버튼을 눌러주세요.",
-                ),
-                ActionsBlock(
-                    elements=[
-                        ButtonElement(
-                            text="전체 내역 다운로드",
-                            action_id="download_coffee_chat_history",
-                            value="download_coffee_chat_history",
-                            style="primary",
-                        ),
-                    ],
-                ),
+                *footer_blocks,
             ),
         ),
     )

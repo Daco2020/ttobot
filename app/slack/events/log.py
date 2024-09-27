@@ -9,6 +9,7 @@ from app.slack.services.point import PointService
 from app.slack.types import MessageBodyType, ReactionBodyType
 from app.bigquery import queue as bigquery_queue
 from slack_bolt.async_app import AsyncAck
+from slack_sdk.web.async_client import AsyncWebClient
 
 
 async def handle_comment_data(body: MessageBodyType) -> None:
@@ -39,6 +40,7 @@ async def handle_post_data(body: MessageBodyType) -> None:
 async def handle_reaction_added(
     ack: AsyncAck,
     body: ReactionBodyType,
+    client: AsyncWebClient,
     user: User,
     service: SlackService,
     point_service: PointService,
@@ -62,7 +64,10 @@ async def handle_reaction_added(
         body["event"]["item"]["channel"] == settings.NOTICE_CHANNEL
         and body["event"]["reaction"] == "white_check_mark"
     ):
-        point_service.grant_if_notice_emoji_checked(user_id=body["event"]["user"])
+        text = point_service.grant_if_notice_emoji_checked(
+            user_id=body["event"]["user"]
+        )
+        await client.chat_postMessage(channel=body["event"]["user"], text=text)
         log_event(
             actor=body["event"]["user"],
             event="checked_notice",

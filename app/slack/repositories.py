@@ -267,6 +267,8 @@ class SlackRepository:
                 for user in reader
                 if user["channel_id"] == channel_id
             ]
+            for user in users:
+                user.contents = self._fetch_contents(user.user_id)
             return users
 
     def create_paper_plane(self, paper_plane: models.PaperPlane) -> None:
