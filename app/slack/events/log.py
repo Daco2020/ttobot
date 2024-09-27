@@ -62,8 +62,7 @@ async def handle_reaction_added(
     # 공지사항을 이모지로 확인하면 포인트를 지급합니다.
     if (
         body["event"]["item"]["channel"] == settings.NOTICE_CHANNEL
-        # and body["event"]["reaction"] == ":noti-check:"
-        and body["event"]["reaction"] == "piggy"
+        and body["event"]["reaction"] == "noti-check"
     ):
         user_id = body["event"]["user"]
         notice_ts = body["event"]["item"]["ts"]
