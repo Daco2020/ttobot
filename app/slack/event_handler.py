@@ -88,7 +88,13 @@ async def dependency_injection_middleware(
     user_id = req.context.user_id
     # channel_id = req.context.channel_id
 
-    if event in ["app_mention", "member_joined_channel", "message"]:
+    if event in [
+        "app_mention",
+        "member_joined_channel",
+        "message",
+        "reaction_added",
+        "reaction_removed",
+    ]:
         # 앱 멘션과 채널 입장은 서비스 객체를 주입하지 않는다.
         # 메시지는 handle_message 에서 서비스 객체를 생성한다.
         await next()

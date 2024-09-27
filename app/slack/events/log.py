@@ -1,10 +1,6 @@
 from datetime import datetime
 
 from app.bigquery.queue import CommentDataType, EmojiDataType, PostDataType
-from app.config import settings
-from app.logging import log_event
-from app.models import User
-from app.slack.services.base import SlackService
 from app.slack.services.point import PointService
 from app.slack.types import MessageBodyType, ReactionBodyType
 from app.bigquery import queue as bigquery_queue
@@ -41,8 +37,6 @@ async def handle_reaction_added(
     ack: AsyncAck,
     body: ReactionBodyType,
     client: AsyncWebClient,
-    user: User,
-    service: SlackService,
     point_service: PointService,
 ) -> None:
     """리액션 추가 이벤트를 처리합니다."""
@@ -59,31 +53,28 @@ async def handle_reaction_added(
     )
     bigquery_queue.emojis_upload_queue.append(data)
 
-    # 공지사항을 이모지로 확인하면 포인트를 지급합니다.
-    if (
-        body["event"]["item"]["channel"] == settings.NOTICE_CHANNEL
-        and body["event"]["reaction"] == "white_check_mark"
-    ):
-        text = point_service.grant_if_notice_emoji_checked(
-            user_id=body["event"]["user"]
-        )
-        await client.chat_postMessage(channel=body["event"]["user"], text=text)
-        log_event(
-            actor=body["event"]["user"],
-            event="checked_notice",
-            type=body["event"]["type"],
-            description="공지사항 확인",
-            body=body,
-        )
-        return
+    # 공지사항을 이모지로 확인하면 포인트를 지급합니다. # TODO: 멤버 등록 후 활성화 필요
+    # if (
+    #     body["event"]["item"]["channel"] == settings.NOTICE_CHANNEL
+    #     and body["event"]["reaction"] == "white_check_mark"
+    # ):
+    # text = point_service.grant_if_notice_emoji_checked(
+    #     user_id=body["event"]["user"]
+    # )
+    # await client.chat_postMessage(channel=body["event"]["user"], text=text)
+    # log_event(
+    #     actor=body["event"]["user"],
+    #     event="checked_notice",
+    #     type=body["event"]["type"],
+    #     description="공지사항 확인",
+    #     body=body,
+    # )
+    # return
 
 
 async def handle_reaction_removed(
     ack: AsyncAck,
     body: ReactionBodyType,
-    user: User,
-    service: SlackService,
-    point_service: PointService,
 ):
     """리액션 삭제 이벤트를 처리합니다."""
     await ack()
