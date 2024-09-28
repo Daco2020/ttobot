@@ -65,8 +65,10 @@ class User(BaseModel):
         """유저의 모든 콘텐츠 url 을 반환합니다."""
         return [content.content_url for content in self.contents]
 
-    def fetch_contents(self) -> list[Content]:
-        """유저의 모든 콘텐츠를 반환합니다."""
+    def fetch_contents(self, descending: bool = False) -> list[Content]:
+        """콘텐츠를 생성일시 내림차순으로 정렬하여 반환합니다."""
+        if descending:
+            return sorted(self.contents, key=lambda content: content.dt_, reverse=True)
         return self.contents
 
     def get_due_date(self) -> tuple[int, datetime.date]:

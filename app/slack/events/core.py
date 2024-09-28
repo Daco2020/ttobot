@@ -100,19 +100,65 @@ async def open_submission_history_view(
     await ack()
 
     round, due_date = user.get_due_date()
-    guide_message = f"\n*현재 회차는 {round}회차, 마감일은 {due_date} 이에요."
+    guide_message = f"\n현재 회차는 {round}회차, 마감일은 {due_date} 이에요."
+    header_blocks = [SectionBlock(text={"type": "mrkdwn", "text": guide_message})]
+
+    blocks: list[Block] = []
+    max_items = 12
+    for content in user.fetch_contents(descending=True)[:max_items]:
+        blocks.append(DividerBlock())
+        round = content.get_round()
+        if content.type == "submit":
+            submit_head = f"✅  *{round}회차 제출*  |  {content.dt}"
+            blocks.append(
+                SectionBlock(
+                    text={
+                        "type": "mrkdwn",
+                        "text": f"{submit_head}\n링크 - *<{content.content_url}|{content.title}>*",
+                    }
+                )
+            )
+        else:  # 패스인 경우
+            pass_head = f"▶️  *{round}회차 패스*  |  {content.dt}"
+            blocks.append(
+                SectionBlock(
+                    text={
+                        "type": "mrkdwn",
+                        "text": pass_head,
+                    }
+                )
+            )
+
+    footer_blocks = []
+    if blocks:
+        footer_blocks = [
+            DividerBlock(),
+            SectionBlock(
+                text="글 제출 내역은 최근 12개까지만 표시됩니다.\n전체 내역을 확인하려면 아래 버튼을 눌러주세요.",
+            ),
+            ActionsBlock(
+                elements=[
+                    ButtonElement(
+                        text="전체 내역 다운로드",
+                        action_id="download_submission_history",
+                        value="download_submission_history",
+                        style="primary",
+                    ),
+                ],
+            ),
+        ]
+    else:
+        blocks.append(
+            SectionBlock(text={"type": "mrkdwn", "text": "글 제출 내역이 없어요."})
+        )
 
     await client.views_open(
         trigger_id=body["trigger_id"],
         view=View(
             type="modal",
-            title=f"{user.name}님의 제출 내역",
-            close="닫기",
-            blocks=[
-                SectionBlock(text=user.submit_history),
-                DividerBlock(),
-                SectionBlock(text=guide_message),
-            ],
+            title={"type": "plain_text", "text": f"{user.name}님의 글 제출 내역"},
+            close={"type": "plain_text", "text": "닫기"},
+            blocks=header_blocks + blocks + footer_blocks,
         ),
     )
 
