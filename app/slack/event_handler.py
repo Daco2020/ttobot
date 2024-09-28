@@ -119,6 +119,15 @@ async def dependency_injection_middleware(
         # raise BotException("사용자 아이디가 없습니다.")
         pass
 
+    # TODO: 10기 멤버 등록 후 제거
+    if event == "app_home_opened":
+        # 홈 탭 열림 이벤트는 서비스 객체를 주입하지 않습니다.
+        req.context["service"] = None
+        req.context["point_service"] = None
+        req.context["user"] = None
+        await next()
+        return
+
     # TODO: 10기 멤버 등록 후 활성화
     # message = (
     #     "🥲 사용자 정보를 추가해주세요. 👉🏼 "

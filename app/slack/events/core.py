@@ -341,11 +341,28 @@ async def _invite_channel(
 async def handle_home_tab(
     event: HomeTabEventType,
     client: AsyncWebClient,
-    user: User,
-    service: SlackService,
-    point_service: PointService,
+    user: User | None,
+    service: SlackService | None,
+    point_service: PointService | None,
 ):
     """홈 탭을 열었을 때의 이벤트를 처리합니다."""
+    if not user:
+        await client.views_publish(
+            user_id=event["user"],
+            view=View(
+                type="home",
+                blocks=[
+                    HeaderBlock(
+                        text="👋 반가워요! 저는 또봇이에요.",
+                    ),
+                    DividerBlock(),
+                    SectionBlock(
+                        text="[홈] 탭은 글또 OT 이후에 공개될 예정이에요. 🙇‍♂️\n만약 OT 이후에도 해당 화면이 표시된다면 [0_글또봇질문] 채널로 문의해주세요.",
+                    ),
+                ],
+            ),
+        )
+        return
 
     # 포인트 히스토리를 포함한 유저를 가져온다.
     user_point_history = point_service.get_user_point(user_id=user.user_id)
