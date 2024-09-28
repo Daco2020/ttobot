@@ -407,7 +407,7 @@ async def handle_home_tab(
                     elements=[
                         TextObject(
                             type="mrkdwn",
-                            text=f"감사의 마음을 전하고 싶은 멤버가 있으신가요? 종이비행기로 따뜻한 메시지를 전해보세요!\n*종이비행기* 는 매주 7개까지 보낼 수 있으며 매주 토요일 0시에 충전됩니다. 😊\n*{user.name[1:]}* 님의 현재 남은 종이비행기 수는 *{remain_paper_planes}개* 입니다.",
+                            text=f"감사의 마음을 전하고 싶은 멤버가 있으신가요? 종이비행기로 따뜻한 메시지를 전해보세요!\n*종이비행기* 는 한 주에 7개까지 보낼 수 있으며 매주 토요일 0시에 충전됩니다.\n*{user.name[1:]}* 님의 현재 남은 종이비행기 수는 *{remain_paper_planes}개* 입니다. 😊",
                         ),
                     ],
                 ),
@@ -782,7 +782,7 @@ async def send_paper_plane_message_view(
             ContextBlock(
                 elements=[
                     MarkdownTextObject(
-                        text=f"> 받은 종이비행기는 <@{ttobot_auth['user_id']}> 👈 클릭 후 [앱으로 이동하기 클릭] -> [홈] 탭에서 확인할 수 있어요.😉"
+                        text=f">받은 종이비행기는 <@{ttobot_auth['user_id']}> 👈 클릭 후 [앱으로 이동] -> [홈] 탭에서 확인할 수 있어요.😉"
                     )
                 ],
             ),
@@ -799,7 +799,7 @@ async def send_paper_plane_message_view(
             ContextBlock(
                 elements=[
                     MarkdownTextObject(
-                        text="> 보낸 종이비행기는 또봇 [홈] 탭 -> [주고받은 종이비행기 보기] 에서 확인할 수 있어요.😉"
+                        text=">보낸 종이비행기는 또봇 [홈] 탭 -> [주고받은 종이비행기 보기] 에서 확인할 수 있어요.😉"
                     )
                 ],
             ),
