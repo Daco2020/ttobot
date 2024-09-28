@@ -843,37 +843,47 @@ async def send_paper_plane_message(
     """종이비행기 메시지를 전송합니다."""
     await ack()
 
+    view = View(
+        type="modal",
+        title="종이비행기 보내기",
+        callback_id="send_paper_plane_message_view",
+        close="닫기",
+        submit="보내기",
+        blocks=[
+            SectionBlock(
+                text="종이비행기로 전하고 싶은 마음을 적어주세요.",
+            ),
+            InputBlock(
+                block_id="paper_plane_receiver",
+                label="받는 사람",
+                element=UserSelectElement(
+                    action_id="select_user",
+                    placeholder="받는 사람을 선택해주세요.",
+                ),
+            ),
+            InputBlock(
+                block_id="paper_plane_message",
+                label="메시지",
+                element=PlainTextInputElement(
+                    action_id="paper_plane_message",
+                    placeholder="종이비행기로 전할 마음을 적어주세요.",
+                    multiline=True,
+                ),
+            ),
+        ],
+    )
+
+    callback_id = body["view"]["callback_id"]
+    if callback_id == "paper_plane_command":
+        # callback_id 가 있다면 모달에서 발생한 액션이므로 기존 모달을 업데이트합니다.
+        await client.views_update(
+            view_id=body["view"]["id"],
+            view=view,
+        )
+
     await client.views_open(
         trigger_id=body["trigger_id"],
-        view=View(
-            type="modal",
-            title="종이비행기 보내기",
-            callback_id="send_paper_plane_message_view",
-            close="닫기",
-            submit="보내기",
-            blocks=[
-                SectionBlock(
-                    text="종이비행기로 전하고 싶은 마음을 적어주세요.",
-                ),
-                InputBlock(
-                    block_id="paper_plane_receiver",
-                    label="받는 사람",
-                    element=UserSelectElement(
-                        action_id="select_user",
-                        placeholder="받는 사람을 선택해주세요.",
-                    ),
-                ),
-                InputBlock(
-                    block_id="paper_plane_message",
-                    label="메시지",
-                    element=PlainTextInputElement(
-                        action_id="paper_plane_message",
-                        placeholder="종이비행기로 전할 마음을 적어주세요.",
-                        multiline=True,
-                    ),
-                ),
-            ],
-        ),
+        view=view,
     )
 
 
@@ -1040,7 +1050,7 @@ async def open_paper_plane_guide_view(
                 SectionBlock(
                     text={
                         "type": "mrkdwn",
-                        "text": "이렇게 진심을 담은 메시지를 종이비행기에 담아 전달해보세요! ✈️",
+                        "text": "이제 진심을 담은 메시지를 종이비행기에 담아 전달해보세요! ✈️",
                     }
                 ),
             ],

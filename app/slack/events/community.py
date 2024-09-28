@@ -18,7 +18,9 @@ from slack_sdk.models.blocks import (
     InputBlock,
     UserMultiSelectElement,
     ActionsBlock,
+    ContextBlock,
     ButtonElement,
+    DividerBlock,
 )
 from app.config import settings
 from app.utils import dict_to_json_str, json_str_to_dict
@@ -249,37 +251,107 @@ async def paper_plane_command(
     paper_planes = service.fetch_current_week_paper_planes(user_id=user.user_id)
     remain_paper_planes = 7 - len(paper_planes) if len(paper_planes) < 7 else 0
 
-    # 다이렉트 메시지인지 확인: 다이렉트 메시지인 경우 직접 메시지를 보낼 수 없기 때문에 슬랙 앱 DM으로 안내
-    is_direct_message = body["channel_id"].startswith("D")
-    channel_id = user.user_id if is_direct_message else body["channel_id"]
-
-    await client.chat_postEphemeral(
-        user=user.user_id,
-        channel=channel_id,
-        text="✈️ 종이비행기 보내기",
-        blocks=[
-            SectionBlock(
-                text=f"종이비행기는 글또 멤버에게 따뜻한 감사나 응원의 메시지를 보낼 수 있는 기능이에요.\n매주 토요일 0시에 7개가 충전되며, 한 주 동안 자유롭게 원하는 분께 보낼 수 있어요.\n*{user.name[1:]}* 님이 이번 주에 보낼 수 있는 종이비행기 수는 현재 *{remain_paper_planes}개* 입니다. 😊"
-            ),
-            ActionsBlock(
-                elements=[
-                    ButtonElement(
-                        text="종이비행기 보내기",
-                        action_id="send_paper_plane_message",
-                        value="send_paper_plane_message",
-                        style="primary",
-                    ),
-                    ButtonElement(
-                        text="주고받은 종이비행기 보기",
-                        action_id="open_paper_plane_url",
-                        url="https://geultto-paper-plane.vercel.app",
-                    ),
-                    ButtonElement(
-                        text="어떤 내용을 보내면 좋을까요?",
-                        action_id="open_paper_plane_guide_view",
-                        value="open_paper_plane_guide_view",
-                    ),
-                ]
-            ),
-        ],
+    await client.views_open(
+        trigger_id=body["trigger_id"],
+        view=View(
+            type="modal",
+            callback_id="paper_plane_command",
+            title={"type": "plain_text", "text": "종이비행기"},
+            blocks=[
+                SectionBlock(text="✈️ *종이비행기란?*"),
+                ContextBlock(
+                    elements=[
+                        {
+                            "type": "mrkdwn",
+                            "text": (
+                                "종이비행기는 글또 멤버에게 따뜻한 감사나 응원의 메시지를 보낼 수 있는 기능이에요.\n"
+                                "매주 토요일 0시에 7개가 충전되며, 한 주 동안 자유롭게 원하는 분께 보낼 수 있어요.\n"
+                                f"*{user.name[1:]}* 님이 이번 주에 보낼 수 있는 종이비행기 수는 현재 *{remain_paper_planes}개* 입니다."
+                            ),
+                        }
+                    ]
+                ),
+                DividerBlock(),
+                ActionsBlock(
+                    elements=[
+                        ButtonElement(
+                            text="종이비행기 보내기",
+                            action_id="send_paper_plane_message",
+                            value="send_paper_plane_message",
+                            style="primary",
+                        ),
+                        ButtonElement(
+                            text="주고받은 종이비행기 보기",
+                            action_id="open_paper_plane_url",
+                            url="https://geultto-paper-plane.vercel.app",
+                        ),
+                    ]
+                ),
+                DividerBlock(),
+                # 사용 방법 안내
+                SectionBlock(
+                    text={
+                        "type": "mrkdwn",
+                        "text": "*✍️ 어떤 내용을 보내면 좋을까요?*",
+                    }
+                ),
+                ContextBlock(
+                    elements=[
+                        {
+                            "type": "mrkdwn",
+                            "text": "종이비행기 메시지를 작성할 때는 아래 내용을 참고해보세요. 😉\n\n"
+                            "*`구체적인 상황`* - 어떤 활동이나 대화에서 고마움을 느꼈는지 이야기해요.\n"
+                            "*`구체적인 내용`* - 그 사람이 어떤 도움을 줬거나, 어떤 말을 해줬는지 적어보세요.\n"
+                            "*`효과와 감사 표현`* - 그 행동이 나에게 어떤 영향을 주었는지, 얼마나 감사한지 표현해요.\n"
+                            "*`앞으로의 기대`* - 앞으로도 계속 함께해주길 바라는 마음을 전해보세요!",
+                        }
+                    ]
+                ),
+                DividerBlock(),
+                # 예시 메시지
+                SectionBlock(
+                    text={
+                        "type": "mrkdwn",
+                        "text": "*💌 종이비행기 메시지 예시*\n",
+                    }
+                ),
+                # 예시 1: 스터디 활동
+                ContextBlock(
+                    elements=[
+                        {
+                            "type": "mrkdwn",
+                            "text": '예시 1: 스터디 활동\n>"00 스터디에서 항상 열정적으로 참여해주셔서 정말 감사해요! 덕분에 저도 더 열심히 하게 되고, 많은 배움을 얻고 있어요. 앞으로도 함께 성장해나갈 수 있으면 좋겠어요! 😊"',
+                        }
+                    ]
+                ),
+                # 예시 2: 커피챗 대화
+                ContextBlock(
+                    elements=[
+                        {
+                            "type": "mrkdwn",
+                            "text": '예시 2: 커피챗 대화\n>"지난번 커피챗에서 나눈 대화가 정말 인상 깊었어요. 개발에 대한 생각을 나누고 조언을 주셔서 고맙습니다! 다음에도 또 이런 기회가 있으면 좋겠네요!"',
+                        }
+                    ]
+                ),
+                # 예시 3: 반상회 발표
+                ContextBlock(
+                    elements=[
+                        {
+                            "type": "mrkdwn",
+                            "text": '예시 3: 반상회 발표\n>"최근 반상회에서 발표하신 모습이 인상적이었어요! 멀리서 지켜보면서 많은 영감을 받았답니다. 😊 나중에 기회가 된다면 커피챗으로 더 깊게 이야기를 나눌 수 있으면 좋겠어요!"',
+                        }
+                    ]
+                ),
+                DividerBlock(),
+                # 가이드 마무리
+                ContextBlock(
+                    elements=[
+                        {
+                            "type": "mrkdwn",
+                            "text": "이제 진심을 담은 메시지를 종이비행기에 담아 전달해보세요! ✈️",
+                        }
+                    ]
+                ),
+            ],
+        ),
     )
