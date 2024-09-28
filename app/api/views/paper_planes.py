@@ -17,7 +17,7 @@ router = APIRouter()
 )
 async def fetch_sent_paper_planes(
     offset: int = 0,
-    limit: int = Query(default=50, le=50),
+    limit: int = Query(default=1000, le=1000),  # TODO: 무한 스크롤 구현 시 수정
     service: ApiService = Depends(api_service),
     user: SimpleUser = Depends(current_user),
 ) -> dto.PaperPlaneResponse:
