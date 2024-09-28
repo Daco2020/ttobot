@@ -249,14 +249,17 @@ async def paper_plane_command(
     paper_planes = service.fetch_current_week_paper_planes(user_id=user.user_id)
     remain_paper_planes = 7 - len(paper_planes) if len(paper_planes) < 7 else 0
 
-    # 보내기 버튼, 조회 버튼, 가이드 버튼
+    # 다이렉트 메시지인지 확인: 다이렉트 메시지인 경우 직접 메시지를 보낼 수 없기 때문에 슬랙 앱 DM으로 안내
+    is_direct_message = body["channel_id"].startswith("D")
+    channel_id = user.user_id if is_direct_message else body["channel_id"]
+
     await client.chat_postEphemeral(
         user=user.user_id,
-        channel=body["channel_id"],
+        channel=channel_id,
         text="✈️ 종이비행기 보내기",
         blocks=[
             SectionBlock(
-                text=f"감사의 마음을 전하고 싶은 멤버가 있나요? 종이비행기로 따뜻한 메시지를 전해보세요!\n*종이비행기* 는 한 주에 7개까지 보낼 수 있으며 매주 토요일 0시에 충전됩니다.\n*{user.name[1:]}* 님이 이번 주에 보낼 수 있는 종이비행기 수는 현재 *{remain_paper_planes}개* 입니다. 😊"
+                text=f"종이비행기는 글또 멤버에게 따뜻한 감사나 응원의 메시지를 보낼 수 있는 기능이에요.\n매주 토요일 0시에 7개가 충전되며, 한 주 동안 자유롭게 원하는 분께 보낼 수 있어요.\n*{user.name[1:]}* 님이 이번 주에 보낼 수 있는 종이비행기 수는 현재 *{remain_paper_planes}개* 입니다. 😊"
             ),
             ActionsBlock(
                 elements=[
@@ -272,7 +275,7 @@ async def paper_plane_command(
                         url="https://geultto-paper-plane.vercel.app",
                     ),
                     ButtonElement(
-                        text="누구에게 보내면 좋을까요?",
+                        text="어떤 내용을 보내면 좋을까요?",
                         action_id="open_paper_plane_guide_view",
                         value="open_paper_plane_guide_view",
                     ),
