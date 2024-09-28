@@ -305,6 +305,7 @@ app.action("open_paper_plane_guide_view")(core_events.open_paper_plane_guide_vie
 app.action("open_coffee_chat_history_view")(core_events.open_coffee_chat_history_view)
 app.action("download_point_history")(core_events.download_point_history)
 app.action("download_coffee_chat_history")(core_events.download_coffee_chat_history)
+app.action("download_submission_history")(core_events.download_submission_history)
 
 
 # log
@@ -357,6 +358,7 @@ event_descriptions = {
     "open_coffee_chat_history_view": "커피챗 내역 조회",
     "download_point_history": "포인트 내역 다운로드",
     "download_coffee_chat_history": "커피챗 내역 다운로드",
+    "download_submission_history": "제출내역 다운로드",
     "send_paper_plane_message_view": "종이비행기 메시지 전송 완료",
     "channel_created": "채널 생성",
 }

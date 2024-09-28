@@ -289,6 +289,22 @@ class Content(StoreModel):
                 return i
         raise BotException("글또 활동 기간이 아니에요.")
 
+    @classmethod
+    def fieldnames(self) -> list[str]:
+        return [
+            "user_id",
+            "username",
+            "title",
+            "content_url",
+            "dt",
+            "category",
+            "description",
+            "type",
+            "tags",
+            "curation_flag",
+            "ts",
+        ]
+
 
 class BookmarkStatusEnum(str, Enum):
     ACTIVE = "ACTIVE"

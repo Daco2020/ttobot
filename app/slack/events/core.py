@@ -4,7 +4,7 @@ import tenacity
 
 from app.client import SpreadSheetClient
 from app.config import settings
-from app.models import CoffeeChatProof, PointHistory, User
+from app.models import CoffeeChatProof, Content, PointHistory, User
 from app.slack.services.base import SlackService
 from app.slack.services.point import PointMap, PointService
 from app.slack.types import (
@@ -161,6 +161,58 @@ async def open_submission_history_view(
             blocks=header_blocks + blocks + footer_blocks,
         ),
     )
+
+
+async def download_submission_history(
+    ack: AsyncAck,
+    body: ActionBodyType,
+    say: AsyncSay,
+    client: AsyncWebClient,
+    user: User,
+    service: SlackService,
+    point_service: PointService,
+) -> None:
+    """글 제출 내역을 CSV 파일로 다운로드합니다."""
+    await ack()
+
+    response = await client.conversations_open(users=user.user_id)
+    dm_channel_id = response["channel"]["id"]
+
+    contents = user.fetch_contents()
+    if not contents:
+        await client.chat_postMessage(
+            channel=dm_channel_id, text="글 제출 내역이 없습니다.1"
+        )
+        return None
+
+    # 사용자의 제출내역을 CSV 파일로 임시 저장 후 전송
+    temp_dir = "temp/submission_histories"
+    if not os.path.exists(temp_dir):
+        os.makedirs(temp_dir)
+
+    temp_file_path = f"{temp_dir}/{user.name}-글-제출-내역.csv"
+    with open(temp_file_path, "w", newline="") as csvfile:
+        writer = csv.DictWriter(
+            csvfile,
+            Content.fieldnames(),
+            quoting=csv.QUOTE_ALL,
+        )
+        writer.writeheader()
+        writer.writerows([each.model_dump() for each in contents])
+
+    res = await client.files_upload_v2(
+        channel=dm_channel_id,  #####
+        file=temp_file_path,
+        initial_comment=f"<@{user.user_id}> 님의 글 제출 내역 입니다.",
+    )
+
+    await client.chat_postMessage(
+        channel=dm_channel_id,
+        text=f"<@{user.user_id}> 님의 <{res['file']['permalink']}|글 제출 내역> 입니다.",
+    )
+
+    # 임시로 생성한 CSV 파일을 삭제
+    os.remove(temp_file_path)
 
 
 async def open_help_view(
