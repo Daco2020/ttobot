@@ -4,7 +4,6 @@ import tenacity
 
 from app.client import SpreadSheetClient
 from app.config import settings
-from app.constants import HELP_TEXT
 from app.models import CoffeeChatProof, PointHistory, User
 from app.slack.services.base import SlackService
 from app.slack.services.point import PointMap, PointService
@@ -134,9 +133,43 @@ async def open_help_view(
         trigger_id=body["trigger_id"],
         view=View(
             type="modal",
-            title="도움말",
-            close="닫기",
-            blocks=[SectionBlock(text=HELP_TEXT)],
+            title={"type": "plain_text", "text": "또봇 도움말"},
+            close={"type": "plain_text", "text": "닫기"},
+            blocks=[
+                # 인사말 섹션
+                SectionBlock(
+                    text={
+                        "type": "mrkdwn",
+                        "text": "👋🏼 *반가워요!*\n저는 글또 활동을 도와주는 *또봇* 이에요. "
+                        "여러분이 글로 더 많이 소통할 수 있도록 다양한 기능을 제공하고 있어요.",
+                    }
+                ),
+                DividerBlock(),
+                # 명령어 안내
+                SectionBlock(
+                    text={
+                        "type": "mrkdwn",
+                        "text": "*💬 사용 가능한 명령어 안내*\n\n"
+                        "*`/제출`* - 이번 회차의 글을 제출할 수 있어요.\n"
+                        "*`/패스`* - 이번 회차의 글을 패스할 수 있어요.\n"
+                        "*`/제출내역`* - 자신의 글 제출내역을 볼 수 있어요.\n"
+                        "*`/검색`* - 다른 사람들의 글을 검색할 수 있어요.\n"
+                        "*`/북마크`* - 북마크한 글을 볼 수 있어요.\n"
+                        "*`/예치금`* - 현재 남은 예치금을 알려드려요.\n"
+                        "*`/도움말`* - 또봇 사용법을 알려드려요.",
+                    }
+                ),
+                DividerBlock(),
+                # 문의 및 코드 안내
+                SectionBlock(
+                    text={
+                        "type": "mrkdwn",
+                        "text": "🙌 *도움이 필요하신가요?*\n\n"
+                        f"궁금한 사항이 있다면 <#{settings.SUPPORT_CHANNEL}> 채널로 문의해주세요!\n"
+                        "또봇 코드가 궁금하다면 👉🏼 *<https://github.com/Daco2020/ttobot|또봇 깃허브>* 로 놀러오세요~ 🤗",
+                    }
+                ),
+            ],
         ),
     )
 
