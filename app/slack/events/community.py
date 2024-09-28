@@ -7,6 +7,7 @@ from app.slack.services.base import SlackService
 from app.slack.services.point import PointService
 from app.slack.types import (
     ActionBodyType,
+    CommandBodyType,
     MessageBodyType,
     ViewBodyType,
 )
@@ -231,4 +232,51 @@ async def submit_coffee_chat_proof_view(
             "delete_original": True,
         },
         timeout=5.0,
+    )
+
+
+async def paper_plane_command(
+    ack: AsyncAck,
+    body: CommandBodyType,
+    client: AsyncWebClient,
+    user: User,
+    service: SlackService,
+    point_service: PointService,
+) -> None:
+    """종이비행기 명령을 처리합니다."""
+    await ack()
+
+    paper_planes = service.fetch_current_week_paper_planes(user_id=user.user_id)
+    remain_paper_planes = 7 - len(paper_planes) if len(paper_planes) < 7 else 0
+
+    # 보내기 버튼, 조회 버튼, 가이드 버튼
+    await client.chat_postEphemeral(
+        user=user.user_id,
+        channel=body["channel_id"],
+        text="✈️ 종이비행기 보내기",
+        blocks=[
+            SectionBlock(
+                text=f"감사의 마음을 전하고 싶은 멤버가 있나요? 종이비행기로 따뜻한 메시지를 전해보세요!\n*종이비행기* 는 한 주에 7개까지 보낼 수 있으며 매주 토요일 0시에 충전됩니다.\n*{user.name[1:]}* 님이 이번 주에 보낼 수 있는 종이비행기 수는 현재 *{remain_paper_planes}개* 입니다. 😊"
+            ),
+            ActionsBlock(
+                elements=[
+                    ButtonElement(
+                        text="종이비행기 보내기",
+                        action_id="send_paper_plane_message",
+                        value="send_paper_plane_message",
+                        style="primary",
+                    ),
+                    ButtonElement(
+                        text="주고받은 종이비행기 보기",
+                        action_id="open_paper_plane_url",
+                        url="https://geultto-paper-plane.vercel.app",
+                    ),
+                    ButtonElement(
+                        text="누구에게 보내면 좋을까요?",
+                        action_id="open_paper_plane_guide_view",
+                        value="open_paper_plane_guide_view",
+                    ),
+                ]
+            ),
+        ],
     )

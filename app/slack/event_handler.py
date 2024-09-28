@@ -258,7 +258,7 @@ app.action("submit_coffee_chat_proof_button")(
 app.view("submit_coffee_chat_proof_view")(
     community_events.submit_coffee_chat_proof_view
 )
-app.event("channel_created")(core_events.handle_channel_created)
+app.command("/종이비행기")(community_events.paper_plane_command)
 
 # contents
 app.command("/제출")(contents_events.submit_command)
@@ -285,6 +285,7 @@ app.view("handle_bookmark_page_view")(contents_events.handle_bookmark_page)
 
 # core
 app.event("app_mention")(core_events.handle_app_mention)
+app.event("channel_created")(core_events.handle_channel_created)
 app.command("/예치금")(core_events.open_deposit_view)
 app.command("/제출내역")(core_events.open_submission_history_view)
 app.command("/도움말")(core_events.open_help_view)
