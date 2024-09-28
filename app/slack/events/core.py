@@ -912,7 +912,6 @@ async def send_paper_plane_message_view(
 
     await ack()
 
-    ttobot_auth = await client.auth_test()
     receiver = service.get_user(user_id=receiver_id)
     service.create_paper_plane(
         sender=user,
@@ -930,7 +929,7 @@ async def send_paper_plane_message_view(
             ContextBlock(
                 elements=[
                     MarkdownTextObject(
-                        text=f">받은 종이비행기는 <@{ttobot_auth['user_id']}> 👈 클릭 후 [앱으로 이동] -> [홈] 탭에서 확인할 수 있어요.😉"
+                        text=">받은 종이비행기는 `/종이비행기` 명령어 -> [주고받은 종이비행기 보기] 를 통해 확인할 수 있어요."
                     )
                 ],
             ),
@@ -947,7 +946,7 @@ async def send_paper_plane_message_view(
             ContextBlock(
                 elements=[
                     MarkdownTextObject(
-                        text=">보낸 종이비행기는 또봇 [홈] 탭 -> [주고받은 종이비행기 보기] 에서 확인할 수 있어요.😉"
+                        text=">보낸 종이비행기는 `/종이비행기` 명령어 -> [주고받은 종이비행기 보기] 를 통해 확인할 수 있어요."
                     )
                 ],
             ),
