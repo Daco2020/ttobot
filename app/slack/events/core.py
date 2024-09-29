@@ -497,7 +497,7 @@ async def handle_home_tab(
         return
 
     # 포인트 히스토리를 포함한 유저를 가져온다.
-    user_point_history = point_service.get_user_point(user_id=user.user_id)
+    user_point_history = point_service.get_user_point(user_id=user.user_id)  # type: ignore
     combo_count = user.get_continuous_submit_count()
     next_combo_point = ""
     if combo_count == 0:
@@ -509,7 +509,7 @@ async def handle_home_tab(
             "*+ " + str(PointMap.글_제출_콤보.point * combo_count) + "(콤보 보너스)* "
         )
 
-    paper_planes = service.fetch_current_week_paper_planes(user_id=user.user_id)
+    paper_planes = service.fetch_current_week_paper_planes(user_id=user.user_id)  # type: ignore
     remain_paper_planes = 7 - len(paper_planes) if len(paper_planes) < 7 else 0
 
     # 홈 탭 메시지 구성
