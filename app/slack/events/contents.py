@@ -245,30 +245,6 @@ async def submit_view(
                 channel=content.user_id, text=curation_point_msg
             )
 
-        # TODO: 방학기간에 담소에도 글을 보낼지에 대한 메시지 전송 로직
-        # 2초 대기하는 이유는 메시지 보다 더 먼저 전송 될 수 있기 때문임
-        # await asyncio.sleep(2)
-        # await client.chat_postEphemeral(
-        #     user=content.user_id,
-        #     channel=channel_id,
-        #     text="여러분의 소중한 글을 더 많은 분들에게 보여드리고 싶어요. 자유로운 담소에도 전송하시겠어요?",
-        #     blocks=[
-        #         SectionBlock(
-        #             text="🤗여러분의 소중한 글을 더 많은 분들에게 보여드리고 싶어요. \n자유로운 담소 채널에도 전송하시겠어요?"
-        #         ),
-        #         ActionsBlock(
-        #             elements=[
-        #                 ButtonElement(
-        #                     text="전송하기",
-        #                     action_id="forward_message",
-        #                     value=content.ts,
-        #                     style="primary",
-        #                 )
-        #             ]
-        #         ),
-        #     ],
-        # )
-
     except Exception as e:
         message = f"{user.name}({user.channel_name}) 님의 제출이 실패했어요. {str(e)}"  # type: ignore
         raise BotException(message)  # type: ignore
@@ -407,7 +383,7 @@ async def submit_intro_view(
                     alt_text="success",
                 ),
                 {
-                    "type": "rich_text",  # TODO: rich_text 블록 찾아보기
+                    "type": "rich_text",  # rich_text 는 블록이 없음
                     "elements": [
                         {
                             "type": "rich_text_section",
