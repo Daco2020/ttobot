@@ -146,7 +146,7 @@ class PointService:
                 content = channel_user.recent_content
                 rank_map[channel_user.user_id] = content.ts
         
-        rank_user_ids = sorted(rank_map, key=lambda x: rank_map[x], reverse=True)[:3]
+        rank_user_ids = sorted(rank_map, key=lambda x: rank_map[x])[:3]
         if user.user_id in rank_user_ids:
             rank = rank_user_ids.index(user.user_id) + 1
             if rank == 1:

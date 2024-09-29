@@ -182,20 +182,19 @@ class SlackRepository:
         - ts가 없을 경우, user_id와 dt(생성일시)를 조합하여 검색합니다. 이는 Unique한 값입니다.
         - Unique한 값이 아닌 경우, 검색된 결과 중 가장 최신의 결과를 반환합니다.
         """
-        df = pd.read_csv("store/contents.csv", dtype=str, na_filter=False)
+        with open("store/contents.csv") as f:
+            reader = csv.DictReader(f)
+            contents = [
+                models.Content(**content)  # type: ignore
+                for content in reader
+                if content["ts"] == ts
+                or (content["user_id"] == user_id and content["dt"] == dt)
+            ]
 
-        if ts:
-            df = df[df["ts"] == ts]
-        if user_id:
-            df = df[df["user_id"] == user_id]
-        if dt:
-            df = df[df["dt"] == dt]
-
-        if df.empty:
+        if not contents:
             return None
 
-        row = df.sort_values(by="ts", ascending=False).iloc[0]
-        return models.Content(**row)
+        return sorted(contents, key=lambda content: content.dt_, reverse=True)[0]
 
     def create_coffee_chat_proof(self, proof: models.CoffeeChatProof) -> None:
         """커피챗 인증을 생성합니다."""
@@ -207,15 +206,18 @@ class SlackRepository:
 
     def get_coffee_chat_proof(self, ts: str) -> models.CoffeeChatProof | None:
         """ts로 커피챗 인증을 조회합니다."""
-        df = pd.read_csv("store/coffee_chat_proof.csv", dtype=str, na_filter=False)
+        with open("store/coffee_chat_proof.csv") as f:
+            reader = csv.DictReader(f)
+            proofs = [
+                models.CoffeeChatProof(**proof)  # type: ignore
+                for proof in reader
+                if proof["ts"] == ts
+            ]
 
-        df = df[df["ts"] == ts]
-
-        if df.empty:
+        if not proofs:
             return None
 
-        row = df.iloc[0]
-        return models.CoffeeChatProof(**row)
+        return proofs[0]
 
     def fetch_coffee_chat_proofs(
         self,
@@ -224,20 +226,15 @@ class SlackRepository:
         user_id: str | None = None,
     ) -> list[models.CoffeeChatProof]:
         """thread_ts로 커피챗 인증을 조회합니다."""
-        df = pd.read_csv("store/coffee_chat_proof.csv", dtype=str, na_filter=False)
-
-        if user_id:
-            df = df[df["user_id"] == user_id]
-
-        if thread_ts:
-            df = df[df["thread_ts"] == thread_ts]
-
-        if df.empty:
-            return []
-
-        df = df.sort_values(by="ts", ascending=False)
-
-        return [models.CoffeeChatProof(**row) for row in df.to_dict(orient="records")]
+        with open("store/coffee_chat_proof.csv") as f:
+            reader = csv.DictReader(f)
+            proofs = [
+                models.CoffeeChatProof(**proof)  # type: ignore
+                for proof in reader
+                if (not thread_ts or proof["thread_ts"] == thread_ts)
+                and (not user_id or proof["user_id"] == user_id)
+            ]
+            return sorted(proofs, key=lambda proof: proof.ts, reverse=True)
 
     def add_point(self, point_history: models.PointHistory) -> None:
         """포인트를 추가합니다."""
@@ -279,11 +276,11 @@ class SlackRepository:
 
     def fetch_paper_planes(self, sender_id: str) -> list[models.PaperPlane]:
         """종이비행기를 가져옵니다."""
-        df = pd.read_csv("store/paper_plane.csv", dtype=str, na_filter=False)
-
-        df = df[df["sender_id"] == sender_id]
-
-        if df.empty:
-            return []
-
-        return [models.PaperPlane(**row) for row in df.to_dict(orient="records")]
+        with open("store/paper_plane.csv") as f:
+            reader = csv.DictReader(f)
+            paper_planes = [
+                models.PaperPlane(**paper_plane)  # type: ignore
+                for paper_plane in reader
+                if paper_plane["sender_id"] == sender_id
+            ]
+            return paper_planes

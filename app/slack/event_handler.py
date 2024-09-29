@@ -86,17 +86,18 @@ async def dependency_injection_middleware(
     """서비스 객체를 주입합니다."""
     event = req.context.get("event")
     user_id = req.context.user_id
-    # channel_id = req.context.channel_id
+    channel_id = req.context.channel_id
 
     if event in [
         "app_mention",
+        "channel_created",
         "member_joined_channel",
-        "message",
         "reaction_added",
         "reaction_removed",
+        "message",
     ]:
-        # 앱 멘션과 채널 입장은 서비스 객체를 주입하지 않는다.
-        # 메시지는 handle_message 에서 서비스 객체를 생성한다.
+        # 해당 이벤트는 의존성 주입을 하지 않습니다.
+        # 메시지의 경우 handle_message 에서 의존성 주입을 합니다.
         await next()
         return
 
@@ -109,34 +110,28 @@ async def dependency_injection_middleware(
         await next()
         return
 
-    if event == "channel_created":
-        # 채널 생성 이벤트는 사용자 아이디가 없을 수 있습니다.
-        await next()
-        return
-
-    if user_id is None:
-        # TODO: 10기 멤버 등록 후 활성화
-        # raise BotException("사용자 아이디가 없습니다.")
-        pass
-
-    # TODO: 10기 멤버 등록 후 제거
+    # TODO: 10기 멤버 등록 후에는 불필요하므로 제거
     if event == "app_home_opened":
-        # 홈 탭 열림 이벤트는 서비스 객체를 주입하지 않습니다.
+        # 등록되지 않는 멤버는 의존성을 주입하지 않습니다.
         req.context["service"] = None
         req.context["point_service"] = None
         req.context["user"] = None
         await next()
         return
 
-    # TODO: 10기 멤버 등록 후 활성화
-    # message = (
-    #     "🥲 사용자 정보를 추가해주세요. 👉🏼 "
-    #     f"event: `{event}` "
-    #     f"channel: <#{channel_id}> "
-    #     f"user_id: {user_id}"
-    # )
-    # await app.client.chat_postMessage(channel=settings.ADMIN_CHANNEL, text=message)
-    # logger.error(message)
+    if user_id is None:
+        # 일부 슬랙 봇은 사용자 아이디가 없을 수 있습니다.
+        return
+
+    message = (
+        "🥲 사용자 정보를 추가해주세요. 👉🏼 "
+        f"event: `{event}` "
+        f"channel: <#{channel_id}> "
+        f"user_id: {user_id}"
+    )
+    await app.client.chat_postMessage(channel=settings.ADMIN_CHANNEL, text=message)
+    logger.error(message)
+    raise BotException("사용자 정보를 찾을 수 없어요.")
 
 
 @app.error
@@ -150,11 +145,6 @@ async def handle_error(error, body):
     if isinstance(error, ValueError):
         raise error
 
-    # 일부 봇은 user_id 를 가지지 않기 때문에 무시합니다.
-    if isinstance(error, BotException):
-        if error.message == "사용자 아이디가 없습니다.":
-            return
-
     # 사용자에게 에러를 알립니다.
     if re.search(r"[\u3131-\uD79D]", str(error)):
         # 한글로 핸들링하는 메시지만 사용자에게 전송합니다.
@@ -162,7 +152,7 @@ async def handle_error(error, body):
     else:
         message = "예기치 못한 오류가 발생했어요."
 
-    text = f"🥲 {message}\n\n👉🏼 궁금한 사항은 <#{settings.SUPPORT_CHANNEL}> 채널로 문의해주세요."
+    text = f"🥲 {message}\n\n👉🏼 문제가 해결되지 않는다면 <#{settings.SUPPORT_CHANNEL}> 채널로 문의해주세요."
     if trigger_id := body.get("trigger_id"):
         await app.client.views_open(
             trigger_id=trigger_id,
@@ -207,10 +197,14 @@ async def handle_message(
     repo = SlackRepository()
     user = repo.get_user(user_id)  # type: ignore
 
-    # TODO: 슬랙 봇을 인식하기 어려워 추후 제거하거나 타입을 확인할 필요 있음.
     if not user:
-        # message = f"🥲 사용자 정보를 추가해주세요. 👉🏼 user_id: {user_id}"
-        # await client.chat_postMessage(channel=settings.ADMIN_CHANNEL, text=message)
+        if user_id is None:
+            # 일부 슬랙 봇은 사용자 아이디가 없을 수 있습니다.
+            return
+
+        message = f"🥲 사용자 정보를 추가해주세요. 👉🏼 user_id: {user_id}"
+        await client.chat_postMessage(channel=settings.ADMIN_CHANNEL, text=message)
+        logger.error(message)
         return
 
     if channel_id == settings.SUPPORT_CHANNEL and not thread_ts:
@@ -264,7 +258,7 @@ app.command("/종이비행기")(community_events.paper_plane_command)
 app.command("/제출")(contents_events.submit_command)
 app.view("submit_view")(contents_events.submit_view)
 app.action("intro_modal")(contents_events.open_intro_modal)
-app.action("forward_message")(contents_events.forward_message)
+# app.action("forward_message")(contents_events.forward_message)
 app.view("edit_intro_view")(contents_events.edit_intro_view)
 app.view("submit_intro_view")(contents_events.submit_intro_view)
 app.action("contents_modal")(contents_events.contents_modal)
@@ -318,7 +312,7 @@ event_descriptions = {
     "/제출": "글 제출 시작",
     "submit_view": "글 제출 완료",
     "intro_modal": "다른 유저의 자기소개 확인",
-    "forward_message": "다른 채널로 메시지 전송",
+    # "forward_message": "다른 채널로 메시지 전송",
     "edit_intro_view": "자기소개 수정 시작",
     "submit_intro_view": "자기소개 수정 완료",
     "contents_modal": "다른 유저의 제출한 글 목록 확인",
@@ -362,4 +356,5 @@ event_descriptions = {
     "download_submission_history": "제출내역 다운로드",
     "send_paper_plane_message_view": "종이비행기 메시지 전송 완료",
     "channel_created": "채널 생성",
+    "/종이비행기": "종이비행기 모달 열기",
 }

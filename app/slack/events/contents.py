@@ -1,5 +1,4 @@
 import re
-import requests
 
 from app.slack.components import static_select
 from app.constants import MAX_PASS_COUNT, ContentCategoryEnum
@@ -19,7 +18,6 @@ from slack_sdk.models.blocks import (
     ActionsBlock,
     ButtonElement,
     StaticSelectElement,
-    ImageBlock,
     UrlInputElement,
 )
 from slack_bolt.async_app import AsyncAck, AsyncSay
@@ -36,6 +34,7 @@ from app.slack.types import (
     ViewType,
 )
 from app.utils import dict_to_json_str, json_str_to_dict
+from app.config import settings
 
 
 async def submit_command(
@@ -50,14 +49,17 @@ async def submit_command(
     """글 제출 시작"""
     await ack()
     callback_id = "submit_view"
-    channel_id = body["channel_id"]
-    user.check_channel(channel_id)
+
+    # 어드민 유저는 제출하는 곳에 메세지가 전송됩니다.
+    private_metadata = (
+        body["channel_id"] if user.user_id in settings.ADMIN_IDS else user.channel_id
+    )
 
     await client.views_open(
         trigger_id=body["trigger_id"],
         view=View(
             type="modal",
-            private_metadata=channel_id,
+            private_metadata=private_metadata,
             callback_id=callback_id,
             title="또봇",
             submit="제출",
@@ -250,41 +252,41 @@ async def submit_view(
         raise BotException(message)  # type: ignore
 
 
-async def forward_message(
-    ack: AsyncAck,
-    body: ActionBodyType,
-    client: AsyncWebClient,
-    service: SlackService,
-    point_service: PointService,
-) -> None:
-    # TODO: 방학기간에 담소에도 글을 보낼지에 대한 메시지 전송 로직
-    await ack()
+# TODO: 방학기간에 담소에도 글을 보낼지에 대한 메시지 전송 로직
+# async def forward_message(
+#     ack: AsyncAck,
+#     body: ActionBodyType,
+#     client: AsyncWebClient,
+#     service: SlackService,
+#     point_service: PointService,
+# ) -> None:
+#     await ack()
 
-    content_ts = body["actions"][0]["value"]
-    source_channel = body["channel"]["id"]
-    # target_channel = "C05J4FGB154"  # 자유로운 담소 채널 ID 테스트용
-    target_channel = "C0672HTT36C"  # 자유로운 담소 채널 ID 운영용
+#     content_ts = body["actions"][0]["value"]
+#     source_channel = body["channel"]["id"]
+#     # target_channel = "C05J4FGB154"  # 자유로운 담소 채널 ID 테스트용
+#     target_channel = "C0672HTT36C"  # 자유로운 담소 채널 ID 운영용
 
-    permalink_response = await client.chat_getPermalink(
-        channel=source_channel, message_ts=content_ts
-    )
-    permalink = permalink_response["permalink"]
-    content = service.get_content_by(ts=content_ts)
+#     permalink_response = await client.chat_getPermalink(
+#         channel=source_channel, message_ts=content_ts
+#     )
+#     permalink = permalink_response["permalink"]
+#     content = service.get_content_by(ts=content_ts)
 
-    # 담소 채널에 보내는 메시지
-    text = f"<@{content.user_id}>님이 글을 공유했어요! \n👉 *<{permalink}|{content.title}>*"
-    await client.chat_postMessage(channel=target_channel, text=text)
+#     # 담소 채널에 보내는 메시지
+#     text = f"<@{content.user_id}>님이 글을 공유했어요! \n👉 *<{permalink}|{content.title}>*"
+#     await client.chat_postMessage(channel=target_channel, text=text)
 
-    # 나에게만 표시 메시지 수정하는 요청(slack bolt 에서는 지원하지 않음)
-    requests.post(
-        body["response_url"],
-        json={
-            "response_type": "ephemeral",
-            "text": f"<#{target_channel}> 에 전송되었어요. 📨",
-            "replace_original": True,
-            # "delete_original": True, # 삭제도 가능
-        },
-    )
+#     # 나에게만 표시 메시지 수정하는 요청(slack bolt 에서는 지원하지 않음)
+#     requests.post(
+#         body["response_url"],
+#         json={
+#             "response_type": "ephemeral",
+#             "text": f"<#{target_channel}> 에 전송되었어요. 📨",
+#             "replace_original": True,
+#             # "delete_original": True, # 삭제도 가능
+#         },
+#     )
 
 
 async def open_intro_modal(
@@ -370,34 +372,38 @@ async def submit_intro_view(
     """자기소개 수정 완료"""
     new_intro = view["state"]["values"]["description"]["edit_intro"]["value"] or ""
     service.update_user_intro(user.user_id, new_intro=new_intro)
+
     await ack(
-        response_action="update",
-        view=View(
-            type="modal",
-            callback_id="submit_intro_view",
-            title="자기소개 수정 완료",
-            close="닫기",
-            blocks=[
-                ImageBlock(
-                    image_url="https://media1.giphy.com/media/g9582DNuQppxC/giphy.gif",
-                    alt_text="success",
-                ),
-                {
-                    "type": "rich_text",  # rich_text 는 블록이 없음
-                    "elements": [
-                        {
-                            "type": "rich_text_section",
-                            "elements": [
-                                {
-                                    "type": "text",
-                                    "text": "자기소개 수정이 완료되었습니다. 👏🏼👏🏼👏🏼\n다시 [자기소개 보기] 버튼을 통해 확인해보세요!",  # noqa E501
-                                }
-                            ],
-                        }
-                    ],
-                },
-            ],
-        ),
+        {
+            "response_action": "update",
+            "view": {
+                "type": "modal",
+                "callback_id": "submit_intro_view",
+                "title": {"type": "plain_text", "text": "자기소개 수정 완료"},
+                "close": {"type": "plain_text", "text": "닫기"},
+                "blocks": [
+                    {
+                        "type": "image",
+                        "image_url": "https://media1.giphy.com/media/g9582DNuQppxC/giphy.gif",  # noqa E501
+                        "alt_text": "success",
+                    },
+                    {
+                        "type": "rich_text",  # rich_text 는 블록 객체로 사용할 수 없음
+                        "elements": [
+                            {
+                                "type": "rich_text_section",
+                                "elements": [
+                                    {
+                                        "type": "text",
+                                        "text": "자기소개 수정이 완료되었습니다. 👏🏼👏🏼👏🏼\n다시 [자기소개 보기] 버튼을 눌러 확인해보세요!",  # noqa E501
+                                    }
+                                ],
+                            }
+                        ],
+                    },
+                ],
+            },
+        }
     )
 
 
@@ -543,26 +549,34 @@ async def pass_command(
     """글 패스 시작"""
     await ack()
 
-    channel_id = body["channel_id"]
     round, due_date = user.get_due_date()
-
-    user.check_channel(channel_id)
     user.check_pass()
 
+    # 어드민 유저는 제출하는 곳에 메세지가 전송됩니다.
+    private_metadata = (
+        body["channel_id"] if user.user_id in settings.ADMIN_IDS else user.channel_id
+    )
+
     if user.is_submit:
-        text = f"🤗 {user.name} 님은 이미 {round}회차(마감일: {due_date}) 글을 제출했어요. 제출내역을 확인해주세요."
-        await client.chat_postEphemeral(
-            channel=channel_id,
-            user=user.user_id,
-            text=text,
+        await client.views_open(
+            trigger_id=body["trigger_id"],
+            view=View(
+                type="modal",
+                title="패스",
+                close="닫기",
+                blocks=[
+                    SectionBlock(
+                        text=f"🤗 {user.name} 님은 이미 {round}회차 (마감일: {due_date}) 글을 제출했어요.\n`/제출내역` 명령어로 글 제출 내역을 확인해주세요."
+                    )
+                ],
+            ),
         )
-        return
 
     await client.views_open(
         trigger_id=body["trigger_id"],
         view=View(
             type="modal",
-            private_metadata=channel_id,
+            private_metadata=private_metadata,
             callback_id="pass_view",
             title="또봇",
             submit="패스",
@@ -573,7 +587,8 @@ async def pass_command(
                         \n\n아래 유의사항을 확인해주세요.\
                         \n- 현재 회차는 {round}회차, 마감일은 {due_date} 이에요.\
                         \n- 패스는 연속으로 사용할 수 없어요.\
-                        \n- 남은 패스는 {MAX_PASS_COUNT - user.pass_count}번 이에요.",
+                        \n- 남은 패스는 {MAX_PASS_COUNT - user.pass_count}번 이에요.\
+                        \n- 패스 메시지는 코어 채널인 <#{user.channel_id}> 채널에 표시됩니다.",
                 ),
                 InputBlock(
                     block_id="description",

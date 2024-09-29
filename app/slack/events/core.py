@@ -916,7 +916,7 @@ async def send_paper_plane_message_view(
         await ack(
             response_action="errors",
             errors={
-                "paper_plane_receiver": "종이비행기는 매주 7개까지만 보낼 수 있어요~😉",
+                "paper_plane_receiver": "종이비행기는 한 주에 7개까지 보낼 수 있어요. (토요일 0시에 충전)",
             },
         )
         return

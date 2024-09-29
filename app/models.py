@@ -144,14 +144,16 @@ class User(BaseModel):
     def submission_guide_message(self) -> str:
         """제출 모달 가이드 메시지를 반환합니다."""
         round, due_date = self.get_due_date()
-        guide_message = f"\n\n현재 회차는 {round}회차, 마감일은 {due_date} 이에요."
+        guide_message = f"현재 회차는 {round}회차, 마감일은 {due_date} 이에요."
         if self.is_submit:
             guide_message += f"\n({self.name} 님은 이미 {round}회차 글을 제출했어요)"
         else:
             guide_message += (
                 f"\n({self.name} 님은 아직 {round}회차 글을 제출하지 않았어요)"
             )
-
+        guide_message += (
+            f"\n제출 메시지는 코어 채널인 <#{self.channel_id}> 에 표시됩니다."
+        )
         return guide_message
 
     def check_pass(self) -> None:
