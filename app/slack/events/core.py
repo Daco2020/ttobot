@@ -851,7 +851,7 @@ async def send_paper_plane_message(
         submit="보내기",
         blocks=[
             SectionBlock(
-                text="종이비행기로 전하고 싶은 마음을 적어주세요.",
+                text="종이비행기에 전하고 싶은 마음을 적어주세요.",
             ),
             InputBlock(
                 block_id="paper_plane_receiver",

@@ -74,7 +74,7 @@ async def handle_coffee_chat_message(
 
     # 1초 대기하는 이유는 메시지 보다 더 먼저 전송 될 수 있기 때문임
     await asyncio.sleep(1)
-    text = f"☕ <@{user.user_id}> 님 커피챗 인증을 시작하려면 아래 [ 커피챗 인증 ] 버튼을 눌러주세요."
+    text = f"<@{user.user_id}> 님 커피챗 인증을 시작하려면 아래 `커피챗 인증` 버튼을 눌러주세요.\n만약 인증을 원치 않으시면 `안내 닫기` 버튼을 눌러주세요."
     await client.chat_postEphemeral(
         user=user.user_id,
         channel=body["event"]["channel"],
@@ -147,7 +147,9 @@ async def submit_coffee_chat_proof_button(
             callback_id="submit_coffee_chat_proof_view",
             private_metadata=private_metadata,
             blocks=[
-                SectionBlock(text="커피챗에 참여한 멤버들을 모두 선택해주세요.😊"),
+                SectionBlock(
+                    text=":coffee: 커피챗에 참여한 멤버들을 모두 선택해주세요."
+                ),
                 InputBlock(
                     block_id="participant",
                     label="커피챗 참여 멤버",
@@ -219,11 +221,13 @@ async def submit_coffee_chat_proof_view(
         if selected_user != user.user_id  # 본인 제외
     )
 
+    res = await client.auth_test()
+    bot_user_id = res["user_id"]
     if user_call_text:
         await client.chat_postMessage(
             channel=settings.COFFEE_CHAT_PROOF_CHANNEL,
             thread_ts=message_ts,
-            text=f"{user_call_text} \n\n😊 커피챗 인증을 위해 꼭 후기를 남겨주세요. 인증이 확인된 멤버는 ✅가 표시돼요.",
+            text=f"{user_call_text} \n\n커피챗 인증을 위해 꼭 후기를 남겨주세요. 인증이 확인된 멤버는 ✅가 표시돼요.\n\n커피챗 인증 내역은 <@{bot_user_id}> 의 `홈` 탭 -> `내 커피챗 인증 내역 보기` 버튼을 통해 확인할 수 있어요.",
         )
 
     # 나에게만 표시 메시지 수정하는 요청(slack bolt 에서는 지원하지 않음)
