@@ -20,7 +20,7 @@ class Store:
     def __init__(self, client: SpreadSheetClient) -> None:
         self._client = client
 
-    def pull(self) -> None:
+    def pull_all(self) -> None:
         """데이터를 가져와 서버 저장소를 동기화합니다."""
         os.makedirs("store", exist_ok=True)
         self.write("users", values=self._client.get_values("users"))
@@ -29,26 +29,56 @@ class Store:
         self.write(
             "coffee_chat_proof", values=self._client.get_values("coffee_chat_proof")
         )
-        self.write("reactions", values=self._client.get_values("reactions"))
         self.write("point_histories", values=self._client.get_values("point_histories"))
         self.write("paper_plane", values=self._client.get_values("paper_plane"))
 
+    def pull_users(self) -> None:
+        """유저 데이터를 가져와 서버 저장소를 동기화합니다."""
+        os.makedirs("store", exist_ok=True)
+        self.write("users", values=self._client.get_values("users"))
+
+    def pull_contents(self) -> None:
+        """콘텐츠 데이터를 가져와 서버 저장소를 동기화합니다."""
+        os.makedirs("store", exist_ok=True)
+        self.write("contents", values=self._client.get_values("contents"))
+
+    def pull_bookmark(self) -> None:
+        """북마크 데이터를 가져와 서버 저장소를 동기화합니다."""
+        os.makedirs("store", exist_ok=True)
+        self.write("bookmark", values=self._client.get_values("bookmark"))
+
+    def pull_coffee_chat_proof(self) -> None:
+        """커피챗 인증 데이터를 가져와 서버 저장소를 동기화합니다."""
+        os.makedirs("store", exist_ok=True)
+        self.write(
+            "coffee_chat_proof", values=self._client.get_values("coffee_chat_proof")
+        )
+
+    def pull_point_histories(self) -> None:
+        """포인트 내역 데이터를 가져와 서버 저장소를 동기화합니다."""
+        os.makedirs("store", exist_ok=True)
+        self.write("point_histories", values=self._client.get_values("point_histories"))
+
+    def pull_paper_plane(self) -> None:
+        """종이비행기 데이터를 가져와 서버 저장소를 동기화합니다."""
+        os.makedirs("store", exist_ok=True)
+        self.write("paper_plane", values=self._client.get_values("paper_plane"))
+
     def write(self, table_name: str, values: list[list[str]]) -> None:
+        """데이터를 저장소에 저장합니다."""
         with open(f"store/{table_name}.csv", "w", newline="", encoding="utf-8") as f:
             writer = csv.writer(f, quoting=csv.QUOTE_ALL)
             writer.writerows(values)
 
     def read(self, table_name: str) -> list[list[str]]:
+        """저장소에서 데이터를 읽어옵니다."""
         with open(f"store/{table_name}.csv") as f:
             reader = csv.reader(f, quoting=csv.QUOTE_ALL)
             data = list(reader)
         return data
 
-    def upload(self, table_name: str) -> None:
-        values = self.read(table_name)
-        self._client.upload(table_name, values)
-
-    def bulk_upload(self, table_name: str) -> None:
+    def upload_all(self, table_name: str) -> None:
+        """해당 테이블의 모든 데이터를 업로드합니다."""
         values = self.read(table_name)
         self._client.bulk_upload(table_name, values)
 
@@ -66,7 +96,7 @@ class Store:
             temp_content_upload_queue = list(content_upload_queue)
             if temp_content_upload_queue:
                 await asyncio.to_thread(
-                    self._client.upload,
+                    self._client.bulk_upload,
                     "contents",
                     temp_content_upload_queue,
                 )
@@ -88,7 +118,7 @@ class Store:
             temp_bookmark_upload_queue = list(bookmark_upload_queue)
             if temp_bookmark_upload_queue:
                 await asyncio.to_thread(
-                    self._client.upload,
+                    self._client.bulk_upload,
                     "bookmark",
                     temp_bookmark_upload_queue,
                 )
@@ -147,7 +177,7 @@ class Store:
             temp_coffee_chat_proof_upload_queue = list(coffee_chat_proof_upload_queue)
             if temp_coffee_chat_proof_upload_queue:
                 await asyncio.to_thread(
-                    self._client.upload,
+                    self._client.bulk_upload,
                     "coffee_chat_proof",
                     temp_coffee_chat_proof_upload_queue,
                 )
@@ -168,7 +198,7 @@ class Store:
             temp_point_history_upload_queue = list(point_history_upload_queue)
             if temp_point_history_upload_queue:
                 await asyncio.to_thread(
-                    self._client.upload,
+                    self._client.bulk_upload,
                     "point_histories",
                     temp_point_history_upload_queue,
                 )
@@ -189,7 +219,7 @@ class Store:
             temp_paper_plane_upload_queue = list(paper_plane_upload_queue)
             if temp_paper_plane_upload_queue:
                 await asyncio.to_thread(
-                    self._client.upload,
+                    self._client.bulk_upload,
                     "paper_plane",
                     temp_paper_plane_upload_queue,
                 )

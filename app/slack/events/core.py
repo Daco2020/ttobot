@@ -329,12 +329,9 @@ async def handle_sync_store(
         await client.chat_postMessage(
             channel=settings.ADMIN_CHANNEL, text="데이터 동기화 시작"
         )
-        sheet_client = SpreadSheetClient()
-        store = Store(client=sheet_client)
-        store.bulk_upload("logs")
-        store.backup("contents")
-        store.initialize_logs()
-        store.pull()
+        # TODO: 슬랙으로 백업파일 보내기
+        store = Store(client=SpreadSheetClient())
+        store.pull_all()
 
         await client.chat_postMessage(
             channel=settings.ADMIN_CHANNEL, text="데이터 동기화 완료"

@@ -64,20 +64,18 @@ if settings.ENV == "prod":
     async def startup():
         # 서버 저장소 동기화
         store = Store(client=SpreadSheetClient())
-        store.pull()
-        store.initialize_logs()
 
         # 업로드 스케줄러
         async_schedule.add_job(
-            upload_queue, "interval", seconds=10, args=[store, slack_app]
+            upload_queue, "interval", seconds=20, args=[store, slack_app]
         )
 
-        trigger = IntervalTrigger(minutes=1, timezone=ZoneInfo("Asia/Seoul"))
-        async_schedule.add_job(upload_logs, trigger=trigger, args=[store])
+        log_trigger = IntervalTrigger(minutes=1, timezone=ZoneInfo("Asia/Seoul"))
+        async_schedule.add_job(upload_logs, trigger=log_trigger, args=[store])
 
+        bigquery_trigger = IntervalTrigger(seconds=30, timezone=ZoneInfo("Asia/Seoul"))
         queue = BigqueryQueue(client=BigqueryClient())
-        trigger = IntervalTrigger(seconds=30, timezone=ZoneInfo("Asia/Seoul"))
-        async_schedule.add_job(upload_bigquery, trigger=trigger, args=[queue])
+        async_schedule.add_job(upload_bigquery, trigger=bigquery_trigger, args=[queue])
 
         # 리마인드 스케줄러
         # TODO: 추후 10기에 활성화
@@ -115,7 +113,7 @@ if settings.ENV == "prod":
             )
 
     async def upload_logs(store: Store) -> None:
-        store.bulk_upload("logs")
+        store.upload_all("logs")
         store.initialize_logs()
 
     async def upload_bigquery(queue: BigqueryQueue) -> None:
@@ -144,7 +142,7 @@ if settings.ENV == "prod":
 
         store = Store(client=SpreadSheetClient())
         await store.upload_queue()
-        store.bulk_upload("logs")
+        store.upload_all("logs")
         store.initialize_logs()
 
         async_schedule.shutdown(wait=True)
