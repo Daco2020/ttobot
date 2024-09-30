@@ -20,6 +20,8 @@ from app.store import Store
 
 from slack_sdk.models.blocks import (
     Block,
+    Option,
+    StaticSelectElement,
     SectionBlock,
     DividerBlock,
     ActionsBlock,
@@ -295,13 +297,30 @@ async def admin_command(
         text=text,
         blocks=[
             SectionBlock(text=text),
+            DividerBlock(),
+            SectionBlock(text="1. 테이블을 동기화합니다."),
+            ActionsBlock(
+                block_id="sync_store_block",
+                elements=[
+                    StaticSelectElement(
+                        placeholder="동기화 선택",
+                        action_id="sync_store_select",
+                        options=[
+                            Option(text="전체", value="전체"),
+                            Option(text="유저", value="유저"),
+                            Option(text="컨텐츠", value="컨텐츠"),
+                            Option(text="북마크", value="북마크"),
+                            Option(text="커피챗 인증", value="커피챗 인증"),
+                            Option(text="포인트 히스토리", value="포인트 히스토리"),
+                            Option(text="종이비행기", value="종이비행기"),
+                        ],
+                    ),
+                ],
+            ),
+            DividerBlock(),
+            SectionBlock(text="2. 특정 멤버를 특정 채널에 초대합니다."),
             ActionsBlock(
                 elements=[
-                    ButtonElement(
-                        text="데이터 동기화",
-                        action_id="sync_store",
-                        value="sync_store",
-                    ),
                     ButtonElement(
                         text="채널 초대",
                         action_id="invite_channel",
@@ -325,16 +344,39 @@ async def handle_sync_store(
     """데이터 동기화를 수행합니다."""
     await ack()
 
+    value = body["state"]["values"]["sync_store_block"]["sync_store_select"][
+        "selected_option"
+    ]["value"]
+
     try:
         await client.chat_postMessage(
-            channel=settings.ADMIN_CHANNEL, text="데이터 동기화 시작"
+            channel=settings.ADMIN_CHANNEL, text=f"{value} 데이터 동기화 시작"
         )
-        # TODO: 슬랙으로 백업파일 보내기
+        # # TODO: 슬랙으로 백업파일 보내기
         store = Store(client=SpreadSheetClient())
-        store.pull_all()
+
+        if value == "전체":
+            store.pull_all()
+        elif value == "유저":
+            store.pull_users()
+        elif value == "컨텐츠":
+            store.pull_contents()
+        elif value == "북마크":
+            store.pull_bookmark()
+        elif value == "커피챗 인증":
+            store.pull_coffee_chat_proof()
+        elif value == "포인트 히스토리":
+            store.pull_point_histories()
+        elif value == "종이비행기":
+            store.pull_paper_plane()
+        else:
+            await client.chat_postMessage(
+                channel=settings.ADMIN_CHANNEL,
+                text="동기화 테이블이 존재하지 않습니다.",
+            )
 
         await client.chat_postMessage(
-            channel=settings.ADMIN_CHANNEL, text="데이터 동기화 완료"
+            channel=settings.ADMIN_CHANNEL, text=f"{value} 데이터 동기화 완료"
         )
 
     except Exception as e:
