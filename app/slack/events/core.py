@@ -865,6 +865,7 @@ async def send_paper_plane_message(
                 block_id="paper_plane_message",
                 label="메시지",
                 element=PlainTextInputElement(
+                    max_length=300,
                     action_id="paper_plane_message",
                     placeholder="종이비행기로 전할 마음을 적어주세요.",
                     multiline=True,
@@ -907,6 +908,15 @@ async def send_paper_plane_message_view(
             response_action="errors",
             errors={
                 "paper_plane_receiver": "종이비행기는 자신에게 보낼 수 없어요~😉",
+            },
+        )
+        return
+
+    if len(text) > 300:
+        await ack(
+            response_action="errors",
+            errors={
+                "paper_plane_message": "종이비행기 메시지는 300자 이내로 작성해주세요.",
             },
         )
         return
