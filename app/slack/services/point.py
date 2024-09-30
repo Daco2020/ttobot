@@ -1,5 +1,8 @@
+from typing import Any
 from pydantic import BaseModel
+from slack_sdk.web.async_client import AsyncWebClient
 from app.exception import BotException
+from app.logging import logger
 from app.models import PointHistory, User
 from app.slack.repositories import SlackRepository
 from app.config import settings
@@ -91,14 +94,15 @@ class PointService:
         store.point_history_upload_queue.append(point_history.to_list_for_sheet())
         return f"<@{user_id}>님 `{point_info.reason}`(으)로 `{point_info.point}`포인트를 획득했어요! 🎉\n총 포인트와 내역은 또봇 [홈] 탭에서 확인할 수 있어요."
 
-    def grant_if_post_submitted(self, user_id: str) -> tuple[str, bool]:
+    def grant_if_post_submitted(self, user_id: str, is_submit: bool) -> tuple[str, bool]:
         """글쓰기 포인트 지급 1. 글을 제출하면 기본 포인트를 지급합니다. 글을 이미 제출했다면 추가 포인트를 지급합니다."""
         user = self._repo.get_user(user_id)
 
         if not user:
             raise BotException("유저 정보가 없어 글 제출 포인트를 지급할 수 없습니다.")
 
-        if user.is_submit:
+        # TODO: 추후 분리할 것
+        if is_submit:
             is_additional = True
             point_info = PointMap.글_제출_추가
             return self.add_point_history(user_id, point_info), is_additional
@@ -204,3 +208,21 @@ class PointService:
         """
         point_info = PointMap.자기소개_작성
         return self.add_point_history(user_id, point_info)
+
+
+async def send_point_noti_message(
+    client: AsyncWebClient,
+    channel: str,
+    text: str,
+    **kwargs: Any,
+) -> None:
+    """포인트 알림 메시지를 전송합니다."""
+    try:
+        await client.chat_postMessage(channel=channel, text=text)
+    except Exception as e:
+        kwargs_str = ", ".join([f"{k}: {v}" for k, v in kwargs.items()])
+        text = text.replace("\n", " ")
+        logger.error(
+            f"포인트 알림 전송 에러 👉 error: {str(e)} :: channel(user_id): {channel} text: {text} {kwargs_str}"
+        )
+        pass

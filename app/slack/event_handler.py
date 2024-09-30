@@ -28,7 +28,7 @@ from app.slack.types import MessageBodyType
 app = AsyncApp(
     client=AsyncWebClient(
         token=settings.SLACK_BOT_TOKEN,
-        timeout=10,
+        timeout=8,
     ),
 )
 

@@ -4,7 +4,7 @@ from slack_sdk.web.async_client import AsyncWebClient
 from app.exception import BotException
 from app.models import User
 from app.slack.services.base import SlackService
-from app.slack.services.point import PointService
+from app.slack.services.point import PointService, send_point_noti_message
 from app.slack.types import (
     ActionBodyType,
     CommandBodyType,
@@ -68,8 +68,9 @@ async def handle_coffee_chat_message(
         text = point_service.grant_if_coffee_chat_verified(
             user_id=body["event"]["user"]
         )
-        await client.chat_postMessage(channel=body["event"]["user"], text=text)
-
+        await send_point_noti_message(
+            client=client, channel=body["event"]["user"], text=text
+        )
         return
 
     # 1초 대기하는 이유는 메시지 보다 더 먼저 전송 될 수 있기 때문임
@@ -213,7 +214,7 @@ async def submit_coffee_chat_proof_view(
 
     # 포인트 지급
     text = point_service.grant_if_coffee_chat_verified(user_id=user.user_id)
-    await client.chat_postMessage(channel=user.user_id, text=text)
+    await send_point_noti_message(client=client, channel=user.user_id, text=text)
 
     user_call_text = ",".join(
         f"<@{selected_user}>"

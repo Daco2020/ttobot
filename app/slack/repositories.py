@@ -1,6 +1,7 @@
 import csv
 from typing import Any
 import pandas as pd
+import polars as pl
 
 from app import store
 from app import models
@@ -256,17 +257,20 @@ class SlackRepository:
             )
 
     def fetch_channel_users(self, channel_id: str) -> list[models.User]:
-        """채널의 유저를 가져옵니다."""
-        with open("store/users.csv") as f:
-            reader = csv.DictReader(f)
-            users = [
-                models.User(**user)  # type: ignore
-                for user in reader
-                if user["channel_id"] == channel_id
-            ]
-            for user in users:
-                user.contents = self._fetch_contents(user.user_id)
-            return users
+        """
+        채널의 유저를 가져옵니다.
+        성능향상을 위해 polars를 사용합니다.
+        """
+        users_df = pl.read_csv("store/users.csv", dtypes={"deposit": pl.Utf8})
+        users = users_df.filter(pl.col("channel_id") == channel_id).to_dicts()
+        users = [models.User(**user) for user in users]
+
+        contents_df = pl.read_csv("store/contents.csv", dtypes={"ts": pl.Utf8})
+        for user in users:
+            contents = contents_df.filter(pl.col("user_id") == user.user_id).to_dicts()
+            user.contents = [models.Content(**content) for content in contents]
+
+        return users
 
     def create_paper_plane(self, paper_plane: models.PaperPlane) -> None:
         """종이비행기를 생성합니다."""

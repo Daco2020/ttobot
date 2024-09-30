@@ -73,7 +73,7 @@ if settings.ENV == "prod":
         log_trigger = IntervalTrigger(minutes=1, timezone=ZoneInfo("Asia/Seoul"))
         async_schedule.add_job(upload_logs, trigger=log_trigger, args=[store])
 
-        bigquery_trigger = IntervalTrigger(seconds=30, timezone=ZoneInfo("Asia/Seoul"))
+        bigquery_trigger = IntervalTrigger(minutes=10, timezone=ZoneInfo("Asia/Seoul"))
         queue = BigqueryQueue(client=BigqueryClient())
         async_schedule.add_job(upload_bigquery, trigger=bigquery_trigger, args=[queue])
 

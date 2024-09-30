@@ -24,7 +24,7 @@ from slack_bolt.async_app import AsyncAck, AsyncSay
 
 from app import models
 from app.slack.services.base import SlackService
-from app.slack.services.point import PointService
+from app.slack.services.point import PointService, send_point_noti_message
 from app.slack.types import (
     ActionBodyType,
     BlockActionBodyType,
@@ -152,6 +152,7 @@ async def submit_view(
     ]
     channel_id = view["private_metadata"]
     username = body["user"]["username"]
+    is_submit = user.is_submit
 
     try:
         service.validate_url(view, content_url)
@@ -206,50 +207,58 @@ async def submit_view(
         )
         content.ts = message.get("ts", "")
 
-        # 포인트 지급 1. 글 제출 여부로 지급 하므로 업데이트 전에 호출
-        submission_point_msg, is_additional = point_service.grant_if_post_submitted(
-            user_id=content.user_id
-        )
-        await client.chat_postMessage(
-            channel=content.user_id, text=submission_point_msg
-        )
-
         await service.update_user_content(content)
-
-        # 추가 제출의 경우 연속 콤보, 채널 랭킹 포인트 지급을 하지 않는다.
-        if not is_additional:
-            # 포인트 지급 2.
-            combo_point_msg = point_service.grant_if_post_submitted_continuously(
-                user_id=content.user_id
-            )
-            if combo_point_msg:
-                await client.chat_postMessage(
-                    channel=content.user_id, text=combo_point_msg
-                )
-
-            # 포인트 지급 3.
-            ranking_point_msg = (
-                point_service.grant_if_post_submitted_to_core_channel_ranking(
-                    user_id=content.user_id
-                )
-            )
-            if ranking_point_msg:
-                await client.chat_postMessage(
-                    channel=content.user_id, text=ranking_point_msg
-                )
-
-        if content.curation_flag == "Y":
-            # 포인트 지급 4. 큐레이션 대상 글 제출 시 포인트 지급
-            curation_point_msg = point_service.grant_if_curation_requested(
-                user_id=content.user_id
-            )
-            await client.chat_postMessage(
-                channel=content.user_id, text=curation_point_msg
-            )
 
     except Exception as e:
         message = f"{user.name}({user.channel_name}) 님의 제출이 실패했어요. {str(e)}"  # type: ignore
         raise BotException(message)  # type: ignore
+
+    # 포인트 지급 1. 글 제출 시 포인트 지급
+    submission_point_msg, is_additional = point_service.grant_if_post_submitted(
+        user_id=content.user_id, is_submit=is_submit
+    )
+    await send_point_noti_message(
+        client=client,
+        channel=content.user_id,
+        text=submission_point_msg,
+    )
+
+    # 추가 제출의 경우 연속 콤보, 채널 랭킹 포인트 지급을 하지 않는다.
+    if not is_additional:
+        # 포인트 지급 2.
+        combo_point_msg = point_service.grant_if_post_submitted_continuously(
+            user_id=content.user_id
+        )
+        if combo_point_msg:
+            await send_point_noti_message(
+                client=client,
+                channel=content.user_id,
+                text=combo_point_msg,
+            )
+
+        # 포인트 지급 3.
+        ranking_point_msg = (
+            point_service.grant_if_post_submitted_to_core_channel_ranking(
+                user_id=content.user_id
+            )
+        )
+        if ranking_point_msg:
+            await send_point_noti_message(
+                client=client,
+                channel=content.user_id,
+                text=ranking_point_msg,
+            )
+
+    if content.curation_flag == "Y":
+        # 포인트 지급 4. 큐레이션 대상 글 제출 시 포인트 지급
+        curation_point_msg = point_service.grant_if_curation_requested(
+            user_id=content.user_id
+        )
+        await send_point_noti_message(
+            client=client,
+            channel=content.user_id,
+            text=curation_point_msg,
+        )
 
 
 # TODO: 방학기간에 담소에도 글을 보낼지에 대한 메시지 전송 로직
