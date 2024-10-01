@@ -180,19 +180,34 @@ async def handle_message(
     await ack()
 
     event = body.get("event", {})
-    if event.get("subtype"):
-        # 메시지 수정/삭제 이벤트는 핸들링하지 않습니다.
+    subtype = event.get("subtype")
+
+    if not subtype or subtype == "file_share":
+        user_id = event.get("user")
+        channel_id = event.get("channel")
+        thread_ts = event.get("thread_ts")
+        ts = event.get("ts")
+
+        # 일반 매시지인지 스레드 메시지인지 확인합니다.
+        is_thread = thread_ts != ts if thread_ts else False
+
+        # subtype 이 없는 경우에만 빅쿼리 로그를 남깁니다.
         # 자세한 subtype 이 궁금하다면 https://api.slack.com/events/message 참고.
+        if is_thread:  # 스레드 메시지 TODO: 확인 필요
+            await log_events.handle_comment_data(body=body)
+        else:
+            await log_events.handle_post_data(body=body)
+
+    elif subtype == "message_changed":  # TODO: 임시 처리
+        user_id = event.get("message", {}).get("user")
+        channel_id = event.get("channel")
+        thread_ts = event.get("message", {}).get("thread_ts")
+        ts = event.get("message", {}).get("ts")
+        is_thread = thread_ts != ts if thread_ts else False
+
+    elif subtype:
+        # 파일 공유 및 메시지 수정 외의 이벤트는 처리하지 않습니다.
         return
-
-    user_id = event.get("user")
-    channel_id = event.get("channel")
-    thread_ts = event.get("thread_ts")
-
-    if thread_ts:  # 스레드 메시지
-        await log_events.handle_comment_data(body=body)
-    else:
-        await log_events.handle_post_data(body=body)
 
     repo = SlackRepository()
     user = repo.get_user(user_id)  # type: ignore
@@ -234,6 +249,10 @@ async def handle_message(
             user=user,
             service=service,
             point_service=point_service,
+            subtype=subtype,
+            thread_ts=thread_ts,
+            is_thread=is_thread,
+            ts=ts,
         )
 
 

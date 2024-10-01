@@ -34,12 +34,16 @@ async def handle_coffee_chat_message(
     user: User,
     service: SlackService,
     point_service: PointService,
+    subtype: str | None,  # file_share, message_changed, None
+    thread_ts: str | None,
+    is_thread: bool,
+    ts: str,
 ) -> None:
     """커피챗 인증 메시지인지 확인하고, 인증 모달을 전송합니다."""
     await ack()
 
     # 인증글에 답글로 커피챗 인증을 하는 경우
-    if body["event"].get("thread_ts"):
+    if is_thread and subtype != "message_changed":
         try:
             service.check_coffee_chat_proof(
                 thread_ts=str(body["event"]["thread_ts"]),
@@ -73,31 +77,33 @@ async def handle_coffee_chat_message(
         )
         return
 
-    # 1초 대기하는 이유는 메시지 보다 더 먼저 전송 될 수 있기 때문임
-    await asyncio.sleep(1)
-    text = f"<@{user.user_id}> 님 커피챗 인증을 시작하려면 아래 `커피챗 인증` 버튼을 눌러주세요.\n만약 인증을 원치 않으시면 `안내 닫기` 버튼을 눌러주세요."
-    await client.chat_postEphemeral(
-        user=user.user_id,
-        channel=body["event"]["channel"],
-        text=text,
-        blocks=[
-            SectionBlock(text=text),
-            ActionsBlock(
-                elements=[
-                    ButtonElement(
-                        text="안내 닫기",
-                        action_id="cancel_coffee_chat_proof_button",
-                    ),
-                    ButtonElement(
-                        text="커피챗 인증",
-                        action_id="submit_coffee_chat_proof_button",
-                        value=body["event"]["ts"],
-                        style="primary",
-                    ),
-                ]
-            ),
-        ],
-    )
+    if not is_thread:
+        # 스레드 메시지가 아닌 일반 메시지의 경우
+        # 1초 대기하는 이유는 메시지 보다 더 먼저 전송 될 수 있기 때문임
+        await asyncio.sleep(1)
+        text = f"<@{user.user_id}> 님 커피챗 인증을 시작하려면 아래 `커피챗 인증` 버튼을 눌러주세요.\n만약 인증을 원치 않으시면 `안내 닫기` 버튼을 눌러주세요."
+        await client.chat_postEphemeral(
+            user=user.user_id,
+            channel=body["event"]["channel"],
+            text=text,
+            blocks=[
+                SectionBlock(text=text),
+                ActionsBlock(
+                    elements=[
+                        ButtonElement(
+                            text="안내 닫기",
+                            action_id="cancel_coffee_chat_proof_button",
+                        ),
+                        ButtonElement(
+                            text="커피챗 인증",
+                            action_id="submit_coffee_chat_proof_button",
+                            value=ts,
+                            style="primary",
+                        ),
+                    ]
+                ),
+            ],
+        )
 
 
 async def cancel_coffee_chat_proof_button(
