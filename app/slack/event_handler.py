@@ -12,7 +12,7 @@ from slack_bolt.async_app import AsyncAck, AsyncSay
 from slack_sdk.models.blocks import SectionBlock
 from slack_sdk.models.views import View
 
-from typing import Callable, cast
+from typing import Any, Callable, cast
 
 from app.slack.events import community as community_events
 from app.slack.events import contents as contents_events
@@ -179,55 +179,72 @@ async def handle_message(
 ) -> None:
     await ack()
 
-    event = body.get("event", {})
+    event: dict[str, Any]
+    subtype: str | None
+    user_id: str
+    channel_id: str
+    thread_ts: str | None
+    ts: str
+    is_thread: bool
+
+    event = body.get("event", {})  # type: ignore
     subtype = event.get("subtype")
 
-    if not subtype or subtype == "file_share":
-        user_id = event.get("user")
-        channel_id = event.get("channel")
-        thread_ts = event.get("thread_ts")
-        ts = event.get("ts")
+    # 1. 메시지 타입에 따른 변수 할당
+    # 1-1. 메시지 수정 및 파일 공유 외의 subtype 이벤트는 처리하지 않습니다.
+    # 자세한 subtype 이 궁금하다면 https://api.slack.com/events/message 참고.
+    if subtype and subtype not in ["message_changed", "file_share"]:
+        return
 
-        # 일반 매시지인지 스레드 메시지인지 확인합니다.
-        is_thread = thread_ts != ts if thread_ts else False
+    # 1-2. 메시지 수정 이벤트를 처리합니다.
+    elif subtype == "message_changed":
+        # 이미 봇이 댓글을 단 경우는 커피챗 인증 절차가 진행된 경우이므로 처리하지 않습니다.
+        if settings.TTOBOT_USER_ID in event.get("message", {}).get("reply_users", []):
+            return
 
-        # subtype 이 없는 경우에만 빅쿼리 로그를 남깁니다.
-        # 자세한 subtype 이 궁금하다면 https://api.slack.com/events/message 참고.
-        if is_thread:  # 스레드 메시지 TODO: 확인 필요
-            await log_events.handle_comment_data(body=body)
-        else:
-            await log_events.handle_post_data(body=body)
-
-    elif subtype == "message_changed":  # TODO: 임시 처리
         user_id = event.get("message", {}).get("user")
-        channel_id = event.get("channel")
+        channel_id = event["channel"]
         thread_ts = event.get("message", {}).get("thread_ts")
         ts = event.get("message", {}).get("ts")
         is_thread = thread_ts != ts if thread_ts else False
 
-    elif subtype:
-        # 파일 공유 및 메시지 수정 외의 이벤트는 처리하지 않습니다.
+    # 1-3. subtype 이 file_share 이거나 없는 경우를 처리합니다.
+    else:
+        user_id = event["user"]
+        channel_id = event["channel"]
+        thread_ts = event.get("thread_ts")
+        ts = event["ts"]
+        is_thread = thread_ts != ts if thread_ts else False
+
+        if is_thread:
+            await log_events.handle_comment_data(body=body)
+        else:  # TODO: 댓글이 post_data 로 들어오는 경우가 있는지 확인 필요.
+            await log_events.handle_post_data(body=body)
+
+    # 2. user_id 가 없는 이벤트(일부 슬랙 봇)는 처리하지 않습니다.
+    if user_id is None:
         return
 
-    repo = SlackRepository()
-    user = repo.get_user(user_id)  # type: ignore
-
-    if not user:
-        if user_id is None:
-            # 일부 슬랙 봇은 사용자 아이디가 없을 수 있습니다.
+    # 3. 사용자가 문의사항을 남기면 관리자에게 알립니다.
+    if channel_id == settings.SUPPORT_CHANNEL and not is_thread:
+        repo = SlackRepository()
+        user = repo.get_user(user_id)
+        if not user:
+            await _notify_missing_user_info(client, user_id)
             return
 
-        message = f"🥲 사용자 정보를 추가해주세요. 👉🏼 user_id: {user_id}"
-        await client.chat_postMessage(channel=settings.ADMIN_CHANNEL, text=message)
-        logger.error(message)
-        return
-
-    if channel_id == settings.SUPPORT_CHANNEL and not thread_ts:
-        # 사용자가 문의사항을 남기면 관리자에게 알립니다.
         message = f"👋🏼 <#{user.channel_id}>채널의 {user.name}님이 <#{channel_id}>을 남겼어요."
         await client.chat_postMessage(channel=settings.ADMIN_CHANNEL, text=message)
+        return
 
+    # 4. 커피챗 인증 메시지를 처리합니다.
     elif channel_id == settings.COFFEE_CHAT_PROOF_CHANNEL:
+        repo = SlackRepository()
+        user = repo.get_user(user_id)
+        if not user:
+            await _notify_missing_user_info(client, user_id)
+            return
+
         description = event_descriptions.get(
             "coffee_chat_proof_message", "알 수 없는 이벤트"
         )
@@ -250,10 +267,16 @@ async def handle_message(
             service=service,
             point_service=point_service,
             subtype=subtype,
-            thread_ts=thread_ts,
             is_thread=is_thread,
             ts=ts,
         )
+        return
+
+
+async def _notify_missing_user_info(client: AsyncWebClient, user_id: str):
+    text = f"🥲 사용자 정보를 추가해주세요. 👉🏼 user_id: {user_id}"
+    await client.chat_postMessage(channel=settings.ADMIN_CHANNEL, text=text)
+    logger.error(text)
 
 
 @app.event("member_joined_channel")

@@ -35,51 +35,14 @@ async def handle_coffee_chat_message(
     service: SlackService,
     point_service: PointService,
     subtype: str | None,  # file_share, message_changed, None
-    thread_ts: str | None,
     is_thread: bool,
     ts: str,
 ) -> None:
     """커피챗 인증 메시지인지 확인하고, 인증 모달을 전송합니다."""
     await ack()
 
-    # 인증글에 답글로 커피챗 인증을 하는 경우
-    if is_thread and subtype != "message_changed":
-        try:
-            service.check_coffee_chat_proof(
-                thread_ts=str(body["event"]["thread_ts"]),
-                user_id=body["event"]["user"],
-            )
-        except BotException:
-            # 인증 글에 대한 답글이 아니거나 이미 인증한 경우, 인증 대상이 아닌 경우이다.
-            return
-
-        service.create_coffee_chat_proof(
-            ts=str(body["event"]["ts"]),
-            thread_ts=str(body["event"]["thread_ts"]),
-            user_id=body["event"]["user"],
-            text=body["event"]["text"],
-            files=body["event"].get("files", []),  # type: ignore
-            selected_user_ids="",
-        )
-
-        await client.reactions_add(
-            channel=body["event"]["channel"],
-            timestamp=body["event"]["ts"],
-            name="white_check_mark",
-        )
-
-        # 포인트 지급
-        text = point_service.grant_if_coffee_chat_verified(
-            user_id=body["event"]["user"]
-        )
-        await send_point_noti_message(
-            client=client, channel=body["event"]["user"], text=text
-        )
-        return
-
     if not is_thread:
-        # 스레드 메시지가 아닌 일반 메시지의 경우
-        # 1초 대기하는 이유는 메시지 보다 더 먼저 전송 될 수 있기 때문임
+        # 1초 대기하는 이유는 메시지 보다 더 먼저 전송 되어 오류가 발생할 수 있기 때문입니다.
         await asyncio.sleep(1)
         text = f"<@{user.user_id}> 님 커피챗 인증을 시작하려면 아래 `커피챗 인증` 버튼을 눌러주세요.\n만약 인증을 원치 않으시면 `안내 닫기` 버튼을 눌러주세요."
         await client.chat_postEphemeral(
@@ -104,6 +67,42 @@ async def handle_coffee_chat_message(
                 ),
             ],
         )
+        return
+
+    # 인증글에 답글로 커피챗 인증을 하는 경우
+    if is_thread and subtype != "message_changed":
+        try:
+            service.check_coffee_chat_proof(
+                thread_ts=str(body["event"]["thread_ts"]),
+                user_id=body["event"]["user"],
+            )
+        except BotException:
+            # 이 에러는 인증 글에 대한 답글이 아니거나 이미 인증한 경우, 인증 대상이 아닌 경우임.
+            return
+
+        service.create_coffee_chat_proof(
+            ts=str(body["event"]["ts"]),
+            thread_ts=str(body["event"]["thread_ts"]),
+            user_id=body["event"]["user"],
+            text=body["event"]["text"],
+            files=body["event"].get("files", []),  # type: ignore
+            selected_user_ids="",
+        )
+
+        await client.reactions_add(
+            channel=body["event"]["channel"],
+            timestamp=body["event"]["ts"],
+            name="white_check_mark",
+        )
+
+        # 댓글 인증 포인트 지급
+        text = point_service.grant_if_coffee_chat_verified(
+            user_id=body["event"]["user"]
+        )
+        await send_point_noti_message(
+            client=client, channel=body["event"]["user"], text=text
+        )
+        return
 
 
 async def cancel_coffee_chat_proof_button(
