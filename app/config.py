@@ -26,6 +26,7 @@ class Settings(BaseSettings):
     COFFEE_CHAT_PROOF_CHANNEL: str
     ADMIN_CHANNEL: str
     ADMIN_IDS: list[str]
+    TTOBOT_USER_ID: str
 
     POINT_MAP: dict[str, Any]
 

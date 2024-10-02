@@ -892,6 +892,14 @@ async def send_paper_plane_message(
             SectionBlock(
                 text="종이비행기에 전하고 싶은 마음을 적어주세요.",
             ),
+            ContextBlock(
+                elements=[
+                    MarkdownTextObject(
+                        text=f"종이비행기를 보내면 <#{settings.THANKS_CHANNEL}> 채널로 알림이 전송됩니다."
+                        "\n[받는 사람]은 종이비행기를 확인할 때 [보낸 사람]을 알 수 있습니다."
+                    )
+                ],
+            ),
             InputBlock(
                 block_id="paper_plane_receiver",
                 label="받는 사람",
@@ -1099,7 +1107,7 @@ async def open_paper_plane_guide_view(
                 SectionBlock(
                     text={
                         "type": "mrkdwn",
-                        "text": "이제 진심을 담은 메시지를 종이비행기에 담아 전달해보세요! ✈️",
+                        "text": "이제 진심을 담은 메시지를 종이비행기로 전달해보세요! ✈️",
                     }
                 ),
             ],

@@ -228,13 +228,11 @@ async def submit_coffee_chat_proof_view(
         if selected_user != user.user_id  # 본인 제외
     )
 
-    res = await client.auth_test()
-    bot_user_id = res["user_id"]
     if user_call_text:
         await client.chat_postMessage(
             channel=settings.COFFEE_CHAT_PROOF_CHANNEL,
             thread_ts=message_ts,
-            text=f"{user_call_text} \n\n커피챗 인증을 위해 꼭 후기를 남겨주세요. 인증이 확인된 멤버는 ✅가 표시돼요.\n\n커피챗 인증 내역은 <@{bot_user_id}> 의 `홈` 탭 -> `내 커피챗 인증 내역 보기` 버튼을 통해 확인할 수 있어요.",
+            text=f"{user_call_text} \n\n커피챗 인증을 위해 스레드로 후기를 남겨주세요. 인증이 확인된 멤버는 ✅가 표시돼요.\n\n커피챗 인증 내역은 <@{settings.TTOBOT_USER_ID}> 의 `홈` 탭 -> `내 커피챗 인증 내역 보기` 버튼을 통해 확인할 수 있어요.",
         )
 
     # 나에게만 표시 메시지 수정하는 요청(slack bolt 에서는 지원하지 않음)
@@ -359,7 +357,7 @@ async def paper_plane_command(
                     elements=[
                         {
                             "type": "mrkdwn",
-                            "text": "이제 진심을 담은 메시지를 종이비행기에 담아 전달해보세요! ✈️",
+                            "text": "이제 진심을 담은 메시지를 종이비행기로 전달해보세요! ✈️",
                         }
                     ]
                 ),
