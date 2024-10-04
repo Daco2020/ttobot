@@ -132,7 +132,7 @@ class SlackService:
             async with httpx.AsyncClient() as client:
                 response = await client.get(url)
                 if response.status_code == 404:
-                    raise ClientException("비공개 글이거나, url 를 찾을 수 없어요.")
+                    raise ClientException("비공개 글이거나, url을 찾을 수 없어요.")
 
             # 제목을 직접 입력한 경우에는 status_code만 확인 후에 return
             title_input = view["state"]["values"]["manual_title_input"]["title_input"][
@@ -179,8 +179,10 @@ class SlackService:
             "notion." in content_url
             or "oopy.io" in content_url
             or ".site" in content_url
+            or "blog.naver" in content_url
         ):
             # notion.so, notion.site, oopy.io 는 title 을 크롤링하지 못하므로 직접 입력을 받는다.
+            # blog.naver 는 title 태그에 블로그 타이틀이 들어오기 때문에 글 제목을 직접 입력을 받는다.
             # 글 제목을 입력한 경우 통과.
             if (
                 view["state"]["values"]
@@ -189,7 +191,9 @@ class SlackService:
                 .get("value")
             ):
                 return None
-            raise ValueError("노션 링크는 하단 '글 제목'을 필수로 입력해주세요.")
+            raise ValueError(
+                "노션 또는 네이버 링크는 하단 '글 제목'을 필수로 입력해주세요."
+            )
 
     def create_bookmark(
         self,
