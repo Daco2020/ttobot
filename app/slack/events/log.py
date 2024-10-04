@@ -1,5 +1,5 @@
 import csv
-from datetime import datetime
+from datetime import datetime, timedelta
 import os
 
 from app.bigquery.queue import CommentDataType, EmojiDataType, PostDataType
@@ -78,6 +78,12 @@ async def handle_reaction_added(
         notice_ts = body["event"]["item"]["ts"]
 
         if _is_checked_notice(user_id, notice_ts):
+            return
+
+        # 공지사항 날짜가 3일 보다 이전이라면 패스합니다.
+        if datetime.fromtimestamp(float(notice_ts)) < datetime.now() - timedelta(
+            days=3
+        ):
             return
 
         point_service = PointService(repo=SlackRepository())
