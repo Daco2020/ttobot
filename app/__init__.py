@@ -145,6 +145,9 @@ if settings.ENV == "prod":
         store.upload_all("logs")
         store.initialize_logs()
 
+        queue = BigqueryQueue(client=BigqueryClient())
+        await queue.upload()
+
         async_schedule.shutdown(wait=True)
 
 else:
