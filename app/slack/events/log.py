@@ -252,7 +252,7 @@ def _is_checked_super_admin_post(user_id: str, post_id: str) -> bool:
 def _write_checked_super_admin_post(
     user_id: str, post_id: str, channel_id: str
 ) -> None:
-    """성윤님 글을 확인 기록을 저장합니다."""
+    """성윤님 글 확인 기록을 저장합니다."""
     # 이 기록은 스프레드시트에 업로드 하지 않습니다. 이 경우 파일명 앞에 _를 붙입니다.
     file_path = "store/_checked_super_admin_post.csv"
     file_exists = os.path.isfile(file_path)
