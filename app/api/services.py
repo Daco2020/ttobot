@@ -6,6 +6,10 @@ class ApiService:
     def __init__(self, api_repo: ApiRepository) -> None:
         self._repo = api_repo
 
+    def get_user_by(self, user_id: str) -> models.User | None:
+        """특정 유저를 조회합니다."""
+        return self._repo.get_user(user_id)
+
     def fetch_sent_paper_planes(
         self,
         user_id: str,
