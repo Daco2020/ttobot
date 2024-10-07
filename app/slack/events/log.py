@@ -111,7 +111,7 @@ async def handle_reaction_added(
     if (
         body["event"]["item"]["channel"] in PRIMARY_CHANNEL
         and body.get("event", {}).get("item_user") == settings.TTOBOT_USER_ID
-        # and body["event"]["reaction"] == "noti-check"
+        and body["event"]["reaction"] == "catch-kyle"
     ):
         user_id = body["event"]["user"]
         post_ts = body["event"]["item"]["ts"]
