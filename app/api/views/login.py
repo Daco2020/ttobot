@@ -4,12 +4,15 @@ from slack_bolt import BoltRequest
 from app import models
 from fastapi import APIRouter, Depends, Request, HTTPException
 from fastapi.responses import JSONResponse
-from app.api.auth import encode_token
+from app.api.auth import decode_token, encode_token
 from app.api.auth import current_user
+from app.api.deps import api_service
+from app.api.services import ApiService
 from app.config import settings
 from slack_bolt.oauth.oauth_settings import OAuthSettings
 from slack_sdk.oauth.state_store import FileOAuthStateStore
 from slack_bolt.oauth.oauth_flow import OAuthFlow
+from jwt import PyJWTError
 
 router = APIRouter()
 
@@ -53,11 +56,48 @@ async def slack_auth(
             status_code=403, detail="Slack OAuth Error: Failed to run installation"
         )
 
-    token = encode_token(
-        payload={"user_id": result.user_id}, expires_delta=timedelta(days=1)
+    access_token = encode_token(
+        payload={"user_id": result.user_id},
+        expires_delta=timedelta(days=1),
+    )
+    refresh_token = encode_token(
+        payload={"user_id": result.user_id, "type": "refresh"},
+        expires_delta=timedelta(days=7),
     )
     return JSONResponse(
-        status_code=200, content={"access_token": token, "message": "success"}
+        status_code=200,
+        content={
+            "access_token": access_token,
+            "refresh_token": refresh_token,
+        },
+    )
+
+
+@router.get("/slack/auth/refresh")
+async def slack_auth_refresh(
+    refresh_token: str,
+    service: ApiService = Depends(api_service),
+):
+    try:
+        decoded_payload = decode_token(refresh_token)
+        if decoded_payload.get("type") != "refresh":
+            return HTTPException(status_code=403, detail="토큰이 유효하지 않습니다.")
+
+        user = service.get_user_by(user_id=decoded_payload["user_id"])
+        if not user:
+            return HTTPException(status_code=404, detail="해당하는 유저가 없습니다.")
+
+    except PyJWTError:
+        return HTTPException(status_code=403, detail="토큰이 유효하지 않습니다.")
+
+    access_token = encode_token(
+        payload={"user_id": user.user_id}, expires_delta=timedelta(days=1)
+    )
+    return JSONResponse(
+        status_code=200,
+        content={
+            "access_token": access_token,
+        },
     )
 
 

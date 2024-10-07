@@ -82,19 +82,24 @@ async def current_user(
         raise HTTPException(status_code=403, detail="토큰이 존재하지 않습니다.")
 
     try:
-        result = decode_token(token)
+        decoded_payload = decode_token(token)
     except Exception:
         raise HTTPException(
             status_code=403, detail=f"토큰이 유효하지 않습니다. token: {token}"
         )
 
-    user_id = result.get("user_id", "")
+    if decoded_payload.get("type") == "refresh":
+        raise HTTPException(
+            status_code=403, detail=f"토큰이 유효하지 않습니다. token: {token}"
+        )
+
+    user_id = decoded_payload.get("user_id", "")
     user = api_repo.get_user(user_id) if user_id else None
 
     if not user:
         raise HTTPException(
             status_code=404,
-            detail=f"유저가 존재하지 않습니다. user_id: {result.get('user_id')}",
+            detail=f"유저가 존재하지 않습니다. user_id: {user_id}",
         )
 
     return models.SimpleUser.model_validate(user.model_dump())
