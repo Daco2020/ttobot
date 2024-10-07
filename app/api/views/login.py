@@ -73,7 +73,7 @@ async def slack_auth(
     )
 
 
-@router.get("/slack/auth/refresh")
+@router.post("/slack/auth/refresh")
 async def slack_auth_refresh(
     refresh_token: str,
     service: ApiService = Depends(api_service),
