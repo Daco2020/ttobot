@@ -29,6 +29,7 @@ class PointMap(Enum):
     큐레이션_선정 = settings.POINT_MAP["큐레이션_선정"]
     빌리지_반상회_참여 = settings.POINT_MAP["빌리지_반상회_참여"]
     자기소개_작성 = settings.POINT_MAP["자기소개_작성"]
+    성윤을_잡아라 = settings.POINT_MAP["성윤을_잡아라"]
 
 # fmt: on
 
@@ -175,6 +176,11 @@ class PointService:
     def grant_if_notice_emoji_checked(self, user_id: str) -> str:
         """공지사항을 확인한 경우 포인트를 지급합니다."""
         point_info = PointMap.공지사항_확인_이모지
+        return self.add_point_history(user_id, point_info)
+
+    def grant_if_super_admin_post_reacted(self, user_id: str) -> str:
+        """슈퍼 어드민 글에 이모지를 단 경우 포인트를 지급합니다."""
+        point_info = PointMap.성윤을_잡아라
         return self.add_point_history(user_id, point_info)
 
     def grant_if_curation_requested(self, user_id: str) -> str:

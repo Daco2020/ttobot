@@ -68,3 +68,21 @@ paper_plane_color_maps = [
 ]
 
 # fmt: on
+
+
+# 10기 1_채널 아이디 상수
+PRIMARY_CHANNEL = [
+    "C07P09BTQAW",  # 1_대나무숲_고민_공유
+    "C07PXJR6KRP",  # 1_소모임_홍보
+    "C07PD016V7T",  # 1_자료_공유
+    "C07NKNYTFN3",  # 1_자유_홍보
+    "C07P09N1XM0",  # 1_자유로운담소
+    "C07PP3V0524",  # 1_큐레이션
+    "C07PP3A5GGG",  # 1_온라인_모각글
+    "C07NKNP2RSB",  # 1_자기소개
+    "C07PG0G4RQD",  # 1_감사는_비행기를_타고
+    "C07NTLWAWR4",  # 1_커피챗_또는_모임_후기
+    "C07NKP4M69M",  # 1_커피챗_번개_모각글_하실_분
+    "C05J87UPC3F",  # dev 채널 1 (로컬 테스트용)
+    "C07PD0VMHJM",  # dev 채널 2 (또봇 크루 채널)
+]
