@@ -27,6 +27,7 @@ class Settings(BaseSettings):
     ADMIN_CHANNEL: str
     ADMIN_IDS: list[str]
     TTOBOT_USER_ID: str
+    SUPER_ADMIN: str
 
     POINT_MAP: dict[str, Any]
 

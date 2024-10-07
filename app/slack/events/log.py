@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 import os
 
 from app.bigquery.queue import CommentDataType, EmojiDataType, PostDataType
+from app.constants import PRIMARY_CHANNEL
 from app.logging import log_event
 from app.slack.repositories import SlackRepository
 from app.slack.services.point import PointService, send_point_noti_message
@@ -106,6 +107,50 @@ async def handle_reaction_added(
         )
         return
 
+    # 성윤님이 1_채널에 제출한 글에 이모지를 달면 포인트를 지급합니다.
+    if (
+        body["event"]["item"]["channel"] in PRIMARY_CHANNEL
+        and body.get("event", {}).get("item_user") == settings.TTOBOT_USER_ID
+        and body["event"]["reaction"] == "catch-kyle"
+    ):
+        user_id = body["event"]["user"]
+        post_ts = body["event"]["item"]["ts"]
+        channel_id = body["event"]["item"]["channel"]
+
+        if _is_checked_super_admin_post(user_id, post_ts):
+            return
+
+        # 글 제출 날짜가 1일 보다 이전이라면 패스합니다.
+        if datetime.fromtimestamp(float(post_ts)) < datetime.now() - timedelta(days=1):
+            return
+
+        content = SlackRepository().get_content_by(ts=post_ts)
+        if content is None or content.user_id != settings.SUPER_ADMIN:
+            return
+
+        point_service = PointService(repo=SlackRepository())
+        text = point_service.grant_if_super_admin_post_reacted(user_id=user_id)
+        await send_point_noti_message(
+            client=client,
+            channel=user_id,
+            text=text,
+            post_ts=post_ts,
+        )
+
+        _write_checked_super_admin_post(
+            user_id,
+            post_ts,
+            channel_id,
+        )
+
+        log_event(
+            actor=user_id,
+            event="reacted_super_admin_post",
+            type=body["event"]["type"],
+            description="'성윤을 잡아라' 성공",
+            body=body,
+        )
+
 
 def _is_thread_message_cache_key_builder(func, *args, **kwargs):
     # `args`에서 `client`를 제외하고 `channel_id`와 `ts`만 사용해 키를 생성
@@ -184,6 +229,49 @@ def _write_checked_notice(user_id: str, notice_ts: str) -> None:
             {
                 "user_id": user_id,
                 "notice_ts": notice_ts,
+                "created_at": tz_now_to_str(),
+            }
+        )
+
+
+def _is_checked_super_admin_post(user_id: str, post_id: str) -> bool:
+    """이전에 성윤님 글을 확인한 적이 있는지 확인합니다."""
+    file_path = "store/_checked_super_admin_post.csv"
+    file_exists = os.path.isfile(file_path)
+
+    if file_exists:
+        with open(file_path) as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                if row["user_id"] == user_id and row["post_id"] == post_id:
+                    return True
+
+    return False
+
+
+def _write_checked_super_admin_post(
+    user_id: str, post_id: str, channel_id: str
+) -> None:
+    """성윤님 글 확인 기록을 저장합니다."""
+    # 이 기록은 스프레드시트에 업로드 하지 않습니다. 이 경우 파일명 앞에 _를 붙입니다.
+    file_path = "store/_checked_super_admin_post.csv"
+    file_exists = os.path.isfile(file_path)
+
+    with open(file_path, "a", newline="", encoding="utf-8") as f:
+        writer = csv.DictWriter(
+            f,
+            fieldnames=["user_id", "post_id", "channel_id", "created_at"],
+            quoting=csv.QUOTE_ALL,
+        )
+
+        if not file_exists:
+            writer.writeheader()
+
+        writer.writerow(
+            {
+                "user_id": user_id,
+                "post_id": post_id,
+                "channel_id": channel_id,
                 "created_at": tz_now_to_str(),
             }
         )
