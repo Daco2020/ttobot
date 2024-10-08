@@ -1,3 +1,4 @@
+from enum import StrEnum
 import polars as pl
 
 from starlette import status
@@ -5,6 +6,22 @@ from fastapi import APIRouter, Query
 from app.constants import ContentCategoryEnum, ContentSortEnum
 from app.api import dto
 from app.utils import translate_keywords
+
+
+class JobCategoryEnum(StrEnum):
+    DATA_SCIENCE = "데이터과학"
+    DATA_ANALYSIS = "데이터분석"
+    DATA_ENGINEERING = "데이터엔지니어"
+    BACKEND = "백엔드"
+    ANDROID = "안드로이드"
+    INFRA = "인프라"
+    FULL_STACK = "풀스택"
+    FRONTEND = "프론트"
+    FLUTTER = "플러터"
+    AI_RESEARCH = "ai연구"
+    IOS = "ios"
+    ML_AI_ENGINEERING = "ml-ai-엔지니어"
+    PMPO = "pmpo"
 
 
 router = APIRouter()
@@ -32,7 +49,7 @@ async def fetch_contents(
     # 원본 데이터 불러오기
     users_df = pl.read_csv(
         "store/users.csv",
-        columns=["user_id", "name", "cohort"],
+        columns=["user_id", "name", "cohort", "channel_name"],
     )
     contents_df = pl.read_csv(
         "store/contents.csv",
