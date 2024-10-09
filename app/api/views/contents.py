@@ -66,7 +66,6 @@ async def fetch_contents(
     )
 
     # 직군 필터링
-    # TODO: 이전 기수들의 채널 명도 확인 필요함. 현재는 10기의 직군명에 맞게 필터링 되어 이전 기수 글은 누락될 수 있음.
     if job_category:
         users_df = (
             users_df.filter(pl.col("channel_name").str.contains(job_category))
