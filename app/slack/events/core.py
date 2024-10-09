@@ -512,9 +512,9 @@ async def _invite_channel(
 async def handle_home_tab(
     event: HomeTabEventType,
     client: AsyncWebClient,
-    user: User | None,
-    service: SlackService | None,
-    point_service: PointService | None,
+    user: User,
+    service: SlackService,
+    point_service: PointService,
 ):
     """홈 탭을 열었을 때의 이벤트를 처리합니다."""
     if not user:
@@ -536,7 +536,7 @@ async def handle_home_tab(
         return
 
     # 포인트 히스토리를 포함한 유저를 가져온다.
-    user_point_history = point_service.get_user_point(user_id=user.user_id)  # type: ignore
+    user_point_history = point_service.get_user_point(user_id=user.user_id)
     combo_count = user.get_continuous_submit_count()
     next_combo_point = ""
     if combo_count == 0:
@@ -548,8 +548,12 @@ async def handle_home_tab(
             "*+ " + str(PointMap.글_제출_콤보.point * combo_count) + "(콤보 보너스)* "
         )
 
-    paper_planes = service.fetch_current_week_paper_planes(user_id=user.user_id)  # type: ignore
-    remain_paper_planes = 7 - len(paper_planes) if len(paper_planes) < 7 else 0
+    remain_paper_planes: str | int
+    if user.user_id == settings.SUPER_ADMIN:
+        remain_paper_planes = "∞"
+    else:
+        paper_planes = service.fetch_current_week_paper_planes(user_id=user.user_id)
+        remain_paper_planes = 7 - len(paper_planes) if len(paper_planes) < 7 else 0
 
     # 홈 탭 메시지 구성
     await client.views_publish(
@@ -968,15 +972,18 @@ async def send_paper_plane_message_view(
         )
         return
 
-    paper_planes = service.fetch_current_week_paper_planes(user_id=user.user_id)
-    if len(paper_planes) >= 7:
-        await ack(
-            response_action="errors",
-            errors={
-                "paper_plane_receiver": "종이비행기는 한 주에 7개까지 보낼 수 있어요. (토요일 0시에 충전)",
-            },
-        )
-        return
+    if user.user_id == settings.SUPER_ADMIN:
+        pass
+    else:
+        paper_planes = service.fetch_current_week_paper_planes(user_id=user.user_id)
+        if len(paper_planes) >= 7:
+            await ack(
+                response_action="errors",
+                errors={
+                    "paper_plane_receiver": "종이비행기는 한 주에 7개까지 보낼 수 있어요. (토요일 00시에 충전)",
+                },
+            )
+            return
 
     await ack()
 

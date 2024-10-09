@@ -256,8 +256,12 @@ async def paper_plane_command(
     """종이비행기 명령을 처리합니다."""
     await ack()
 
-    paper_planes = service.fetch_current_week_paper_planes(user_id=user.user_id)
-    remain_paper_planes = 7 - len(paper_planes) if len(paper_planes) < 7 else 0
+    remain_paper_planes: str | int
+    if user.user_id == settings.SUPER_ADMIN:
+        remain_paper_planes = "∞"
+    else:
+        paper_planes = service.fetch_current_week_paper_planes(user_id=user.user_id)
+        remain_paper_planes = 7 - len(paper_planes) if len(paper_planes) < 7 else 0
 
     await client.views_open(
         trigger_id=body["trigger_id"],
