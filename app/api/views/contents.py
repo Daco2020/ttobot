@@ -13,14 +13,14 @@ class JobCategoryEnum(StrEnum):
     DATA_ANALYSIS = "데이터분석"
     DATA_ENGINEERING = "데이터엔지니어"
     BACKEND = "백엔드"
-    ANDROID = "안드로이드"
+    ANDROID = "안드"
     INFRA = "인프라"
     FULL_STACK = "풀스택"
     FRONTEND = "프론트"
     FLUTTER = "플러터"
-    AI_RESEARCH = "ai연구"
+    AI = "ai"
     IOS = "ios"
-    ML_AI_ENGINEERING = "ml-ai-엔지니어"
+    ML = "ml"
     PMPO = "pmpo"
 
 
@@ -39,6 +39,7 @@ async def fetch_contents(
     category: ContentCategoryEnum | None = None,
     order_by: ContentSortEnum = ContentSortEnum.DT,
     descending: bool = True,
+    job_category: JobCategoryEnum | None = None,
 ) -> dto.ContentResponse:
     """조건에 맞는 콘텐츠를 가져옵니다."""
     # TODO: LIKE 컬럼 추가하기
@@ -64,6 +65,23 @@ async def fetch_contents(
         ],
     )
 
+    # 직군 필터링
+    # TODO: 이전 기수들의 채널 명도 확인 필요함. 현재는 10기의 직군명에 맞게 필터링 되어 이전 기수 글은 누락될 수 있음.
+    if job_category:
+        users_df = (
+            users_df.filter(pl.col("channel_name").str.contains(job_category))
+            .with_columns(pl.lit(job_category).alias("job_category"))
+            .drop("channel_name")
+        )
+    else:
+        job_categories = [category.value for category in JobCategoryEnum]
+        users_df = users_df.with_columns(
+            pl.col("channel_name")
+            .apply(lambda x: next((cat for cat in job_categories if cat in x), None))
+            .alias("job_category")
+        ).drop("channel_name")
+
+    # 유니크한 콘텐츠만 가져오기
     joined_df = contents_df.unique(subset=["content_url"]).join(
         users_df, on="user_id", how="inner"
     )

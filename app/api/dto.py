@@ -10,15 +10,17 @@ class ContentResponse(BaseModel):
         examples=[
             [
                 {
-                    "user_id": "U066E7U9QFM",
-                    "title": "[Python] PS와 코딩테스트를 위한 소소한 팁 모음 - 인생은 B와 D사이 Code다",
-                    "content_url": "https://tolerblanc.github.io/python/python-for-PS/",
-                    "dt": "2024-02-04 23:31:09",
+                    "user_id": "U07NTP9MGH4",
+                    "title": "Python aiocache 로 비동기 Slack API 요청 캐싱하기",
+                    "content_url": "https://daco2020.tistory.com/854",
+                    "dt": "2024-10-03 22:31:56",
                     "category": "기술 & 언어",
-                    "tags": "python,코딩테스트",
-                    "name": "김현준",
+                    "tags": "Python,Slack API,Cache,캐싱,비동기 함수,비동기 캐싱",
+                    "ts": "1727962316.649959",
+                    "name": "김은찬",
                     "cohort": "10기",
-                    "relevance": 1,
+                    "job_category": "풀스택",
+                    "relevance": 0,
                 }
             ]
         ],
