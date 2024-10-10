@@ -1,3 +1,4 @@
+from enum import StrEnum
 import polars as pl
 
 from starlette import status
@@ -5,6 +6,22 @@ from fastapi import APIRouter, Query
 from app.constants import ContentCategoryEnum, ContentSortEnum
 from app.api import dto
 from app.utils import translate_keywords
+
+
+class JobCategoryEnum(StrEnum):
+    DATA_SCIENCE = "데이터과학"
+    DATA_ANALYSIS = "데이터분석"
+    DATA_ENGINEERING = "데이터엔지니어"
+    BACKEND = "백엔드"
+    ANDROID = "안드"
+    INFRA = "인프라"
+    FULL_STACK = "풀스택"
+    FRONTEND = "프론트"
+    FLUTTER = "플러터"
+    AI = "ai"
+    IOS = "ios"
+    ML = "ml"
+    PMPO = "pmpo"
 
 
 router = APIRouter()
@@ -22,6 +39,7 @@ async def fetch_contents(
     category: ContentCategoryEnum | None = None,
     order_by: ContentSortEnum = ContentSortEnum.DT,
     descending: bool = True,
+    job_category: JobCategoryEnum | None = None,
 ) -> dto.ContentResponse:
     """조건에 맞는 콘텐츠를 가져옵니다."""
     # TODO: LIKE 컬럼 추가하기
@@ -32,7 +50,7 @@ async def fetch_contents(
     # 원본 데이터 불러오기
     users_df = pl.read_csv(
         "store/users.csv",
-        columns=["user_id", "name", "cohort"],
+        columns=["user_id", "name", "cohort", "channel_name"],
     )
     contents_df = pl.read_csv(
         "store/contents.csv",
@@ -47,6 +65,22 @@ async def fetch_contents(
         ],
     )
 
+    # 직군 필터링
+    if job_category:
+        users_df = (
+            users_df.filter(pl.col("channel_name").str.contains(f"(?i){job_category}"))
+            .with_columns(pl.lit(job_category).alias("job_category"))
+            .drop("channel_name")
+        )
+    else:
+        job_categories = [category.value for category in JobCategoryEnum]
+        users_df = users_df.with_columns(
+            pl.col("channel_name")
+            .apply(lambda x: next((cat for cat in job_categories if cat in x), None))
+            .alias("job_category")
+        ).drop("channel_name")
+
+    # 유니크한 콘텐츠만 가져오기
     joined_df = contents_df.unique(subset=["content_url"]).join(
         users_df, on="user_id", how="inner"
     )
