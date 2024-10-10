@@ -68,7 +68,7 @@ async def fetch_contents(
     # 직군 필터링
     if job_category:
         users_df = (
-            users_df.filter(pl.col("channel_name").str.contains(job_category))
+            users_df.filter(pl.col("channel_name").str.contains(f"(?i){job_category}"))
             .with_columns(pl.lit(job_category).alias("job_category"))
             .drop("channel_name")
         )
