@@ -15,6 +15,7 @@ from slack_bolt.async_app import AsyncAck, AsyncSay
 from slack_sdk.models.views import View
 from slack_sdk.models.blocks import (
     SectionBlock,
+    MarkdownTextObject,
     InputBlock,
     UserMultiSelectElement,
     ActionsBlock,
@@ -155,6 +156,13 @@ async def submit_coffee_chat_proof_button(
             blocks=[
                 SectionBlock(
                     text=":coffee: 커피챗에 참여한 멤버들을 모두 선택해주세요."
+                ),
+                ContextBlock(
+                    elements=[
+                        MarkdownTextObject(
+                            text="멤버 인력란을 한 번 더 누르면 멤버를 검색할 수 있어요.\n모바일에서 멤버가 검색되지 않는다면 데스크탑에서 진행해주세요."
+                        )
+                    ]
                 ),
                 InputBlock(
                     block_id="participant",
