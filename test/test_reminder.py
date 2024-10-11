@@ -38,9 +38,9 @@ async def test_send_reminder_message_to_user(
             User(
                 user_id="리마인드 비대상1",
                 name="슬랙봇",
-                channel_name="슬랙봇",
+                channel_name="-",  # bot
                 channel_id="test_channel_id",
-                intro="-",  # bot
+                intro="-",
                 contents=[],
                 cohort="9기",
             ),
@@ -55,19 +55,19 @@ async def test_send_reminder_message_to_user(
             ),
             User(
                 user_id="리마인드 비대상3",
-                name="배성진",
+                name="김은찬",
                 channel_name="test_channel",
                 channel_id="test_channel_id",
-                intro="안녕하세요. 배성진입니다.",
+                intro="안녕하세요. 김은찬입니다.",
                 contents=[
                     Content(  # 이미 제출한 경우
                         dt=(tz_now() - timedelta(days=1)).strftime("%Y-%m-%d %H:%M:%S"),
                         user_id="리마인드 비대상3",
-                        username="배성진",
+                        username="김은찬",
                         type="submit",
                     ),
                 ],
-                cohort="9기",
+                cohort="10기",
             ),
             User(
                 user_id="리마인드 대상1",
@@ -76,25 +76,25 @@ async def test_send_reminder_message_to_user(
                 channel_id="test_channel_id",
                 intro="안녕하세요. 덕순입니다.",
                 contents=[],  # 제출하지 않은 경우
-                cohort="9기",
+                cohort="10기",
             ),
             User(
                 user_id="리마인드 대상2",
-                name="도진홍",
+                name="장득현",
                 channel_name="test_channel",
                 channel_id="test_channel_id",
-                intro="안녕하세요. 도진홍입니다.",
+                intro="안녕하세요. 장득현입니다.",
                 contents=[
                     Content(  # 지난 회차 제출한 경우
                         dt=(tz_now() - timedelta(days=15)).strftime(
                             "%Y-%m-%d %H:%M:%S"
                         ),
                         user_id="리마인드 대상2",
-                        username="도진홍",
+                        username="장득현",
                         type="submit",
                     ),
                 ],
-                cohort="9기",
+                cohort="10기",
             ),
         ],
     )
@@ -104,14 +104,18 @@ async def test_send_reminder_message_to_user(
     await background_service.send_reminder_message_to_user(cast(AsyncApp, slack_app))
 
     # then
-    assert slack_client_mock.call_count == 2
+    assert slack_client_mock.call_count == 3
     assert slack_client_mock.call_args_list[0].kwargs["channel"] == "리마인드 대상1"
     assert (
         slack_client_mock.call_args_list[0].kwargs["text"]
-        == "오늘은 글또 제출 마감일이에요.\n지난 2주 동안 배우고 경험한 것들을 자정까지 나눠주세요.\n변덕순 님의 이야기를 기다릴게요!🙂"
+        == "👋 안녕하세요! 오늘은 글 제출 마감일이에요.\n지난 2주 동안 배우고 경험한 것들을 자정까지 나눠주세요.\n변덕순 님의 이야기를 기다릴게요!🙂"
     )
     assert slack_client_mock.call_args_list[1].kwargs["channel"] == "리마인드 대상2"
     assert (
         slack_client_mock.call_args_list[1].kwargs["text"]
-        == "오늘은 글또 제출 마감일이에요.\n지난 2주 동안 배우고 경험한 것들을 자정까지 나눠주세요.\n도진홍 님의 이야기를 기다릴게요!🙂"
+        == "👋 안녕하세요! 오늘은 글 제출 마감일이에요.\n지난 2주 동안 배우고 경험한 것들을 자정까지 나눠주세요.\n장득현 님의 이야기를 기다릴게요!🙂"
+    )
+    assert (
+        slack_client_mock.call_args_list[2].kwargs["text"]
+        == "총 2 명에게 리마인드 메시지를 전송했습니다."
     )

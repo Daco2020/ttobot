@@ -24,8 +24,8 @@ from app.slack.event_handler import app as slack_app
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
-# from app.constants import DUE_DATES
-# from datetime import datetime, time
+from app.constants import DUE_DATES
+from datetime import datetime, time
 
 
 app = FastAPI()
@@ -77,19 +77,21 @@ if settings.ENV == "prod":
         queue = BigqueryQueue(client=BigqueryClient())
         async_schedule.add_job(upload_bigquery, trigger=bigquery_trigger, args=[queue])
 
-        # 리마인드 스케줄러
-        # TODO: 추후 10기에 활성화
-        # first_remind_date = datetime.combine(
-        #     DUE_DATES[0], time(hour=10, minute=0), tzinfo=ZoneInfo("Asia/Seoul")
-        # )
-        # last_remind_date = datetime.combine(
-        #     DUE_DATES[10], time(hour=10, minute=0), tzinfo=ZoneInfo("Asia/Seoul")
-        # )
+        # 제출 리마인드 스케줄러
+        first_remind_date = datetime.combine(
+            DUE_DATES[0], time(hour=10, minute=0), tzinfo=ZoneInfo("Asia/Seoul")
+        )
+        last_remind_date = datetime.combine(
+            DUE_DATES[-1], time(hour=10, minute=0), tzinfo=ZoneInfo("Asia/Seoul")
+        )
 
-        # remind_trigger = IntervalTrigger(
-        #     weeks=2, start_date=first_remind_date, end_date=last_remind_date, timezone="Asia/Seoul"
-        # )
-        # async_schedule.add_job(remind_job, trigger=remind_trigger, args=[slack_app])
+        remind_trigger = IntervalTrigger(
+            weeks=2,
+            start_date=first_remind_date,
+            end_date=last_remind_date,
+            timezone="Asia/Seoul",
+        )
+        async_schedule.add_job(remind_job, trigger=remind_trigger, args=[slack_app])
 
         async_schedule.start()
 
@@ -125,7 +127,6 @@ if settings.ENV == "prod":
             message = f"🫢: {error=} 🕊️: {trace=}"
             logger.error(message)
 
-            # 관리자에게 에러를 알립니다.
             await slack_app.client.chat_postMessage(
                 channel=settings.ADMIN_CHANNEL,
                 text=message,
@@ -133,7 +134,18 @@ if settings.ENV == "prod":
 
     async def remind_job(slack_app: AsyncApp) -> None:
         slack_service = BackgroundService(repo=SlackRepository())
-        await slack_service.send_reminder_message_to_user(slack_app)
+        try:
+            await slack_service.send_reminder_message_to_user(slack_app)
+        except Exception as e:
+            trace = traceback.format_exc()
+            error = f"제출 리마인드 전송 중 에러가 발생했어요. {str(e)} {trace}"
+            message = f"🫢: {error=} 🕊️: {trace=}"
+            logger.error(message)
+
+            await slack_app.client.chat_postMessage(
+                channel=settings.ADMIN_CHANNEL,
+                text=message,
+            )
 
     @app.on_event("shutdown")
     async def shutdown():

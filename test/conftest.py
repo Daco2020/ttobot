@@ -18,6 +18,8 @@ class FakeAsyncWebClient:
     def __init__(self) -> None: ...
 
     async def chat_postMessage(self, **kwargs) -> None: ...
+
+
 class FakeSlackApp:
     def __init__(self) -> None:
         self._async_client = FakeAsyncWebClient()
