@@ -189,6 +189,18 @@ async def submit_coffee_chat_proof_view(
     point_service: PointService,
 ) -> None:
     """커피챗 인증을 처리합니다."""
+    selected_users = body["view"]["state"]["values"]["participant"]["select"][
+        "selected_users"
+    ]
+    if len(selected_users) < 2:
+        await ack(
+            response_action="errors",
+            errors={
+                "participant": "커피챗 인증은 본인 포함 최소 2명 이상의 멤버를 선택해야 합니다."
+            },
+        )
+        return
+
     await ack()
 
     private_metadata = json_str_to_dict(body["view"]["private_metadata"])
@@ -202,9 +214,6 @@ async def submit_coffee_chat_proof_view(
         inclusive=True,
     )
     message = history["messages"][0]
-    selected_users = body["view"]["state"]["values"]["participant"]["select"][
-        "selected_users"
-    ]
 
     service.create_coffee_chat_proof(
         ts=message_ts,
