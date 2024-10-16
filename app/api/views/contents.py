@@ -1,11 +1,19 @@
 from enum import StrEnum
 import polars as pl
+import re
+import html
 
 from starlette import status
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
+from app.api.auth import current_user
 from app.constants import ContentCategoryEnum, ContentSortEnum
 from app.api import dto
+from app.models import SimpleUser
 from app.utils import translate_keywords
+from app.config import settings
+from app.slack.event_handler import app as slack_app
+from slack_sdk.errors import SlackApiError
+from pydantic import HttpUrl
 
 
 class JobCategoryEnum(StrEnum):
@@ -133,3 +141,58 @@ async def fetch_contents(
 
 def match_keyword(keyword: str, row: tuple) -> bool:
     return keyword in f"{row[1]},{row[5]},{row[7]}".lower()  # title, tags, name
+
+
+@router.post(
+    "/contents/{ts}",
+    status_code=status.HTTP_200_OK,
+)
+async def update_content(
+    ts: str,
+    channel_id: str,
+    new_content_url: HttpUrl | None = None,
+    new_title: str | None = None,
+    user: SimpleUser = Depends(current_user),
+):
+    if user.user_id != settings.ADMIN_IDS:
+        raise HTTPException(status_code=403, detail="수정 권한이 없습니다.")
+
+    try:
+        message = await slack_app.client.conversations_history(
+            channel=channel_id, latest=ts, inclusive=True, limit=1
+        )
+
+        blocks = message["messages"][0]["blocks"]
+        section_text = html.unescape(blocks[0]["text"]["text"])
+
+        pattern = r"<([^|]+)\|([^>]+)>"
+        match = re.search(pattern, section_text)
+
+        if not match:
+            raise HTTPException(
+                status_code=400, detail="메시지 패턴을 찾지 못했습니다."
+            )
+
+        content_url = new_content_url if new_content_url else match.group(1)
+        title = new_title if new_title else match.group(2)
+        link = f"<{content_url}|{title}>"
+
+        updated_text = re.sub(pattern, link, section_text)
+        blocks[0]["text"]["text"] = updated_text
+
+        await slack_app.client.chat_update(
+            channel=channel_id,
+            ts=ts,
+            blocks=blocks,
+            attachments=[],  # 수정 전 링크의 미리보기를 제거합니다.
+        )
+
+        res = await slack_app.client.chat_getPermalink(
+            channel=channel_id,
+            message_ts=ts,
+        )
+
+        return {"permalink": res["permalink"]}
+
+    except SlackApiError as e:
+        raise HTTPException(status_code=409, detail=str(e))
