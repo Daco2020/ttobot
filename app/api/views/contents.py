@@ -154,7 +154,7 @@ async def update_content(
     new_title: str | None = None,
     user: SimpleUser = Depends(current_user),
 ):
-    if user.user_id != settings.ADMIN_IDS:
+    if user.user_id not in settings.ADMIN_IDS:
         raise HTTPException(status_code=403, detail="수정 권한이 없습니다.")
 
     try:
