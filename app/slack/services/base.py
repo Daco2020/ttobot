@@ -132,7 +132,13 @@ class SlackService:
             async with httpx.AsyncClient() as client:
                 response = await client.get(url)
                 if response.status_code == 404:
-                    raise ClientException("비공개 글이거나, url을 찾을 수 없어요.")
+                    raise ClientException(
+                        f"비공개 글이거나, url을 찾을 수 없어요. 상태 코드 : {response.status_code}"
+                    )
+                if response.status_code >= 400:
+                    raise ClientException(
+                        f"url에 문제가 있어 확인이 필요해요. 상태 코드 : {response.status_code}"
+                    )
 
             # 제목을 직접 입력한 경우에는 status_code만 확인 후에 return
             title_input = view["state"]["values"]["manual_title_input"]["title_input"][
