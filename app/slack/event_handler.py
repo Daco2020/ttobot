@@ -226,7 +226,11 @@ async def handle_message(
         return
 
     # 3. 사용자가 문의사항을 남기면 관리자에게 알립니다.
-    if channel_id == settings.SUPPORT_CHANNEL and not is_thread:
+    if (
+        channel_id == settings.SUPPORT_CHANNEL
+        and not is_thread
+        and subtype != "message_changed"
+    ):
         repo = SlackRepository()
         user = repo.get_user(user_id)
         if not user:
