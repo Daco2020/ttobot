@@ -166,12 +166,9 @@ async def update_content(
             channel=channel_id, latest=ts, inclusive=True, limit=1
         )
 
-        message = {}
-        for message in conversations_history["messages"]:
-            if message["ts"] == ts:
-                message = message
-                break
-
+        message = next(
+            (msg for msg in conversations_history["messages"] if msg["ts"] == ts), None
+        )
         if not message:
             raise HTTPException(status_code=404, detail="콘텐츠를 찾을 수 없습니다.")
 
