@@ -162,12 +162,21 @@ async def update_content(
         raise HTTPException(status_code=403, detail="수정 권한이 없습니다.")
 
     try:
-        message = await slack_app.client.conversations_history(
+        conversations_history = await slack_app.client.conversations_history(
             channel=channel_id, latest=ts, inclusive=True, limit=1
         )
 
-        blocks = message["messages"][0]["blocks"]
-        attachments = message["messages"][0].get("attachments", [])
+        message = {}
+        for message in conversations_history["messages"]:
+            if message["ts"] == ts:
+                message = message
+                break
+
+        if not message:
+            raise HTTPException(status_code=404, detail="콘텐츠를 찾을 수 없습니다.")
+
+        blocks = message["blocks"]
+        attachments = message.get("attachments", [])
         section_text = html.unescape(blocks[0]["text"]["text"])
 
         pattern = r"<([^|]+)\|([^>]+)>"
