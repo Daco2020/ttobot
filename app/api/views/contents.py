@@ -176,7 +176,7 @@ async def update_content(
         attachments = message.get("attachments", [])
         section_text = html.unescape(blocks[0]["text"]["text"])
 
-        pattern = r"<([^|]+)\|([^>]+)>"
+        pattern = r"<(https?://[^|]+)\|([^>]+)>"
         match = re.search(pattern, section_text)
         if not match:
             raise HTTPException(
