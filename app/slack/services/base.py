@@ -300,6 +300,7 @@ class SlackService:
         text: str,
         files: list[dict[str, Any]],
         selected_user_ids: str,
+        participant_call_thread_ts: str = "",
     ) -> models.CoffeeChatProof:
         """커피챗 인증글을 생성합니다."""
         try:
@@ -314,6 +315,7 @@ class SlackService:
             text=text,
             image_urls=image_urls,
             selected_user_ids=selected_user_ids,
+            participant_call_thread_ts=participant_call_thread_ts,
         )
         self._repo.create_coffee_chat_proof(coffee_chat_proof)
         store.coffee_chat_proof_upload_queue.append(

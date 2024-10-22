@@ -215,6 +215,31 @@ async def submit_coffee_chat_proof_view(
     )
     message = history["messages"][0]
 
+    await client.reactions_add(
+        channel=settings.COFFEE_CHAT_PROOF_CHANNEL,
+        timestamp=message_ts,
+        name="white_check_mark",
+    )
+
+    # 포인트 지급
+    text = point_service.grant_if_coffee_chat_verified(user_id=user.user_id)
+    await send_point_noti_message(client=client, channel=user.user_id, text=text)
+
+    participant_call_text = ",".join(
+        f"<@{selected_user}>"
+        for selected_user in selected_users
+        if selected_user != user.user_id  # 본인 제외
+    )
+
+    participant_call_thread_ts = ""
+    if participant_call_text:
+        res = await client.chat_postMessage(
+            channel=settings.COFFEE_CHAT_PROOF_CHANNEL,
+            thread_ts=message_ts,
+            text=f"{participant_call_text} \n\n커피챗 인증을 위해 스레드로 후기를 남겨주세요. 인증이 확인된 멤버는 ✅가 표시돼요.\n\n커피챗 인증 내역은 <@{settings.TTOBOT_USER_ID}> 의 `홈` 탭 -> `내 커피챗 인증 내역 보기` 버튼을 통해 확인할 수 있어요.",
+        )
+        participant_call_thread_ts = res.get("ts", "")
+
     service.create_coffee_chat_proof(
         ts=message_ts,
         thread_ts="",
@@ -226,30 +251,8 @@ async def submit_coffee_chat_proof_view(
             for selected_user in selected_users
             if selected_user != user.user_id
         ),
+        participant_call_thread_ts=participant_call_thread_ts,
     )
-
-    await client.reactions_add(
-        channel=settings.COFFEE_CHAT_PROOF_CHANNEL,
-        timestamp=message_ts,
-        name="white_check_mark",
-    )
-
-    # 포인트 지급
-    text = point_service.grant_if_coffee_chat_verified(user_id=user.user_id)
-    await send_point_noti_message(client=client, channel=user.user_id, text=text)
-
-    user_call_text = ",".join(
-        f"<@{selected_user}>"
-        for selected_user in selected_users
-        if selected_user != user.user_id  # 본인 제외
-    )
-
-    if user_call_text:
-        await client.chat_postMessage(
-            channel=settings.COFFEE_CHAT_PROOF_CHANNEL,
-            thread_ts=message_ts,
-            text=f"{user_call_text} \n\n커피챗 인증을 위해 스레드로 후기를 남겨주세요. 인증이 확인된 멤버는 ✅가 표시돼요.\n\n커피챗 인증 내역은 <@{settings.TTOBOT_USER_ID}> 의 `홈` 탭 -> `내 커피챗 인증 내역 보기` 버튼을 통해 확인할 수 있어요.",
-        )
 
     # 나에게만 표시 메시지 수정하는 요청(slack bolt 에서는 지원하지 않음)
     requests.post(
