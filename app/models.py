@@ -332,7 +332,7 @@ class CoffeeChatProof(StoreModel):
     text: str
     image_urls: str = ""  # url1,url2,url3 형태
     selected_user_ids: str = ""  # id1,id2,id3 형태
-    participant_call_thread_ts: str = ""  # 유저가 스레드를 호출한 경우 스레드 ts 추가
+    participant_call_thread_ts: str = ""  # 커피챗 참여자 호출 스레드 id
     created_at: str = Field(default_factory=tz_now_to_str)
 
     def to_list_for_csv(self) -> list[str]:
