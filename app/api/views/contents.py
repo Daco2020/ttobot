@@ -1,4 +1,5 @@
 from enum import StrEnum
+from typing import Any, Literal
 import polars as pl
 import re
 import html
@@ -197,6 +198,87 @@ async def update_content(
             attachments=(
                 [] if new_content_url else attachments
             ),  # 링크가 수정된다면 미리보기 첨부파일을 삭제 합니다.
+        )
+
+        permalink_res = await slack_app.client.chat_getPermalink(
+            channel=channel_id,
+            message_ts=ts,
+        )
+
+        return {"permalink": permalink_res["permalink"]}
+
+    except SlackApiError as e:
+        raise HTTPException(status_code=409, detail=str(e))
+
+
+@router.get(
+    "/messages",
+    status_code=status.HTTP_200_OK,
+)
+async def get_message(
+    ts: str,
+    channel_id: str,
+    type: Literal["message", "reply"] = "message",
+    user: SimpleUser = Depends(current_user),
+) -> dict[str, Any]:
+    if user.user_id not in settings.ADMIN_IDS:
+        raise HTTPException(status_code=403, detail="수정 권한이 없습니다.")
+
+    try:
+        if type == "message":
+            data = await slack_app.client.conversations_history(
+                channel=channel_id, latest=ts, inclusive=True, limit=1
+            )
+
+        else:
+            data = await slack_app.client.conversations_replies(
+                channel=channel_id, ts=ts, inclusive=True, limit=1
+            )
+
+        message = next((msg for msg in data["messages"] if msg["ts"] == ts), None)
+        if not message:
+            raise HTTPException(status_code=404, detail="콘텐츠를 찾을 수 없습니다.")
+
+        text = message["text"]
+        blocks = message["blocks"]
+        attachments = message.get("attachments", [])
+
+        return {
+            "text": text,
+            "blocks": blocks,
+            "attachments": attachments,
+        }
+
+    except SlackApiError as e:
+        raise HTTPException(status_code=409, detail=str(e))
+
+
+class UpdateMessageRequest(dto.BaseModel):
+    text: str
+    blocks: list[dict[str, Any]]
+    attachments: list[dict[str, Any]]
+
+
+@router.post(
+    "/messages",
+    status_code=status.HTTP_200_OK,
+)
+async def update_message(
+    ts: str,
+    channel_id: str,
+    data: UpdateMessageRequest,
+    user: SimpleUser = Depends(current_user),
+):
+    if user.user_id not in settings.ADMIN_IDS:
+        raise HTTPException(status_code=403, detail="수정 권한이 없습니다.")
+
+    try:
+        await slack_app.client.chat_update(
+            channel=channel_id,
+            ts=ts,
+            text=data.text,
+            blocks=data.blocks,
+            attachments=data.attachments,
         )
 
         permalink_res = await slack_app.client.chat_getPermalink(
