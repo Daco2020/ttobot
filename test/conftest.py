@@ -2,6 +2,7 @@ import pytest
 
 from app.slack.repositories import SlackRepository
 from app.slack.services.background import BackgroundService
+from app.slack.services.point import PointService
 
 
 @pytest.fixture
@@ -12,6 +13,11 @@ def slack_repo() -> SlackRepository:
 @pytest.fixture
 def background_service(slack_repo: SlackRepository) -> BackgroundService:
     return BackgroundService(slack_repo)
+
+
+@pytest.fixture
+def point_service(slack_repo: SlackRepository) -> PointService:
+    return PointService(slack_repo)
 
 
 class FakeAsyncWebClient:
