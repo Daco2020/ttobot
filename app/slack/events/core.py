@@ -266,7 +266,7 @@ async def open_help_view(
                     text={
                         "type": "mrkdwn",
                         "text": "🙌 *도움이 필요하신가요?*\n\n"
-                        f"궁금한 사항이 있다면 <#{settings.SUPPORT_CHANNEL}> 채널로 문의해주세요!\n"
+                        f"궁금한 사항이 있다면 <#{settings.BOT_SUPPORT_CHANNEL}> 채널로 문의해주세요!\n"
                         "또봇 코드가 궁금하다면 👉🏼 *<https://github.com/Daco2020/ttobot|또봇 깃허브>* 로 놀러오세요~ 🤗",
                     }
                 ),

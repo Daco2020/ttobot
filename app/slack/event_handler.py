@@ -152,7 +152,7 @@ async def handle_error(error, body):
     else:
         message = "예기치 못한 오류가 발생했어요."
 
-    text = f"🥲 {message}\n\n👉🏼 문제가 해결되지 않는다면 <#{settings.SUPPORT_CHANNEL}> 채널로 문의해주세요."
+    text = f"🥲 {message}\n\n👉🏼 문제가 해결되지 않는다면 <#{settings.BOT_SUPPORT_CHANNEL}> 채널로 문의해주세요."
     if trigger_id := body.get("trigger_id"):
         await app.client.views_open(
             trigger_id=trigger_id,
@@ -227,7 +227,7 @@ async def handle_message(
 
     # 3. 사용자가 문의사항을 남기면 관리자에게 알립니다.
     if (
-        channel_id == settings.SUPPORT_CHANNEL
+        channel_id in [settings.BOT_SUPPORT_CHANNEL, settings.SUPPORT_CHANNEL]
         and not is_thread
         and subtype != "message_changed"
     ):
@@ -237,7 +237,7 @@ async def handle_message(
             await _notify_missing_user_info(client, user_id)
             return
 
-        message = f"👋🏼 <#{user.channel_id}>채널의 {user.name}님이 <#{channel_id}>을 남겼어요."  # TODO: 운영 질문 추가로 남기기, 김은찬, 변성윤 태그 남기기
+        message = f"👋🏼 <#{user.channel_id}>채널의 {user.name}님이 <#{channel_id}>을 남겼어요. 👀 <@{settings.SUPER_ADMIN}> <@{settings.ADMIN_IDS[1]}>"
         await client.chat_postMessage(channel=settings.ADMIN_CHANNEL, text=message)
         return
 

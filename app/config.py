@@ -21,6 +21,7 @@ class Settings(BaseSettings):
     BIGQUERY_DATABASE_ID: str
 
     NOTICE_CHANNEL: str
+    BOT_SUPPORT_CHANNEL: str
     SUPPORT_CHANNEL: str
     THANKS_CHANNEL: str
     COFFEE_CHAT_PROOF_CHANNEL: str
