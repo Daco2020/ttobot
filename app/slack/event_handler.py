@@ -237,7 +237,7 @@ async def handle_message(
             await _notify_missing_user_info(client, user_id)
             return
 
-        message = f"👋🏼 <#{user.channel_id}>채널의 {user.name}님이 <#{channel_id}>을 남겼어요."
+        message = f"👋🏼 <#{user.channel_id}>채널의 {user.name}님이 <#{channel_id}>을 남겼어요."  # TODO: 운영 질문 추가로 남기기, 김은찬, 변성윤 태그 남기기
         await client.chat_postMessage(channel=settings.ADMIN_CHANNEL, text=message)
         return
 

@@ -74,7 +74,7 @@ async def open_deposit_view(
             else ""
         )
         text = (
-            f"현재 남은 예치금은 {format(int(user.deposit), ',d')} 원 이에요."
+            f"{user.name}님의 현재 남은 예치금은 {format(int(user.deposit), ',d')} 원 이에요."  # TODO: 예치금 관련 정보 추가 (차감 내역, 추가 내역(커피챗, 반상회 등)
             + deposit_link
         )
 
@@ -538,13 +538,14 @@ async def handle_home_tab(
     # 포인트 히스토리를 포함한 유저를 가져온다.
     user_point_history = point_service.get_user_point(user_id=user.user_id)
     combo_count = user.get_continuous_submit_count()
-    next_combo_point = ""
-    if combo_count == 0:
+
+    current_combo_point = ""
+    if combo_count < 1:
         pass
     elif combo_count in [3, 6, 9]:
-        next_combo_point = "*+ ???(특별 콤보 보너스)* "
+        current_combo_point = "*+ ???(특별 콤보 보너스)* "
     else:
-        next_combo_point = (
+        current_combo_point = (
             "*+ " + str(PointMap.글_제출_콤보.point * combo_count) + "(콤보 보너스)* "
         )
 
@@ -572,7 +573,7 @@ async def handle_home_tab(
                     elements=[
                         TextObject(
                             type="mrkdwn",
-                            text=f"다음 회차에 글을 제출하면 *100* {next_combo_point}point 를 얻을 수 있어요.",
+                            text=f"이번 회차에 글을 제출하면 *100* {current_combo_point}point 를 얻을 수 있어요.",
                         ),
                     ],
                 ),

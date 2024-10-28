@@ -120,7 +120,7 @@ class PointService:
             raise BotException("유저 정보가 없어 글 제출 포인트를 지급할 수 없습니다.")
         
         continuous_submit_count = user.get_continuous_submit_count()
-        if continuous_submit_count > 1: # 1보다 크면 연속 제출이므로 추가 포인트 지급
+        if continuous_submit_count > 0: 
             if continuous_submit_count == 9:
                 point_info = PointMap.글_제출_9콤보_보너스
             elif continuous_submit_count == 6:
@@ -130,7 +130,7 @@ class PointService:
             else:
                 # 3,6,9 외에는 연속 제출 횟수에 따라 연속 포인트를 지급합니다.
                 point_info = PointMap.글_제출_콤보
-                combo_point = point_info.point * (continuous_submit_count - 1) # 2부터 연속 제출이므로 -1
+                combo_point = point_info.point * (continuous_submit_count)
                 point_info.set_point(combo_point)
                 
             return self.add_point_history(user_id, point_info)

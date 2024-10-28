@@ -120,16 +120,17 @@ class User(BaseModel):
 
     def get_continuous_submit_count(self) -> int:
         """내림차순으로 연속으로 제출한 횟수를 반환합니다."""
-        continuous_submit_count = 0
+        count = 0
         submit_status = self.get_submit_status()
         for _, v in sorted(submit_status.items(), reverse=True):
             if v == "제출":
-                continuous_submit_count += 1
+                count += 1
             elif v == "패스":  # 패스는 연속 제출 횟수에 포함하지 않는다.
                 continue
             else:  # 미제출은 연속 제출 횟수를 끊는다.
                 break
-        return continuous_submit_count
+
+        return 0 if count == 0 else count - 1  # 2부터 콤보가 시작되므로 1을 뺀다.
 
     def check_channel(self, channel_id: str) -> None:
         """코어 채널이 일치하는지 체크합니다."""
