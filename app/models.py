@@ -102,11 +102,21 @@ class User(BaseModel):
         return latest_due_date < recent_content.date <= now_date
 
     def get_submit_status(self) -> dict[int, str]:
-        """모든 회차별 제출 여부를 반환합니다."""
+        """회차별 제출 여부를 반환합니다."""
         submit_status = {}
         for i, due_date in enumerate(DUE_DATES):
+            # 0회차는 시작일이므로 제외한다.
             if i == 0:
                 continue
+
+            # 현재 회차는 제출 여부를 판단하지 않는다.
+            if due_date > tz_now().date():
+                break
+
+            # 기본값은 미제출
+            submit_status[i] = "미제출"
+
+            # 콘텐츠의 제출 날짜가 직전 마감일 초과, 마감일 이하 라면 제출했다고 판단한다.
             for content in self.fetch_contents():
                 latest_due_date = DUE_DATES[i - 1]
                 if latest_due_date < content.date <= due_date:
@@ -116,6 +126,7 @@ class User(BaseModel):
                         submit_status[i] = "패스"
                     else:
                         submit_status[i] = "미제출"
+
         return submit_status
 
     def get_continuous_submit_count(self) -> int:
@@ -130,7 +141,7 @@ class User(BaseModel):
             else:  # 미제출은 연속 제출 횟수를 끊는다.
                 break
 
-        return 0 if count == 0 else count - 1  # 2부터 콤보가 시작되므로 1을 뺀다.
+        return count
 
     def check_channel(self, channel_id: str) -> None:
         """코어 채널이 일치하는지 체크합니다."""
