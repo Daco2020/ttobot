@@ -147,7 +147,7 @@ class SlackService:
             if title_input:
                 return title_input
 
-            soup = BeautifulSoup(response.text, "html.parser")
+            soup = BeautifulSoup(response.content, "html.parser", from_encoding="utf-8")
             title = soup.find("title")
             if not title:
                 raise ClientException(
