@@ -1109,23 +1109,31 @@ async def send_paper_plane_message_view(
         await asyncio.sleep(
             5
         )  # 종이비행기 메시지 전송 후 5초 뒤에 전송. 이유는 바로 전송할 경우 본인 전송 알림 메시지와 구분이 어려움.
-        await client.chat_postMessage(
-            channel=user.user_id,
-            text=f"💌 *<@{settings.TTOBOT_USER_ID}>* 의 깜짝 선물이 담긴 종이비행기가 도착했어요!🎁",
-            blocks=[
-                SectionBlock(
-                    text=f"💌 *<@{settings.TTOBOT_USER_ID}>* 의 깜짝 선물이 담긴 종이비행기가 도착했어요!🎁\n\n",
-                ),
-                ContextBlock(
-                    elements=[
-                        MarkdownTextObject(
-                            text=">받은 종이비행기는 `/종이비행기` 명령어 -> [주고받은 종이비행기 보기] 를 통해 확인할 수 있어요."
-                        )
-                    ],
-                ),
-            ],
-        )
-        return None
+
+        try:
+            await client.chat_postMessage(
+                channel=user.user_id,
+                text=f"💌 *<@{settings.TTOBOT_USER_ID}>* 의 깜짝 선물이 담긴 종이비행기가 도착했어요!🎁",
+                blocks=[
+                    SectionBlock(
+                        text=f"💌 *<@{settings.TTOBOT_USER_ID}>* 의 깜짝 선물이 담긴 종이비행기가 도착했어요!🎁\n\n",
+                    ),
+                    ContextBlock(
+                        elements=[
+                            MarkdownTextObject(
+                                text=">받은 종이비행기는 `/종이비행기` 명령어 -> [주고받은 종이비행기 보기] 를 통해 확인할 수 있어요."
+                            )
+                        ],
+                    ),
+                ],
+            )
+            return None
+        except Exception as e:
+            await client.chat_postMessage(
+                channel=settings.ADMIN_CHANNEL,
+                text=f"💌 *<@{user.user_id}>* 님에게 인프런 쿠폰을 보냈으나 메시지 전송에 실패했어요. {e}",
+            )
+            return None
 
 
 class InflearnCoupon(TypedDict):
