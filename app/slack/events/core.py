@@ -68,14 +68,24 @@ async def open_deposit_view(
     if not user.deposit:
         text = "현재 예치금 확인 중이에요."
     else:
-        deposit_link = (
-            f"\n\n*<{settings.DEPOSIT_SHEETS_URL}|{'예치금 현황 자세히 확인하기'}>*"
-            if settings.DEPOSIT_SHEETS_URL
-            else ""
-        )
+        # 남은 패스 수
+        remained_pass_count = 2
+        remained_pass_count -= user.pass_count
+
+        # 미제출 수
+        submit_status = user.get_submit_status()
+        not_submitted_count = list(submit_status.values()).count("미제출")
+
+        # 커피챗 인증 수
+        coffee_chat_proofs = service.fetch_coffee_chat_proofs(user_id=user.user_id)
+        coffee_chat_proofs_count = len(coffee_chat_proofs)
+
         text = (
-            f"{user.name}님의 현재 남은 예치금은 {format(int(user.deposit), ',d')} 원 이에요."  # TODO: 예치금 관련 정보 추가 (차감 내역, 추가 내역(커피챗, 반상회 등)
-            + deposit_link
+            f"{user.name[1:]}님의 현재 남은 예치금은 {format(int(user.deposit), ',d')} 원 이에요."
+            + f"\n\n- 남은 패스 수 : {remained_pass_count} 개"
+            + f"\n- 글 미제출 수 : {not_submitted_count} 개"
+            + f"\n- 커피챗 인증 수 : {coffee_chat_proofs_count} 개"
+            # + f"\n반상회 참여 : (추후 제공 예정)"  # TODO: 추후 반상회 참여 시 예치금에 변동이 있다면 추가. (모임 크루에서 결정)
         )
 
     await client.views_open(
@@ -84,7 +94,18 @@ async def open_deposit_view(
             type="modal",
             title=f"{user.name}님의 예치금 현황",
             close="닫기",
-            blocks=[SectionBlock(text=text)],
+            blocks=[
+                SectionBlock(text=text),
+                ContextBlock(
+                    elements=[
+                        TextObject(
+                            type="mrkdwn",
+                            text="글 미제출 시 예치금 10,000원이 차감됩니다."
+                            "\n커피챗 인증 시 1회당 예치금 5,000원이 더해집니다. (최대 2회)",
+                        ),
+                    ]
+                ),
+            ],
         ),
     )
 

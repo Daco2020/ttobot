@@ -102,7 +102,7 @@ class User(BaseModel):
         return latest_due_date < recent_content.date <= now_date
 
     def get_submit_status(self) -> dict[int, str]:
-        """회차별 제출 여부를 반환합니다."""
+        """현재 회차는 제외한 회차별 제출 여부를 반환합니다."""
         submit_status = {}
         for i, due_date in enumerate(DUE_DATES):
             # 0회차는 시작일이므로 제외한다.
