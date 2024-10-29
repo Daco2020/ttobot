@@ -1,9 +1,7 @@
 import asyncio
 import csv
-import datetime
 import os
 from typing import TypedDict
-import zoneinfo
 import tenacity
 import pandas as pd
 
@@ -45,7 +43,7 @@ from slack_bolt.async_app import AsyncAck, AsyncSay
 from slack_sdk.web.async_client import AsyncWebClient
 from slack_sdk.errors import SlackApiError
 
-from app.utils import ts_to_dt, tz_now
+from app.utils import ts_to_dt
 
 
 async def handle_app_mention(
@@ -999,6 +997,28 @@ async def send_paper_plane_message_view(
         )
         return
 
+    bot_ids = [
+        "U07PJ6J7FFV",
+        "U07P0BB4YKV",
+        "U07PFJCHHFF",
+        "U07PK8CLGKW",
+        "U07P8E69V3N",
+        "U07PB8HF4V8",
+        "U07PAMU09AS",
+        "U07PSF2PKKK",
+        "U07PK195U74",
+        "U04GVDM0R4Y",
+        "USLACKBOT",
+    ]
+    if receiver_id in bot_ids:
+        await ack(
+            response_action="errors",
+            errors={
+                "paper_plane_message": "봇에게 종이비행기를 보낼 수 없어요~😉",
+            },
+        )
+        return
+
     if user.user_id == settings.SUPER_ADMIN:
         pass
     else:
@@ -1055,14 +1075,7 @@ async def send_paper_plane_message_view(
         ],
     )
 
-    # 인프런 쿠폰 지급 로직, 2024년 11월 10일 이후부터 지급됩니다.
-    coupon_issue_start_date = datetime.datetime(
-        2024, 11, 10, tzinfo=zoneinfo.ZoneInfo("Asia/Seoul")
-    ).date()
-    if tz_now().date() < coupon_issue_start_date:
-        # 인프런 쿠폰 지급 시작일 이전이라면 종이비행기를 보내지 않습니다.
-        return None
-
+    # 인프런 쿠폰 지급 로직
     inflearn_coupon = get_inflearn_coupon(user_id=user.user_id)
     if not inflearn_coupon:
         # 인프런 쿠폰이 존재하지 않다면 관리자에게 알립니다.
