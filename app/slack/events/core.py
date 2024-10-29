@@ -1104,16 +1104,17 @@ async def send_paper_plane_message_view(
             receiver=user,
             text=text,
         )
+        update_inflearn_coupon_status(user_id=user.user_id, status="received")
 
         await asyncio.sleep(
             5
         )  # 종이비행기 메시지 전송 후 5초 뒤에 전송. 이유는 바로 전송할 경우 본인 전송 알림 메시지와 구분이 어려움.
         await client.chat_postMessage(
             channel=user.user_id,
-            text=f"💌 *<@{settings.TTOBOT_USER_ID}>* 으로부터 종이비행기 선물이 도착했어요!🎁",
+            text=f"💌 *<@{settings.TTOBOT_USER_ID}>* 의 깜짝 선물이 담긴 종이비행기가 도착했어요!🎁",
             blocks=[
                 SectionBlock(
-                    text=f"💌 *<@{settings.TTOBOT_USER_ID}>* 으로부터 종이비행기 선물이 도착했어요!🎁\n\n",
+                    text=f"💌 *<@{settings.TTOBOT_USER_ID}>* 의 깜짝 선물이 담긴 종이비행기가 도착했어요!🎁\n\n",
                 ),
                 ContextBlock(
                     elements=[
@@ -1124,8 +1125,6 @@ async def send_paper_plane_message_view(
                 ),
             ],
         )
-
-        update_inflearn_coupon_status(user_id=user.user_id, status="received")
         return None
 
 
