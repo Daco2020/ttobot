@@ -32,10 +32,6 @@ class PointMap(Enum):
     성윤을_잡아라 = settings.POINT_MAP["성윤을_잡아라"]
 
 # fmt: on
-
-    def set_point(self, point: int) -> None:
-        self.value["point"] = point
-
     @property
     def point(self) -> int:
         return self.value["point"]
@@ -83,17 +79,20 @@ class PointService:
         point_histories = self._repo.fetch_point_histories(user_id)
         return UserPoint(user=user, point_histories=point_histories)
 
-    def add_point_history(self, user_id: str, point_info: PointMap) -> str:
+    def add_point_history(self, user_id: str, point_info: PointMap, point: int | None = None) -> str:
         """포인트 히스토리를 추가하고 알림 메시지를 반환합니다."""
+        if not point:
+            point = point_info.point
+        
         point_history=PointHistory(
             user_id=user_id,
             reason=point_info.reason,
-            point=point_info.point,
+            point=point,
             category=point_info.category,
         )
         self._repo.add_point(point_history=point_history)
         store.point_history_upload_queue.append(point_history.to_list_for_sheet())
-        return f"<@{user_id}>님 `{point_info.reason}`(으)로 `{point_info.point}`포인트를 획득했어요! 🎉\n총 포인트와 내역은 또봇 [홈] 탭에서 확인할 수 있어요."
+        return f"<@{user_id}>님 `{point_info.reason}`(으)로 `{point}`포인트를 획득했어요! 🎉\n총 포인트와 내역은 또봇 [홈] 탭에서 확인할 수 있어요."
 
     def grant_if_post_submitted(self, user_id: str, is_submit: bool) -> tuple[str, bool]:
         """글쓰기 포인트 지급 1. 글을 제출하면 기본 포인트를 지급합니다. 글을 이미 제출했다면 추가 포인트를 지급합니다."""
@@ -130,10 +129,9 @@ class PointService:
             else:
                 # 3,6,9 외에는 연속 제출 횟수에 따라 연속 포인트를 지급합니다.
                 point_info = PointMap.글_제출_콤보
-                combo_point = point_info.point * (continuous_submit_count)
-                point_info.set_point(combo_point)
+                combo_point = point_info.point * continuous_submit_count
                 
-            return self.add_point_history(user_id, point_info)
+            return self.add_point_history(user_id, point_info, point=combo_point)
         
         return None
 
