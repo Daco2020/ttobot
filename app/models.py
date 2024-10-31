@@ -140,7 +140,8 @@ class User(BaseModel):
                 continue
             else:  # 미제출은 연속 제출 횟수를 끊는다.
                 break
-
+        print("submit_status", submit_status)
+        print("count", count)
         return count
 
     def check_channel(self, channel_id: str) -> None:
