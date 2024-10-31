@@ -127,6 +127,7 @@ class User(BaseModel):
                     else:
                         submit_status[i] = "미제출"
 
+        print("fetch_contents", self.fetch_contents())
         return submit_status
 
     def get_continuous_submit_count(self) -> int:
