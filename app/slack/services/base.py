@@ -394,3 +394,28 @@ class SlackService:
                 paper_planes.append(plane)
 
         return paper_planes
+
+    def fetch_subscriptions_by_user_id(
+        self,
+        user_id: str,
+    ) -> list[models.Subscription]:
+        """유저의 구독 내역을 가져옵니다."""
+        return self._repo.fetch_subscriptions_by_user_id(user_id)
+
+    def fetch_subscriptions_by_target_user_id(
+        self,
+        target_user_id: str,
+    ) -> list[models.Subscription]:
+        """타겟 유저를 기준으로 구독 내역을 가져옵니다."""
+        return self._repo.fetch_subscriptions_by_target_user_id(target_user_id)
+
+    def create_subscription(
+        self, user_id: str, target_user_id: str
+    ) -> models.Subscription:
+        """구독을 생성합니다."""
+        subscription = models.Subscription(
+            user_id=user_id, target_user_id=target_user_id
+        )
+        self._repo.create_subscription(subscription)
+        store.subscription_upload_queue.append(subscription.to_list_for_sheet())
+        return subscription

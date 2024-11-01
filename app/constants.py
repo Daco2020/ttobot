@@ -86,3 +86,18 @@ PRIMARY_CHANNEL = [
     "C05J87UPC3F",  # dev 채널 1 (로컬 테스트 채널)
     "C07PD0VMHJM",  # dev 채널 2 (또봇 크루 채널)
 ]
+
+
+BOT_IDS = [
+    "U07PJ6J7FFV",
+    "U07P0BB4YKV",
+    "U07PFJCHHFF",
+    "U07PK8CLGKW",
+    "U07P8E69V3N",
+    "U07PB8HF4V8",
+    "U07PAMU09AS",
+    "U07PSF2PKKK",
+    "U07PK195U74",
+    "U04GVDM0R4Y",
+    "USLACKBOT",
+]

@@ -7,6 +7,7 @@ import pandas as pd
 
 from app.client import SpreadSheetClient
 from app.config import settings
+from app.constants import BOT_IDS
 from app.models import CoffeeChatProof, Content, PointHistory, User
 from app.slack.services.base import SlackService
 from app.slack.services.point import PointMap, PointService
@@ -704,9 +705,20 @@ async def handle_home_tab(
                     elements=[
                         TextObject(
                             type="mrkdwn",
-                            text="새로운 기능을 만나보세요. 더 나은 또봇을 위해 여러분의 의견을 기다립니다.\n\nComing Soon...🙇‍♂️",
+                            text="또봇의 새로운 기능들을 가장 먼저 만나보세요. 🤗\n"
+                            f"버그 제보와 아이디어 제안은 <#{settings.BOT_SUPPORT_CHANNEL}> 채널로 부탁드려요. 🙏",
                         ),
                     ],
+                ),
+                ActionsBlock(
+                    elements=[
+                        ButtonElement(
+                            text="멤버 구독하기",
+                            action_id="subscribe_member_content_by_action",
+                            value="subscribe_member_content_by_action",
+                            style="primary",
+                        ),
+                    ]
                 ),
             ],
         ),
@@ -1003,24 +1015,11 @@ async def send_paper_plane_message_view(
         )
         return
 
-    bot_ids = [
-        "U07PJ6J7FFV",
-        "U07P0BB4YKV",
-        "U07PFJCHHFF",
-        "U07PK8CLGKW",
-        "U07P8E69V3N",
-        "U07PB8HF4V8",
-        "U07PAMU09AS",
-        "U07PSF2PKKK",
-        "U07PK195U74",
-        "U04GVDM0R4Y",
-        "USLACKBOT",
-    ]
-    if receiver_id in bot_ids:
+    if receiver_id in BOT_IDS:
         await ack(
             response_action="errors",
             errors={
-                "paper_plane_message": "봇에게 종이비행기를 보낼 수 없어요~😉",
+                "paper_plane_message": "봇에게 종이비행기를 보낼 수 없어요. 😉",
             },
         )
         return

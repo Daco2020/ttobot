@@ -18,6 +18,7 @@ from app.slack.events import community as community_events
 from app.slack.events import contents as contents_events
 from app.slack.events import core as core_events
 from app.slack.events import log as log_events
+from app.slack.events import subscriptions as subscriptions_events
 from app.exception import BotException
 from app.slack.repositories import SlackRepository
 from app.slack.services.base import SlackService
@@ -347,7 +348,15 @@ app.action("open_coffee_chat_history_view")(core_events.open_coffee_chat_history
 app.action("download_point_history")(core_events.download_point_history)
 app.action("download_coffee_chat_history")(core_events.download_coffee_chat_history)
 app.action("download_submission_history")(core_events.download_submission_history)
-
+app.action("subscribe_member_content_by_action")(
+    subscriptions_events.subscribe_member_content_by_action
+)
+app.view("subscribe_member_content_by_view")(
+    subscriptions_events.subscribe_member_content_by_view
+)
+app.view("handle_subscribe_member_content_view")(
+    subscriptions_events.handle_subscribe_member_content_view
+)
 
 # log
 app.event("reaction_added")(log_events.handle_reaction_added)
@@ -403,4 +412,7 @@ event_descriptions = {
     "send_paper_plane_message_view": "종이비행기 메시지 전송 완료",
     "channel_created": "채널 생성",
     "/종이비행기": "종이비행기 모달 열기",
+    "subscribe_member_content_by_action": "멤버 구독 액션 모달",
+    "subscribe_member_content_by_view": "멤버 구독 뷰 모달",
+    "handle_subscribe_member_content_view": "멤버 구독 완료",
 }

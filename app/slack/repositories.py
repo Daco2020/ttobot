@@ -288,3 +288,39 @@ class SlackRepository:
                 if paper_plane["sender_id"] == sender_id
             ]
             return paper_planes
+
+    def create_subscription(self, subscription: models.Subscription) -> None:
+        """구독을 생성합니다."""
+        with open("store/subscriptions.csv", "a", newline="", encoding="utf-8") as f:
+            writer = csv.writer(f, quoting=csv.QUOTE_ALL)
+            writer.writerow(subscription.to_list_for_csv())
+
+    def fetch_subscriptions_by_user_id(
+        self,
+        user_id: str,
+    ) -> list[models.Subscription]:
+        """유저의 구독 내역을 가져옵니다."""
+        with open("store/subscriptions.csv") as f:
+            reader = csv.DictReader(f)
+            subscriptions = [
+                models.Subscription(**subscription)  # type: ignore
+                for subscription in reader
+                if subscription["status"] == models.SubscriptionStatusEnum.ACTIVE
+                and subscription["user_id"] == user_id
+            ]
+            return subscriptions
+
+    def fetch_subscriptions_by_target_user_id(
+        self,
+        target_user_id: str,
+    ) -> list[models.Subscription]:
+        """타겟 유저를 기준으로 구독 내역을 가져옵니다."""
+        with open("store/subscriptions.csv") as f:
+            reader = csv.DictReader(f)
+            subscriptions = [
+                models.Subscription(**subscription)  # type: ignore
+                for subscription in reader
+                if subscription["status"] == models.SubscriptionStatusEnum.ACTIVE
+                and subscription["target_user_id"] == target_user_id
+            ]
+            return subscriptions
