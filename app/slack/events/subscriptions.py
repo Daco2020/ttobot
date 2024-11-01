@@ -160,9 +160,22 @@ async def handle_subscribe_member_view(
         )
         return
 
+    target_user = service.get_only_user(target_user_id)
+    if not target_user:
+        await ack(
+            response_action="errors",
+            errors={"select_target_user": "구독할 멤버를 찾을 수 없습니다. 😅"},
+        )
+        return
+
+    # TODO: 이미 구독했다면 할 수 없습니다.
     await ack()
 
-    service.create_subscription(user_id=user.user_id, target_user_id=target_user_id)
+    service.create_subscription(
+        user_id=user.user_id,
+        target_user_id=target_user_id,
+        target_user_channel=target_user.channel_id,
+    )
 
     await client.views_open(
         trigger_id=body["trigger_id"],
@@ -219,3 +232,15 @@ async def unsubscribe_target_user(
             close="닫기",
         ),
     )
+
+
+async def open_subscription_permalink(
+    ack: AsyncAck,
+    body: ActionBodyType,
+    say: AsyncSay,
+    client: AsyncWebClient,
+    user: User,
+    service: SlackService,
+) -> None:
+    """구독 링크를 엽니다. 로깅을 위한 이벤트입니다."""
+    await ack()

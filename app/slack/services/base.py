@@ -45,8 +45,15 @@ class SlackService:
         return contents
 
     def get_user(self, user_id) -> models.User:
-        """유저 정보를 가져옵니다."""
+        """유저와 콘텐츠 정보를 가져옵니다."""
         user = self._repo.get_user(user_id)
+        if not user:
+            raise BotException("해당 유저 정보가 없어요.")
+        return user
+
+    def get_only_user(self, user_id) -> models.User:
+        """유저 정보만 가져옵니다."""
+        user = self._repo.get_only_user(user_id)
         if not user:
             raise BotException("해당 유저 정보가 없어요.")
         return user
@@ -402,19 +409,14 @@ class SlackService:
         """유저의 구독 내역을 가져옵니다."""
         return self._repo.fetch_subscriptions_by_user_id(user_id)
 
-    def fetch_subscriptions_by_target_user_id(
-        self,
-        target_user_id: str,
-    ) -> list[models.Subscription]:
-        """타겟 유저를 기준으로 구독 내역을 가져옵니다."""
-        return self._repo.fetch_subscriptions_by_target_user_id(target_user_id)
-
     def create_subscription(
-        self, user_id: str, target_user_id: str
+        self, user_id: str, target_user_id: str, target_user_channel: str
     ) -> models.Subscription:
         """구독을 생성합니다."""
         subscription = models.Subscription(
-            user_id=user_id, target_user_id=target_user_id
+            user_id=user_id,
+            target_user_id=target_user_id,
+            target_user_channel=target_user_channel,
         )
         self._repo.create_subscription(subscription)
         store.subscription_upload_queue.append(subscription.to_list_for_sheet())

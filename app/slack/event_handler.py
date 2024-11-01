@@ -414,4 +414,5 @@ event_descriptions = {
     "subscribe_member_by_action": "멤버 구독 액션 모달",
     "subscribe_member_by_view": "멤버 구독 뷰 모달",
     "handle_subscribe_member_view": "멤버 구독 완료",
+    "open_subscription_permalink": "구독 링크 열기",
 }

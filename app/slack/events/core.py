@@ -968,7 +968,7 @@ async def send_paper_plane_message(
         ],
     )
 
-    callback_id = body["view"]["callback_id"]
+    callback_id = body.get("view", {}).get("callback_id")
     if callback_id == "paper_plane_command":
         # callback_id 가 있다면 모달에서 발생한 액션이므로 기존 모달을 업데이트합니다.
         await client.views_update(

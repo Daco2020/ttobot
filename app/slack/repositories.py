@@ -19,6 +19,12 @@ class SlackRepository:
             return user
         return None
 
+    def get_only_user(self, user_id: str) -> models.User | None:
+        """유저만 가져옵니다."""
+        if user := self._get_user(user_id):
+            return user
+        return None
+
     def fetch_users(self) -> list[models.User]:
         """모든 유저를 가져옵니다."""
         users = [models.User(**user) for user in self._fetch_users()]
@@ -302,6 +308,17 @@ class SlackRepository:
             models.SubscriptionStatusEnum.DELETED
         )
         df.to_csv("store/subscriptions.csv", index=False, quoting=csv.QUOTE_ALL)
+
+    def fetch_subscriptions(self) -> list[models.Subscription]:
+        """모든 구독 내역을 가져옵니다."""
+        with open("store/subscriptions.csv") as f:
+            reader = csv.DictReader(f)
+            subscriptions = [
+                models.Subscription(**subscription)  # type: ignore
+                for subscription in reader
+                if subscription["status"] == models.SubscriptionStatusEnum.ACTIVE
+            ]
+            return subscriptions
 
     def fetch_subscriptions_by_user_id(
         self,
