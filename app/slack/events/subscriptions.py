@@ -3,6 +3,7 @@ from app.models import User
 from app.slack.services.base import SlackService
 from app.slack.types import (
     ActionBodyType,
+    OverflowActionBodyType,
     ViewBodyType,
 )
 
@@ -21,7 +22,7 @@ from slack_bolt.async_app import AsyncAck, AsyncSay
 from slack_sdk.web.async_client import AsyncWebClient
 
 
-async def subscribe_member_content_by_action(
+async def subscribe_member_by_action(
     ack: AsyncAck,
     body: ActionBodyType,
     say: AsyncSay,
@@ -32,7 +33,7 @@ async def subscribe_member_content_by_action(
     """멤버 구독 모달을 엽니다."""
     await ack()
 
-    view = _get_subscribe_member_content_view(user_id=user.user_id, service=service)
+    view = _get_subscribe_member_view(user_id=user.user_id, service=service)
 
     await client.views_open(
         trigger_id=body["trigger_id"],
@@ -40,7 +41,7 @@ async def subscribe_member_content_by_action(
     )
 
 
-async def subscribe_member_content_by_view(
+async def subscribe_member_by_view(
     ack: AsyncAck,
     body: ViewBodyType,
     say: AsyncSay,
@@ -51,7 +52,7 @@ async def subscribe_member_content_by_view(
     """멤버 구독 모달을 엽니다."""
     await ack()
 
-    view = _get_subscribe_member_content_view(user_id=user.user_id, service=service)
+    view = _get_subscribe_member_view(user_id=user.user_id, service=service)
 
     await client.views_open(
         trigger_id=body["trigger_id"],
@@ -59,7 +60,7 @@ async def subscribe_member_content_by_view(
     )
 
 
-def _get_subscribe_member_content_view(
+def _get_subscribe_member_view(
     *,
     user_id: str,
     service: SlackService,
@@ -90,7 +91,7 @@ def _get_subscribe_member_content_view(
     view = View(
         type="modal",
         title="멤버 구독",
-        callback_id="handle_subscribe_member_content_view",
+        callback_id="handle_subscribe_member_view",
         submit="구독하기",
         close="닫기",
         blocks=[
@@ -125,7 +126,7 @@ def _get_subscribe_member_content_view(
     return view
 
 
-async def handle_subscribe_member_content_view(
+async def handle_subscribe_member_view(
     ack: AsyncAck,
     body: ViewBodyType,
     say: AsyncSay,
@@ -168,10 +169,50 @@ async def handle_subscribe_member_content_view(
         view=View(
             type="modal",
             title="멤버 구독 완료",
-            callback_id="subscribe_member_content_by_view",
+            callback_id="subscribe_member_by_view",
             blocks=[
                 SectionBlock(
                     text=f"<@{target_user_id}> 님의 글 구독을 시작합니다! 🤩",
+                ),
+            ],
+            submit="돌아가기",
+            close="닫기",
+        ),
+    )
+
+
+async def unsubscribe_target_user(
+    ack: AsyncAck,
+    body: OverflowActionBodyType,
+    client: AsyncWebClient,
+    say: AsyncSay,
+    user: User,
+    service: SlackService,
+) -> None:
+    """구독을 취소합니다."""
+    subscription_id = body["actions"][0]["selected_option"]["value"]
+    subscription = service.get_subscription(subscription_id)
+    if not subscription:
+        await ack(
+            response_action="errors",
+            errors={"unsubscribe_target_user": "구독을 찾을 수 없습니다."},
+        )
+        return
+
+    await ack()
+
+    target_user_id = subscription.target_user_id
+    service.cancel_subscription(subscription.id)
+
+    await client.views_update(
+        view_id=body["view"]["id"],
+        view=View(
+            type="modal",
+            title="구독 취소 완료",
+            callback_id="subscribe_member_by_view",
+            blocks=[
+                SectionBlock(
+                    text=f"<@{target_user_id}> 님의 글 구독을 취소했어요. 🫡",
                 ),
             ],
             submit="돌아가기",

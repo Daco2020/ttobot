@@ -295,6 +295,14 @@ class SlackRepository:
             writer = csv.writer(f, quoting=csv.QUOTE_ALL)
             writer.writerow(subscription.to_list_for_csv())
 
+    def cancel_subscription(self, subscription_id: str) -> None:
+        """구독을 취소합니다."""
+        df = pd.read_csv("store/subscriptions.csv", dtype=str, na_filter=False)
+        df.loc[df["id"] == subscription_id, "status"] = (
+            models.SubscriptionStatusEnum.DELETED
+        )
+        df.to_csv("store/subscriptions.csv", index=False, quoting=csv.QUOTE_ALL)
+
     def fetch_subscriptions_by_user_id(
         self,
         user_id: str,
@@ -324,3 +332,12 @@ class SlackRepository:
                 and subscription["target_user_id"] == target_user_id
             ]
             return subscriptions
+
+    def get_subscription(self, subscription_id: str) -> models.Subscription | None:
+        """구독을 가져옵니다."""
+        with open("store/subscriptions.csv") as f:
+            reader = csv.DictReader(f)
+            for subscription in reader:
+                if subscription["id"] == subscription_id:
+                    return models.Subscription(**subscription)  # type: ignore
+        return None

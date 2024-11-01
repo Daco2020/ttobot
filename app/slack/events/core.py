@@ -714,8 +714,8 @@ async def handle_home_tab(
                     elements=[
                         ButtonElement(
                             text="멤버 구독하기",
-                            action_id="subscribe_member_content_by_action",
-                            value="subscribe_member_content_by_action",
+                            action_id="subscribe_member_by_action",
+                            value="subscribe_member_by_action",
                             style="primary",
                         ),
                     ]

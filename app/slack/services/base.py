@@ -419,3 +419,11 @@ class SlackService:
         self._repo.create_subscription(subscription)
         store.subscription_upload_queue.append(subscription.to_list_for_sheet())
         return subscription
+
+    def get_subscription(self, subscription_id: str) -> models.Subscription | None:
+        """구독을 가져옵니다."""
+        return self._repo.get_subscription(subscription_id)
+
+    def cancel_subscription(self, subscription_id: str) -> None:
+        """구독을 취소합니다."""
+        self._repo.cancel_subscription(subscription_id)
