@@ -337,6 +337,7 @@ async def admin_command(
                             Option(text="커피챗 인증", value="커피챗 인증"),
                             Option(text="포인트 히스토리", value="포인트 히스토리"),
                             Option(text="종이비행기", value="종이비행기"),
+                            Option(text="구독", value="구독"),
                         ],
                     ),
                 ],
@@ -393,6 +394,8 @@ async def handle_sync_store(
             store.pull_point_histories()
         elif value == "종이비행기":
             store.pull_paper_plane()
+        elif value == "구독":
+            store.pull_subscriptions()
         else:
             await client.chat_postMessage(
                 channel=settings.ADMIN_CHANNEL,

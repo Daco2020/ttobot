@@ -14,6 +14,7 @@ user_update_queue: list[list[str]] = []
 coffee_chat_proof_upload_queue: list[list[str]] = []
 point_history_upload_queue: list[list[str]] = []
 paper_plane_upload_queue: list[list[str]] = []
+subscription_upload_queue: list[list[str]] = []
 
 
 class Store:
@@ -31,6 +32,7 @@ class Store:
         )
         self.write("point_histories", values=self._client.get_values("point_histories"))
         self.write("paper_plane", values=self._client.get_values("paper_plane"))
+        self.write("subscriptions", values=self._client.get_values("subscriptions"))
 
     def pull_users(self) -> None:
         """유저 데이터를 가져와 서버 저장소를 동기화합니다."""
@@ -64,6 +66,11 @@ class Store:
         os.makedirs("store", exist_ok=True)
         self.write("paper_plane", values=self._client.get_values("paper_plane"))
 
+    def pull_subscriptions(self) -> None:
+        """구독 내역 데이터를 가져와 서버 저장소를 동기화합니다."""
+        os.makedirs("store", exist_ok=True)
+        self.write("subscriptions", values=self._client.get_values("subscriptions"))
+
     def write(self, table_name: str, values: list[list[str]]) -> None:
         """데이터를 저장소에 저장합니다."""
         with open(f"store/{table_name}.csv", "w", newline="", encoding="utf-8") as f:
@@ -91,6 +98,7 @@ class Store:
         global coffee_chat_proof_upload_queue
         global point_history_upload_queue
         global paper_plane_upload_queue
+        global subscription_upload_queue
 
         async with queue_lock:
             temp_content_upload_queue = list(content_upload_queue)
@@ -234,6 +242,27 @@ class Store:
                     description=f"{len(temp_paper_plane_upload_queue)}개 종이비행기 업로드",
                     body={
                         "temp_paper_plane_upload_queue": temp_paper_plane_upload_queue
+                    },
+                )
+
+            temp_subscription_upload_queue = list(subscription_upload_queue)
+            if temp_subscription_upload_queue:
+                await asyncio.to_thread(
+                    self._client.bulk_upload,
+                    "subscription",
+                    temp_subscription_upload_queue,
+                )
+                subscription_upload_queue = self.initial_queue(
+                    queue=subscription_upload_queue,
+                    temp_queue=temp_subscription_upload_queue,
+                )
+                log_event(
+                    actor="system",
+                    event="uploaded_subscription",
+                    type="subscription",
+                    description=f"{len(temp_subscription_upload_queue)}개 구독 내역 업로드",
+                    body={
+                        "temp_subscription_upload_queue": temp_subscription_upload_queue
                     },
                 )
 
