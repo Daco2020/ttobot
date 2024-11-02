@@ -18,6 +18,7 @@ from app.slack.events import community as community_events
 from app.slack.events import contents as contents_events
 from app.slack.events import core as core_events
 from app.slack.events import log as log_events
+from app.slack.events import subscriptions as subscriptions_events
 from app.exception import BotException
 from app.slack.repositories import SlackRepository
 from app.slack.services.base import SlackService
@@ -347,7 +348,14 @@ app.action("open_coffee_chat_history_view")(core_events.open_coffee_chat_history
 app.action("download_point_history")(core_events.download_point_history)
 app.action("download_coffee_chat_history")(core_events.download_coffee_chat_history)
 app.action("download_submission_history")(core_events.download_submission_history)
-
+app.action("subscribe_member_by_action")(
+    subscriptions_events.subscribe_member_by_action
+)
+app.view("subscribe_member_by_view")(subscriptions_events.subscribe_member_by_view)
+app.view("handle_subscribe_member_view")(
+    subscriptions_events.handle_subscribe_member_view
+)
+app.action("unsubscribe_target_user")(subscriptions_events.unsubscribe_target_user)
 
 # log
 app.event("reaction_added")(log_events.handle_reaction_added)
@@ -384,7 +392,7 @@ event_descriptions = {
     "cancel_coffee_chat_proof_button": "커피챗 인증 안내 닫기",
     "submit_coffee_chat_proof_button": "커피챗 인증 제출 시작",
     "submit_coffee_chat_proof_view": "커피챗 인증 제출 완료",
-    "sync_store": "데이터 동기화",
+    "sync_store_select": "데이터 동기화",
     "invite_channel": "채널 초대",
     "invite_channel_view": "채널 초대 완료",
     "app_home_opened": "홈 탭 열림",
@@ -403,4 +411,9 @@ event_descriptions = {
     "send_paper_plane_message_view": "종이비행기 메시지 전송 완료",
     "channel_created": "채널 생성",
     "/종이비행기": "종이비행기 모달 열기",
+    "subscribe_member_by_action": "멤버 구독 액션 모달",
+    "subscribe_member_by_view": "멤버 구독 뷰 모달",
+    "handle_subscribe_member_view": "멤버 구독 완료",
+    "open_subscription_permalink": "구독 링크 열기",
+    "unsubscribe_target_user": "멤버 구독 취소",
 }

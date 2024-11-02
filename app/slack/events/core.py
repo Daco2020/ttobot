@@ -7,6 +7,7 @@ import pandas as pd
 
 from app.client import SpreadSheetClient
 from app.config import settings
+from app.constants import BOT_IDS
 from app.models import CoffeeChatProof, Content, PointHistory, User
 from app.slack.services.base import SlackService
 from app.slack.services.point import PointMap, PointService
@@ -337,6 +338,7 @@ async def admin_command(
                             Option(text="커피챗 인증", value="커피챗 인증"),
                             Option(text="포인트 히스토리", value="포인트 히스토리"),
                             Option(text="종이비행기", value="종이비행기"),
+                            Option(text="구독", value="구독"),
                         ],
                     ),
                 ],
@@ -393,6 +395,8 @@ async def handle_sync_store(
             store.pull_point_histories()
         elif value == "종이비행기":
             store.pull_paper_plane()
+        elif value == "구독":
+            store.pull_subscriptions()
         else:
             await client.chat_postMessage(
                 channel=settings.ADMIN_CHANNEL,
@@ -636,7 +640,6 @@ async def handle_home_tab(
                         ButtonElement(
                             text="종이비행기 보내기",
                             action_id="send_paper_plane_message",
-                            value="send_paper_plane_message",
                             style="primary",
                         ),
                         ButtonElement(
@@ -701,9 +704,20 @@ async def handle_home_tab(
                     elements=[
                         TextObject(
                             type="mrkdwn",
-                            text="새로운 기능을 만나보세요. 더 나은 또봇을 위해 여러분의 의견을 기다립니다.\n\nComing Soon...🙇‍♂️",
+                            text="또봇의 새로운 기능들을 가장 먼저 만나보세요. 🤗\n"
+                            f"버그 제보와 아이디어 제안은 <#{settings.BOT_SUPPORT_CHANNEL}> 채널로 부탁드려요. 🙏",
                         ),
                     ],
+                ),
+                ActionsBlock(
+                    elements=[
+                        ButtonElement(
+                            text="멤버 구독하기",
+                            action_id="subscribe_member_by_action",
+                            value="subscribe_member_by_action",
+                            style="primary",
+                        ),
+                    ]
                 ),
             ],
         ),
@@ -914,6 +928,7 @@ async def send_paper_plane_message(
     """종이비행기 메시지를 전송합니다."""
     await ack()
 
+    initial_user_id = body["actions"][0].get("value")
     view = View(
         type="modal",
         title="종이비행기 보내기",
@@ -938,6 +953,7 @@ async def send_paper_plane_message(
                 element=UserSelectElement(
                     action_id="select_user",
                     placeholder="받는 사람을 선택해주세요.",
+                    initial_user=initial_user_id,
                 ),
             ),
             InputBlock(
@@ -953,7 +969,7 @@ async def send_paper_plane_message(
         ],
     )
 
-    callback_id = body["view"]["callback_id"]
+    callback_id = body.get("view", {}).get("callback_id")
     if callback_id == "paper_plane_command":
         # callback_id 가 있다면 모달에서 발생한 액션이므로 기존 모달을 업데이트합니다.
         await client.views_update(
@@ -986,7 +1002,7 @@ async def send_paper_plane_message_view(
         await ack(
             response_action="errors",
             errors={
-                "paper_plane_receiver": "종이비행기는 자신에게 보낼 수 없어요~😉",
+                "paper_plane_receiver": "종이비행기는 자신에게 보낼 수 없어요. 😉",
             },
         )
         return
@@ -995,29 +1011,16 @@ async def send_paper_plane_message_view(
         await ack(
             response_action="errors",
             errors={
-                "paper_plane_message": "종이비행기 메시지는 300자 이내로 작성해주세요.",
+                "paper_plane_message": "종이비행기 메시지는 300자 이내로 작성해주세요. 😉",
             },
         )
         return
 
-    bot_ids = [
-        "U07PJ6J7FFV",
-        "U07P0BB4YKV",
-        "U07PFJCHHFF",
-        "U07PK8CLGKW",
-        "U07P8E69V3N",
-        "U07PB8HF4V8",
-        "U07PAMU09AS",
-        "U07PSF2PKKK",
-        "U07PK195U74",
-        "U04GVDM0R4Y",
-        "USLACKBOT",
-    ]
-    if receiver_id in bot_ids:
+    if receiver_id in BOT_IDS:
         await ack(
             response_action="errors",
             errors={
-                "paper_plane_message": "봇에게 종이비행기를 보낼 수 없어요~😉",
+                "paper_plane_message": "봇에게 종이비행기를 보낼 수 없어요. 😉",
             },
         )
         return

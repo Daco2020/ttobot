@@ -309,7 +309,6 @@ async def paper_plane_command(
                         ButtonElement(
                             text="종이비행기 보내기",
                             action_id="send_paper_plane_message",
-                            value="send_paper_plane_message",
                             style="primary",
                         ),
                         ButtonElement(

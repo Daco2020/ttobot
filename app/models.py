@@ -472,3 +472,40 @@ class PaperPlane(StoreModel):
             self.color_label,
             self.created_at,
         ]
+
+
+class SubscriptionStatusEnum(str, Enum):
+    ACTIVE = "ACTIVE"
+    CANCELED = "CANCELED"
+
+
+class Subscription(StoreModel):
+    id: str = Field(default_factory=generate_unique_id)
+    user_id: str
+    target_user_id: str
+    target_user_channel: str
+    status: SubscriptionStatusEnum = SubscriptionStatusEnum.ACTIVE
+    created_at: str = Field(default_factory=tz_now_to_str)
+    updated_at: str = ""
+
+    def to_list_for_sheet(self) -> list[str]:
+        return [
+            self.id,
+            self.user_id,
+            self.target_user_id,
+            self.target_user_channel,
+            self.status,
+            self.created_at,
+            self.updated_at,
+        ]
+
+    def to_list_for_csv(self) -> list[str]:
+        return [
+            self.id,
+            self.user_id,
+            self.target_user_id,
+            self.target_user_channel,
+            self.status,
+            self.created_at,
+            self.updated_at,
+        ]

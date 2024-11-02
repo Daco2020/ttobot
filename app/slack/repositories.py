@@ -19,6 +19,12 @@ class SlackRepository:
             return user
         return None
 
+    def get_only_user(self, user_id: str) -> models.User | None:
+        """유저만 가져옵니다."""
+        if user := self._get_user(user_id):
+            return user
+        return None
+
     def fetch_users(self) -> list[models.User]:
         """모든 유저를 가져옵니다."""
         users = [models.User(**user) for user in self._fetch_users()]
@@ -288,3 +294,74 @@ class SlackRepository:
                 if paper_plane["sender_id"] == sender_id
             ]
             return paper_planes
+
+    def create_subscription(self, subscription: models.Subscription) -> None:
+        """구독을 생성합니다."""
+        with open("store/subscriptions.csv", "a", newline="", encoding="utf-8") as f:
+            writer = csv.writer(f, quoting=csv.QUOTE_ALL)
+            writer.writerow(subscription.to_list_for_csv())
+
+    def cancel_subscription(self, subscription_id: str) -> None:
+        """구독을 취소합니다."""
+        df = pd.read_csv("store/subscriptions.csv", dtype=str, na_filter=False)
+        df.loc[df["id"] == subscription_id, "status"] = (
+            models.SubscriptionStatusEnum.CANCELED
+        )
+        df.to_csv("store/subscriptions.csv", index=False, quoting=csv.QUOTE_ALL)
+
+    def fetch_subscriptions(self) -> list[models.Subscription]:
+        """모든 구독 내역을 가져옵니다."""
+        with open("store/subscriptions.csv") as f:
+            reader = csv.DictReader(f)
+            subscriptions = [
+                models.Subscription(**subscription)  # type: ignore
+                for subscription in reader
+                if subscription["status"] == models.SubscriptionStatusEnum.ACTIVE
+            ]
+            return subscriptions
+
+    def fetch_subscriptions_by_user_id(
+        self,
+        user_id: str,
+    ) -> list[models.Subscription]:
+        """유저의 구독 내역을 가져옵니다."""
+        with open("store/subscriptions.csv") as f:
+            reader = csv.DictReader(f)
+            subscriptions = [
+                models.Subscription(**subscription)  # type: ignore
+                for subscription in reader
+                if subscription["status"] == models.SubscriptionStatusEnum.ACTIVE
+                and subscription["user_id"] == user_id
+            ]
+            return subscriptions
+
+    def fetch_subscriptions_by_target_user_id(
+        self,
+        target_user_id: str,
+    ) -> list[models.Subscription]:
+        """타겟 유저를 기준으로 구독 내역을 가져옵니다."""
+        with open("store/subscriptions.csv") as f:
+            reader = csv.DictReader(f)
+            subscriptions = [
+                models.Subscription(**subscription)  # type: ignore
+                for subscription in reader
+                if subscription["status"] == models.SubscriptionStatusEnum.ACTIVE
+                and subscription["target_user_id"] == target_user_id
+            ]
+            return subscriptions
+
+    def get_subscription(
+        self,
+        subscription_id: str,
+        status: models.SubscriptionStatusEnum = models.SubscriptionStatusEnum.ACTIVE,
+    ) -> models.Subscription | None:
+        """구독을 가져옵니다."""
+        with open("store/subscriptions.csv") as f:
+            reader = csv.DictReader(f)
+            for subscription in reader:
+                if (
+                    subscription["id"] == subscription_id
+                    and subscription["status"] == status
+                ):
+                    return models.Subscription(**subscription)  # type: ignore
+        return None
