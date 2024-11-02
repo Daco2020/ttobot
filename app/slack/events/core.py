@@ -640,7 +640,6 @@ async def handle_home_tab(
                         ButtonElement(
                             text="종이비행기 보내기",
                             action_id="send_paper_plane_message",
-                            value="send_paper_plane_message",
                             style="primary",
                         ),
                         ButtonElement(
@@ -929,6 +928,7 @@ async def send_paper_plane_message(
     """종이비행기 메시지를 전송합니다."""
     await ack()
 
+    initial_user_id = body["actions"][0].get("value")
     view = View(
         type="modal",
         title="종이비행기 보내기",
@@ -953,6 +953,7 @@ async def send_paper_plane_message(
                 element=UserSelectElement(
                     action_id="select_user",
                     placeholder="받는 사람을 선택해주세요.",
+                    initial_user=initial_user_id,
                 ),
             ),
             InputBlock(
@@ -1001,7 +1002,7 @@ async def send_paper_plane_message_view(
         await ack(
             response_action="errors",
             errors={
-                "paper_plane_receiver": "종이비행기는 자신에게 보낼 수 없어요~😉",
+                "paper_plane_receiver": "종이비행기는 자신에게 보낼 수 없어요. 😉",
             },
         )
         return
@@ -1010,7 +1011,7 @@ async def send_paper_plane_message_view(
         await ack(
             response_action="errors",
             errors={
-                "paper_plane_message": "종이비행기 메시지는 300자 이내로 작성해주세요.",
+                "paper_plane_message": "종이비행기 메시지는 300자 이내로 작성해주세요. 😉",
             },
         )
         return

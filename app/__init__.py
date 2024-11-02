@@ -23,7 +23,7 @@ from slack_bolt.async_app import AsyncApp
 from app.slack.event_handler import app as slack_app
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
-
+from apscheduler.triggers.cron import CronTrigger
 from app.constants import DUE_DATES
 from datetime import datetime, time
 
@@ -65,14 +65,16 @@ if settings.ENV == "prod":
         # 서버 저장소 동기화
         store = Store(client=SpreadSheetClient())
 
-        # 업로드 스케줄러
+        # # 업로드 스케줄러
         async_schedule.add_job(
             upload_queue, "interval", seconds=20, args=[store, slack_app]
         )
 
+        # 로그 업로드 스케줄러
         log_trigger = IntervalTrigger(minutes=1, timezone=ZoneInfo("Asia/Seoul"))
         async_schedule.add_job(upload_logs, trigger=log_trigger, args=[store])
 
+        # 빅쿼리 업로드 스케줄러
         bigquery_trigger = IntervalTrigger(minutes=10, timezone=ZoneInfo("Asia/Seoul"))
         queue = BigqueryQueue(client=BigqueryClient())
         async_schedule.add_job(upload_bigquery, trigger=bigquery_trigger, args=[queue])
@@ -84,7 +86,6 @@ if settings.ENV == "prod":
         last_remind_date = datetime.combine(
             DUE_DATES[-1], time(hour=10, minute=0), tzinfo=ZoneInfo("Asia/Seoul")
         )
-
         remind_trigger = IntervalTrigger(
             weeks=2,
             start_date=first_remind_date,
@@ -93,6 +94,17 @@ if settings.ENV == "prod":
         )
         async_schedule.add_job(remind_job, trigger=remind_trigger, args=[slack_app])
 
+        # 멤버 구독 알림 스케줄러: 매일 오전 8시
+        subscribe_trigger = CronTrigger(
+            hour=8,
+            minute=0,
+            timezone="Asia/Seoul",
+        )
+        async_schedule.add_job(
+            subscribe_job, trigger=subscribe_trigger, args=[slack_app]
+        )
+
+        # 스케줄러 시작
         async_schedule.start()
 
         # 슬랙 소켓 모드 실행
@@ -139,6 +151,22 @@ if settings.ENV == "prod":
         except Exception as e:
             trace = traceback.format_exc()
             error = f"제출 리마인드 전송 중 에러가 발생했어요. {str(e)} {trace}"
+            message = f"🫢: {error=} 🕊️: {trace=}"
+            logger.error(message)
+
+            await slack_app.client.chat_postMessage(
+                channel=settings.ADMIN_CHANNEL,
+                text=message,
+            )
+
+    async def subscribe_job(slack_app: AsyncApp) -> None:
+        slack_service = BackgroundService(repo=SlackRepository())
+        try:
+            await slack_service.prepare_subscribe_message_data()
+            await slack_service.send_subscribe_message_to_user(slack_app)
+        except Exception as e:
+            trace = traceback.format_exc()
+            error = f"멤버 구독 알림 전송 중 에러가 발생했어요. {str(e)} {trace}"
             message = f"🫢: {error=} 🕊️: {trace=}"
             logger.error(message)
 

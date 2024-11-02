@@ -177,6 +177,7 @@ class BackgroundService:
                             ButtonElement(
                                 text="감사의 종이비행기 보내기",
                                 action_id="send_paper_plane_message",
+                                value=row["target_user_id"],
                             ),
                         ]
                     ),
