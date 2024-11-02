@@ -392,7 +392,7 @@ event_descriptions = {
     "cancel_coffee_chat_proof_button": "커피챗 인증 안내 닫기",
     "submit_coffee_chat_proof_button": "커피챗 인증 제출 시작",
     "submit_coffee_chat_proof_view": "커피챗 인증 제출 완료",
-    "sync_store": "데이터 동기화",
+    "sync_store_select": "데이터 동기화",
     "invite_channel": "채널 초대",
     "invite_channel_view": "채널 초대 완료",
     "app_home_opened": "홈 탭 열림",
@@ -415,4 +415,5 @@ event_descriptions = {
     "subscribe_member_by_view": "멤버 구독 뷰 모달",
     "handle_subscribe_member_view": "멤버 구독 완료",
     "open_subscription_permalink": "구독 링크 열기",
+    "unsubscribe_target_user": "멤버 구독 취소",
 }

@@ -1,3 +1,4 @@
+from datetime import datetime
 from app.constants import BOT_IDS
 from app.models import User
 from app.slack.services.base import SlackService
@@ -71,7 +72,7 @@ def _get_subscribe_member_view(
 
     subscription_list_blocks = [
         SectionBlock(
-            text=f"<@{subscription.target_user_id}> 님을 {subscription.created_at} 부터 구독하고 있어요.",
+            text=f"<@{subscription.target_user_id}> 님을 {datetime.strptime(subscription.created_at[:10], '%Y-%m-%d').strftime('%Y년 %m월 %d일')} 부터 구독하고 있어요.",
             accessory=OverflowMenuElement(
                 action_id="unsubscribe_target_user",
                 options=[
@@ -168,7 +169,16 @@ async def handle_subscribe_member_view(
         )
         return
 
-    # TODO: 이미 구독했다면 할 수 없습니다.
+    subscriptions = service.fetch_subscriptions_by_user_id(user_id=user.user_id)
+    if any(
+        subscription.target_user_id == target_user_id for subscription in subscriptions
+    ):
+        await ack(
+            response_action="errors",
+            errors={"select_target_user": "이미 구독한 멤버입니다. 😅"},
+        )
+        return
+
     await ack()
 
     service.create_subscription(
