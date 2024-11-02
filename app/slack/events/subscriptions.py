@@ -208,7 +208,7 @@ async def unsubscribe_target_user(
     if not subscription:
         await ack(
             response_action="errors",
-            errors={"unsubscribe_target_user": "구독을 찾을 수 없습니다."},
+            errors={"unsubscribe_target_user": "구독 내용을 찾을 수 없습니다."},
         )
         return
 

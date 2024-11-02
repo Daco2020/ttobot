@@ -305,7 +305,7 @@ class SlackRepository:
         """구독을 취소합니다."""
         df = pd.read_csv("store/subscriptions.csv", dtype=str, na_filter=False)
         df.loc[df["id"] == subscription_id, "status"] = (
-            models.SubscriptionStatusEnum.DELETED
+            models.SubscriptionStatusEnum.CANCELED
         )
         df.to_csv("store/subscriptions.csv", index=False, quoting=csv.QUOTE_ALL)
 
@@ -350,11 +350,18 @@ class SlackRepository:
             ]
             return subscriptions
 
-    def get_subscription(self, subscription_id: str) -> models.Subscription | None:
+    def get_subscription(
+        self,
+        subscription_id: str,
+        status: models.SubscriptionStatusEnum = models.SubscriptionStatusEnum.ACTIVE,
+    ) -> models.Subscription | None:
         """구독을 가져옵니다."""
         with open("store/subscriptions.csv") as f:
             reader = csv.DictReader(f)
             for subscription in reader:
-                if subscription["id"] == subscription_id:
+                if (
+                    subscription["id"] == subscription_id
+                    and subscription["status"] == status
+                ):
                     return models.Subscription(**subscription)  # type: ignore
         return None

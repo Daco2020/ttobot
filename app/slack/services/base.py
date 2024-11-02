@@ -429,3 +429,8 @@ class SlackService:
     def cancel_subscription(self, subscription_id: str) -> None:
         """구독을 취소합니다."""
         self._repo.cancel_subscription(subscription_id)
+        subscription = self._repo.get_subscription(
+            subscription_id, status=models.SubscriptionStatusEnum.CANCELED
+        )
+        if subscription:
+            store.subscription_update_queue.append(subscription.model_dump())

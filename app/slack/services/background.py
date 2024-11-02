@@ -1,5 +1,6 @@
 import csv
 from datetime import timedelta
+import os
 import traceback
 
 import pandas as pd
@@ -69,6 +70,10 @@ class BackgroundService:
     async def prepare_subscribe_message_data(self) -> None:
         """사용자에게 구독 알림 메시지 목록을 임시 CSV 파일로 저장합니다."""
 
+        # 기존 임시 파일 삭제
+        if os.path.exists("store/_subscription_messages.csv"):
+            os.remove("store/_subscription_messages.csv")
+
         # 모든 구독 정보를 가져옵니다
         subscriptions = self._repo.fetch_subscriptions()
 
@@ -131,6 +136,9 @@ class BackgroundService:
 
     async def send_subscribe_message_to_user(self, slack_app: AsyncApp) -> None:
         """사용자에게 구독 알림 메시지를 전송합니다."""
+        if not os.path.exists("store/_subscription_messages.csv"):
+            return
+
         df = pd.read_csv("store/_subscription_messages.csv")
         for _, row in df.iterrows():
             try:
@@ -198,3 +206,8 @@ class BackgroundService:
                     text=message,
                 )
                 continue
+
+        await slack_app.client.chat_postMessage(
+            channel=settings.ADMIN_CHANNEL,
+            text=f"총 {len(df)} 명에게 구독 알림 메시지를 전송했습니다.",
+        )

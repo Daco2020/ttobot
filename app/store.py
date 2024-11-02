@@ -1,6 +1,7 @@
 import asyncio
 import csv
 import os
+from typing import Any
 from app.client import SpreadSheetClient
 from app.logging import log_event
 from app.models import Bookmark
@@ -15,6 +16,7 @@ coffee_chat_proof_upload_queue: list[list[str]] = []
 point_history_upload_queue: list[list[str]] = []
 paper_plane_upload_queue: list[list[str]] = []
 subscription_upload_queue: list[list[str]] = []
+subscription_update_queue: list[dict[str, Any]] = []
 
 
 class Store:
@@ -99,6 +101,7 @@ class Store:
         global point_history_upload_queue
         global paper_plane_upload_queue
         global subscription_upload_queue
+        global subscription_update_queue
 
         async with queue_lock:
             temp_content_upload_queue = list(content_upload_queue)
@@ -146,7 +149,7 @@ class Store:
             if temp_bookmark_update_queue:
                 for bookmark in temp_bookmark_update_queue:
                     await asyncio.to_thread(
-                        self._client.update,
+                        self._client.update_bookmark,
                         "bookmark",
                         bookmark,
                     )
@@ -249,7 +252,7 @@ class Store:
             if temp_subscription_upload_queue:
                 await asyncio.to_thread(
                     self._client.bulk_upload,
-                    "subscription",
+                    "subscriptions",
                     temp_subscription_upload_queue,
                 )
                 subscription_upload_queue = self.initial_queue(
@@ -263,6 +266,28 @@ class Store:
                     description=f"{len(temp_subscription_upload_queue)}개 구독 내역 업로드",
                     body={
                         "temp_subscription_upload_queue": temp_subscription_upload_queue
+                    },
+                )
+
+            temp_subscription_update_queue = list(subscription_update_queue)
+            if temp_subscription_update_queue:
+                for subscription_dict in temp_subscription_update_queue:
+                    await asyncio.to_thread(
+                        self._client.update_subscription,
+                        "subscriptions",
+                        subscription_dict,
+                    )
+                subscription_update_queue = self.initial_queue(
+                    queue=subscription_update_queue,
+                    temp_queue=temp_subscription_update_queue,
+                )
+                log_event(
+                    actor="system",
+                    event="updated_subscriptions",
+                    type="subscription",
+                    description=f"{len(temp_subscription_update_queue)}개 구독 내역 업데이트",
+                    body={
+                        "temp_subscription_update_queue": temp_subscription_update_queue
                     },
                 )
 

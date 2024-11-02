@@ -476,7 +476,7 @@ class PaperPlane(StoreModel):
 
 class SubscriptionStatusEnum(str, Enum):
     ACTIVE = "ACTIVE"
-    DELETED = "DELETED"
+    CANCELED = "CANCELED"
 
 
 class Subscription(StoreModel):

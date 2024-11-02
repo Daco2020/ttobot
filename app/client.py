@@ -1,3 +1,4 @@
+from typing import Any
 from app.logging import logger
 from app.config import settings
 
@@ -64,9 +65,8 @@ class SpreadSheetClient:
         sheet = self._sheets[sheet_name]
         self._batch_append_rows(values, sheet, batch_size=1000)
 
-    def update(self, sheet_name: str, obj: StoreModel) -> None:
+    def update_bookmark(self, sheet_name: str, obj: StoreModel) -> None:
         """해당 객체 정보를 시트에 업데이트 합니다."""
-        # TODO: 현재는 북마크에 대한 업데이트만 가능하도록 구현되어 있음
         sheet = self._sheets[sheet_name]
         records = sheet.get_all_records()
 
@@ -82,6 +82,30 @@ class SpreadSheetClient:
                 break
 
         values = obj.to_list_for_sheet()
+
+        if not target_record:
+            logger.error(f"시트에 해당 값이 존재하지 않습니다. {values}")
+
+        sheet.update(f"A{row_number}:G{row_number}", [values])
+
+    def update_subscription(
+        self,
+        sheet_name: str,
+        subscription_dict: dict[str, Any],
+    ) -> None:
+        """해당 객체 정보를 시트에 업데이트 합니다."""
+        sheet = self._sheets[sheet_name]
+        records = sheet.get_all_records()
+
+        target_record = dict()
+        row_number = 2  # 1은 인덱스가 0부터 시작하기 때문이며 나머지 1은 시드 헤더 행이 있기 때문.
+        for idx, record in enumerate(records):
+            if subscription_dict["id"] == record["id"]:
+                target_record = record
+                row_number += idx
+                break
+
+        values = list(subscription_dict.values())
 
         if not target_record:
             logger.error(f"시트에 해당 값이 존재하지 않습니다. {values}")
