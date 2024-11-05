@@ -21,22 +21,33 @@ class TableNameEnum(StrEnum):
 
 
 class BigqueryClient:
+    _instance = None
+
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+        return cls._instance
+
     def __init__(self) -> None:
-        self.credentials = credentials
-        self.project_id = self.credentials.project_id
-        self.database_id = settings.BIGQUERY_DATABASE_ID
-        self.client = bigquery.Client(credentials=credentials, project=self.project_id)
-        self.schemas = {
-            TableNameEnum.COMMENTS_LOG: self._read_schema(
-                "app/bigquery/schemas/comments_log.json"
-            ),
-            TableNameEnum.POSTS_LOG: self._read_schema(
-                "app/bigquery/schemas/posts_log.json"
-            ),
-            TableNameEnum.EMOJIS_LOG: self._read_schema(
-                "app/bigquery/schemas/emojis_log.json"
-            ),
-        }
+        if not hasattr(self, "_initialized"):
+            self.credentials = credentials
+            self.project_id = self.credentials.project_id
+            self.database_id = settings.BIGQUERY_DATABASE_ID
+            self.client = bigquery.Client(
+                credentials=credentials, project=self.project_id
+            )
+            self.schemas = {
+                TableNameEnum.COMMENTS_LOG: self._read_schema(
+                    "app/bigquery/schemas/comments_log.json"
+                ),
+                TableNameEnum.POSTS_LOG: self._read_schema(
+                    "app/bigquery/schemas/posts_log.json"
+                ),
+                TableNameEnum.EMOJIS_LOG: self._read_schema(
+                    "app/bigquery/schemas/emojis_log.json"
+                ),
+            }
+            self._initialized = True
 
     def create_table(
         self,

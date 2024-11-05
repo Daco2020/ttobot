@@ -14,27 +14,36 @@ gc = authorize(credentials)
 
 
 class SpreadSheetClient:
+    _instance = None
+
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+        return cls._instance
+
     def __init__(
         self,
         doc: Spreadsheet = gc.open_by_url(settings.SPREAD_SHEETS_URL),
         sheets: dict[str, Worksheet] | None = None,
     ) -> None:
-        self._doc = doc
-        self._sheets = (
-            {
-                "contents": self._doc.worksheet("contents"),
-                "users": self._doc.worksheet("users"),
-                "logs": self._doc.worksheet("logs"),
-                "backup": self._doc.worksheet("backup"),
-                "bookmark": self._doc.worksheet("bookmark"),
-                "coffee_chat_proof": self._doc.worksheet("coffee_chat_proof"),
-                "point_histories": self._doc.worksheet("point_histories"),
-                "paper_plane": self._doc.worksheet("paper_plane"),
-                "subscriptions": self._doc.worksheet("subscriptions"),
-            }
-            if not sheets
-            else sheets
-        )
+        if not hasattr(self, "_initialized"):
+            self._doc = doc
+            self._sheets = (
+                {
+                    "contents": self._doc.worksheet("contents"),
+                    "users": self._doc.worksheet("users"),
+                    "logs": self._doc.worksheet("logs"),
+                    "backup": self._doc.worksheet("backup"),
+                    "bookmark": self._doc.worksheet("bookmark"),
+                    "coffee_chat_proof": self._doc.worksheet("coffee_chat_proof"),
+                    "point_histories": self._doc.worksheet("point_histories"),
+                    "paper_plane": self._doc.worksheet("paper_plane"),
+                    "subscriptions": self._doc.worksheet("subscriptions"),
+                }
+                if not sheets
+                else sheets
+            )
+            self._initialized = True
 
     def get_values(self, sheet_name: str, column: str = "") -> list[list[str]]:
         """스프레드 시트로 부터 값을 가져옵니다."""
