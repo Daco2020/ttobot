@@ -709,6 +709,17 @@ async def handle_home_tab(
                         ),
                     ],
                 ),
+                DividerBlock(),
+                SectionBlock(text="🔔 멤버 구독"),
+                ContextBlock(
+                    elements=[
+                        TextObject(
+                            type="mrkdwn",
+                            text="관심있는 멤버를 구독하면 새로운 글이 올라올 때마다 알림을 받을 수 있어요!\n"
+                            "(멤버 구독 기능은 채정현님의 제안으로 만들어졌어요. 🙇‍♂️)",
+                        ),
+                    ],
+                ),
                 ActionsBlock(
                     elements=[
                         ButtonElement(
