@@ -576,9 +576,6 @@ async def handle_home_tab(
         current_combo_point = (
             "*+ " + str(PointMap.글_제출_콤보.point * combo_count) + "(콤보 보너스)* "
         )
-    print(
-        user.name, f"콤보 횟수 : {combo_count}", "콤보 포인트 : ", current_combo_point
-    )
 
     remain_paper_planes: str | int
     if user.user_id == settings.SUPER_ADMIN:
