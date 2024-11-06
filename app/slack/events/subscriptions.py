@@ -5,16 +5,16 @@ from app.slack.services.base import SlackService
 from app.slack.types import (
     ActionBodyType,
     OverflowActionBodyType,
-    ViewBodyType,
 )
 
 from slack_sdk.models.blocks import (
+    Block,
     Option,
     OverflowMenuElement,
     SectionBlock,
     DividerBlock,
     UserSelectElement,
-    InputBlock,
+    ActionsBlock,
     ContextBlock,
     MarkdownTextObject,
 )
@@ -23,7 +23,7 @@ from slack_bolt.async_app import AsyncAck, AsyncSay
 from slack_sdk.web.async_client import AsyncWebClient
 
 
-async def subscribe_member_by_action(
+async def open_subscribe_member_view(
     ack: AsyncAck,
     body: ActionBodyType,
     say: AsyncSay,
@@ -42,169 +42,58 @@ async def subscribe_member_by_action(
     )
 
 
-async def subscribe_member_by_view(
+async def subscribe_member(
     ack: AsyncAck,
-    body: ViewBodyType,
+    body: ActionBodyType,
     say: AsyncSay,
     client: AsyncWebClient,
     user: User,
     service: SlackService,
 ) -> None:
-    """멤버 구독 모달을 엽니다."""
+    """멤버를 구독합니다."""
     await ack()
+    target_user_id = body["actions"][0].get("selected_user")
+    if not target_user_id:
+        return
 
-    view = _get_subscribe_member_view(user_id=user.user_id, service=service)
+    error_message = ""
+    if target_user_id == user.user_id:
+        error_message = "⚠️ 자기 자신은 구독할 수 없어요."
 
-    await client.views_open(
-        trigger_id=body["trigger_id"],
+    if target_user_id in BOT_IDS:
+        error_message = "⚠️ 봇은 구독할 수 없어요."
+
+    if len(service.fetch_subscriptions_by_user_id(user_id=user.user_id)) >= 5:
+        error_message = "⚠️ 구독은 최대 5명까지 가능해요."
+
+    target_user = service.get_only_user(target_user_id)
+    if not target_user:
+        error_message = "⚠️ 구독할 멤버를 찾을 수 없습니다."
+
+    if any(
+        subscription.target_user_id == target_user_id
+        for subscription in service.fetch_subscriptions_by_user_id(user_id=user.user_id)
+    ):
+        error_message = "⚠️ 이미 구독한 멤버입니다."
+
+    if not error_message:
+        service.create_subscription(
+            user_id=user.user_id,
+            target_user_id=target_user_id,
+            target_user_channel=target_user.channel_id,
+        )
+
+    view = _get_subscribe_member_view(
+        user_id=user.user_id, service=service, error_message=error_message
+    )
+
+    await client.views_update(
+        view_id=body["view"]["id"],
         view=view,
     )
 
 
-def _get_subscribe_member_view(
-    *,
-    user_id: str,
-    service: SlackService,
-    initial_target_user_id: str | None = None,
-) -> View:
-    """구독 목록과, 멤버를 구독할 수 있는 뷰를 반환합니다."""
-    user_subscriptions = service.fetch_subscriptions_by_user_id(user_id=user_id)
-
-    subscription_list_blocks = [
-        SectionBlock(
-            text=f"<@{subscription.target_user_id}> 님을 {datetime.strptime(subscription.created_at[:10], '%Y-%m-%d').strftime('%Y년 %m월 %d일')} 부터 구독하고 있어요.",
-            accessory=OverflowMenuElement(
-                action_id="unsubscribe_target_user",
-                options=[
-                    Option(text="구독 취소", value=subscription.id),
-                ],
-            ),
-        )
-        for subscription in user_subscriptions
-    ]
-
-    if subscription_list_blocks:
-        subscription_list_blocks = [
-            SectionBlock(text="*구독 목록*"),
-            *subscription_list_blocks,
-        ]
-
-    view = View(
-        type="modal",
-        title="멤버 구독",
-        callback_id="handle_subscribe_member_view",
-        submit="구독하기",
-        close="닫기",
-        blocks=[
-            SectionBlock(
-                text=f"<@{user_id}> 님은 현재 {len(user_subscriptions)}명을 구독하고 있어요."
-            ),
-            DividerBlock(),
-            InputBlock(
-                block_id="select_target_user",
-                label="멤버 구독하기",
-                element=UserSelectElement(
-                    action_id="select",
-                    placeholder="구독할 멤버를 선택해주세요.",
-                    initial_user=initial_target_user_id,
-                ),
-            ),
-            ContextBlock(
-                elements=[
-                    MarkdownTextObject(
-                        text="구독한 멤버가 글을 제출하면 알림을 받아 볼 수 있는 기능입니다.\n"
-                        "알림은 글 제출 다음날 오전 8시(한국 시간)에 DM 으로 전달합니다.\n"
-                        "구독 취소는 구독 목록 우측 `...` 버튼을 눌러 취소할 수 있습니다.\n"
-                        "최대 5명까지 구독 할 수 있습니다.",
-                    ),
-                ],
-            ),
-            DividerBlock(),
-            *subscription_list_blocks,
-        ],
-    )
-
-    return view
-
-
-async def handle_subscribe_member_view(
-    ack: AsyncAck,
-    body: ViewBodyType,
-    say: AsyncSay,
-    client: AsyncWebClient,
-    user: User,
-    service: SlackService,
-) -> None:
-    """멤버 구독을 핸들링합니다."""
-    target_user_id = body["view"]["state"]["values"]["select_target_user"]["select"][
-        "selected_user"
-    ]
-
-    if target_user_id == user.user_id:
-        await ack(
-            response_action="errors",
-            errors={"select_target_user": "자기 자신은 구독할 수 없어요. 😅"},
-        )
-        return
-
-    if target_user_id in BOT_IDS:
-        await ack(
-            response_action="errors",
-            errors={"select_target_user": "봇은 구독할 수 없어요. 😉"},
-        )
-        return
-
-    if len(service.fetch_subscriptions_by_user_id(user_id=user.user_id)) >= 5:
-        await ack(
-            response_action="errors",
-            errors={"select_target_user": "구독은 최대 5명까지 가능해요. 😭"},
-        )
-        return
-
-    target_user = service.get_only_user(target_user_id)
-    if not target_user:
-        await ack(
-            response_action="errors",
-            errors={"select_target_user": "구독할 멤버를 찾을 수 없습니다. 😅"},
-        )
-        return
-
-    subscriptions = service.fetch_subscriptions_by_user_id(user_id=user.user_id)
-    if any(
-        subscription.target_user_id == target_user_id for subscription in subscriptions
-    ):
-        await ack(
-            response_action="errors",
-            errors={"select_target_user": "이미 구독한 멤버입니다. 😅"},
-        )
-        return
-
-    await ack()
-
-    service.create_subscription(
-        user_id=user.user_id,
-        target_user_id=target_user_id,
-        target_user_channel=target_user.channel_id,
-    )
-
-    await client.views_open(
-        trigger_id=body["trigger_id"],
-        view=View(
-            type="modal",
-            title="멤버 구독 완료",
-            callback_id="subscribe_member_by_view",
-            blocks=[
-                SectionBlock(
-                    text=f"<@{target_user_id}> 님의 글 구독을 시작합니다! 🤩",
-                ),
-            ],
-            submit="돌아가기",
-            close="닫기",
-        ),
-    )
-
-
-async def unsubscribe_target_user(
+async def unsubscribe_member(
     ack: AsyncAck,
     body: OverflowActionBodyType,
     client: AsyncWebClient,
@@ -212,35 +101,17 @@ async def unsubscribe_target_user(
     user: User,
     service: SlackService,
 ) -> None:
-    """구독을 취소합니다."""
-    subscription_id = body["actions"][0]["selected_option"]["value"]
-    subscription = service.get_subscription(subscription_id)
-    if not subscription:
-        await ack(
-            response_action="errors",
-            errors={"unsubscribe_target_user": "구독 내용을 찾을 수 없습니다."},
-        )
-        return
-
+    """멤버 구독을 취소합니다."""
     await ack()
 
-    target_user_id = subscription.target_user_id
-    service.cancel_subscription(subscription.id)
+    subscription_id = body["actions"][0]["selected_option"]["value"]
+    service.cancel_subscription(subscription_id)
+
+    view = _get_subscribe_member_view(user_id=user.user_id, service=service)
 
     await client.views_update(
         view_id=body["view"]["id"],
-        view=View(
-            type="modal",
-            title="구독 취소 완료",
-            callback_id="subscribe_member_by_view",
-            blocks=[
-                SectionBlock(
-                    text=f"<@{target_user_id}> 님의 글 구독을 취소했어요. 🫡",
-                ),
-            ],
-            submit="돌아가기",
-            close="닫기",
-        ),
+        view=view,
     )
 
 
@@ -254,3 +125,79 @@ async def open_subscription_permalink(
 ) -> None:
     """구독 링크를 엽니다. 로깅을 위한 이벤트입니다."""
     await ack()
+
+
+def _get_subscribe_member_view(
+    *,
+    user_id: str,
+    service: SlackService,
+    initial_target_user_id: str | None = None,
+    error_message: str | None = None,
+) -> View:
+    """구독 목록과, 멤버를 구독할 수 있는 뷰를 반환합니다."""
+    user_subscriptions = service.fetch_subscriptions_by_user_id(user_id=user_id)
+    subscription_list_blocks = [
+        SectionBlock(
+            text=f"<@{subscription.target_user_id}> 님을 {datetime.strptime(subscription.created_at[:10], '%Y-%m-%d').strftime('%Y년 %m월 %d일')} 부터 구독하고 있어요.",
+            accessory=OverflowMenuElement(
+                action_id="unsubscribe_member",
+                options=[
+                    Option(text="구독 취소", value=subscription.id),
+                ],
+            ),
+        )
+        for subscription in user_subscriptions
+    ]
+    if subscription_list_blocks:
+        subscription_list_blocks = [
+            SectionBlock(text="*구독 목록*"),
+            *subscription_list_blocks,
+        ]
+
+    subscribe_blocks: list[Block] = []
+    subscribe_blocks.append(SectionBlock(text="*구독 하기*"))
+    subscribe_blocks.append(
+        ActionsBlock(
+            elements=[
+                UserSelectElement(
+                    action_id="subscribe_member",
+                    placeholder=error_message or "구독할 멤버를 선택해주세요.",
+                    initial_user=initial_target_user_id,
+                ),
+            ],
+            block_id="select_target_user",
+        )
+    )
+    if error_message:
+        subscribe_blocks.append(
+            ContextBlock(elements=[MarkdownTextObject(text=f"*{error_message}*")])
+        )
+    subscribe_blocks.append(
+        ContextBlock(
+            elements=[
+                MarkdownTextObject(
+                    text="구독한 멤버가 글을 제출하면 알림을 받아 볼 수 있는 기능입니다.\n"
+                    "알림은 글 제출 다음날 오전 8시(한국 시간)에 DM 으로 전달합니다.\n"
+                    "구독 취소는 구독 목록 우측 `...` 버튼을 눌러 취소할 수 있습니다.\n"
+                    "최대 5명까지 구독 할 수 있습니다.",
+                ),
+            ],
+        )
+    )
+
+    view = View(
+        type="modal",
+        title="멤버 구독",
+        close="닫기",
+        blocks=[
+            SectionBlock(
+                text=f"<@{user_id}> 님은 현재 {len(user_subscriptions)}명을 구독하고 있어요."
+            ),
+            DividerBlock(),
+            *subscribe_blocks,
+            DividerBlock(),
+            *subscription_list_blocks,
+        ],
+    )
+
+    return view

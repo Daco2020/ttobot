@@ -127,6 +127,7 @@ class ActionType(TypedDict):
     value: str
     type: str
     action_ts: str
+    selected_user: str | None
 
 
 class ActionBodyType(TypedDict):

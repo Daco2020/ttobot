@@ -348,14 +348,11 @@ app.action("open_coffee_chat_history_view")(core_events.open_coffee_chat_history
 app.action("download_point_history")(core_events.download_point_history)
 app.action("download_coffee_chat_history")(core_events.download_coffee_chat_history)
 app.action("download_submission_history")(core_events.download_submission_history)
-app.action("subscribe_member_by_action")(
-    subscriptions_events.subscribe_member_by_action
+app.action("open_subscribe_member_view")(
+    subscriptions_events.open_subscribe_member_view
 )
-app.view("subscribe_member_by_view")(subscriptions_events.subscribe_member_by_view)
-app.view("handle_subscribe_member_view")(
-    subscriptions_events.handle_subscribe_member_view
-)
-app.action("unsubscribe_target_user")(subscriptions_events.unsubscribe_target_user)
+app.action("subscribe_member")(subscriptions_events.subscribe_member)
+app.action("unsubscribe_member")(subscriptions_events.unsubscribe_member)
 
 # log
 app.event("reaction_added")(log_events.handle_reaction_added)
@@ -411,9 +408,8 @@ event_descriptions = {
     "send_paper_plane_message_view": "종이비행기 메시지 전송 완료",
     "channel_created": "채널 생성",
     "/종이비행기": "종이비행기 모달 열기",
-    "subscribe_member_by_action": "멤버 구독 액션 모달",
-    "subscribe_member_by_view": "멤버 구독 뷰 모달",
-    "handle_subscribe_member_view": "멤버 구독 완료",
+    "subscribe_member": "멤버 구독 완료",
+    "open_subscribe_member_view": "멤버 구독 모달 열기",
     "open_subscription_permalink": "구독 링크 열기",
-    "unsubscribe_target_user": "멤버 구독 취소",
+    "unsubscribe_member": "멤버 구독 취소",
 }
