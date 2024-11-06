@@ -119,21 +119,23 @@ class PointService:
             raise BotException("유저 정보가 없어 글 제출 포인트를 지급할 수 없습니다.")
         
         continuous_submit_count = user.get_continuous_submit_count()
-        if continuous_submit_count > 0: 
-            if continuous_submit_count == 9:
-                point_info = PointMap.글_제출_9콤보_보너스
-            elif continuous_submit_count == 6:
-                point_info = PointMap.글_제출_6콤보_보너스
-            elif continuous_submit_count == 3:
-                point_info = PointMap.글_제출_3콤보_보너스
-            else:
-                # 3,6,9 외에는 연속 제출 횟수에 따라 연속 포인트를 지급합니다.
-                point_info = PointMap.글_제출_콤보
-                combo_point = point_info.point * continuous_submit_count
-                
-            return self.add_point_history(user_id, point_info, point=combo_point)
+        if continuous_submit_count <= 0: 
+            return None
         
-        return None
+        combo_point = None
+        if continuous_submit_count == 9:
+            point_info = PointMap.글_제출_9콤보_보너스
+        elif continuous_submit_count == 6:
+            point_info = PointMap.글_제출_6콤보_보너스
+        elif continuous_submit_count == 3:
+            point_info = PointMap.글_제출_3콤보_보너스
+        else:
+            # 3,6,9 외에는 연속 제출 횟수에 따라 연속 포인트를 지급합니다.
+            point_info = PointMap.글_제출_콤보
+            combo_point = point_info.point * continuous_submit_count
+            
+        return self.add_point_history(user_id, point_info, point=combo_point)
+
 
     def grant_if_post_submitted_to_core_channel_ranking(self, user_id: str) -> str | None:
         """글 제출 포인트 지급 3. 코어채널 제출 순위에 따라 추가 포인트를 지급합니다."""
