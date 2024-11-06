@@ -2,8 +2,10 @@ import csv
 from datetime import timedelta
 import os
 import traceback
+from typing import TypedDict
 
 import pandas as pd
+import tenacity
 from app.constants import remind_message
 from app.logging import log_event
 from app.models import User
@@ -24,6 +26,15 @@ from app.config import settings
 import asyncio
 
 from app.utils import dict_to_json_str, tz_now
+
+
+class SubscriptionMessage(TypedDict):
+    user_id: str
+    target_user_id: str
+    target_user_channel: str
+    ts: str
+    title: str
+    dt: str
 
 
 class BackgroundService:
@@ -95,7 +106,7 @@ class BackgroundService:
         ]
 
         # 구독 알림 메시지 데이터를 저장할 리스트
-        subscription_messages = []
+        subscription_messages: list[SubscriptionMessage] = []
 
         # 각 구독 대상자별로 처리를 시작합니다
         for target_user_id in target_user_ids:
@@ -134,7 +145,7 @@ class BackgroundService:
                 quoting=csv.QUOTE_ALL,
             )
 
-    async def send_subscribe_message_to_user(self, slack_app: AsyncApp) -> None:
+    async def send_subscription_messages(self, slack_app: AsyncApp) -> None:
         """사용자에게 구독 알림 메시지를 전송합니다."""
         if not os.path.exists("store/_subscription_messages.csv"):
             return
@@ -142,69 +153,21 @@ class BackgroundService:
         df = pd.read_csv("store/_subscription_messages.csv")
         for _, row in df.iterrows():
             try:
-                permalink_res = await slack_app.client.chat_getPermalink(
-                    message_ts=row["ts"],
-                    channel=row["target_user_channel"],
-                )
-
-                text = f"구독하신 <@{row['target_user_id']}>님의 새로운 글이 올라왔어요! 🤩"
-                blocks = [
-                    SectionBlock(
-                        text=text,
-                    ),
-                    ContextBlock(
-                        elements=[
-                            TextObject(
-                                type="mrkdwn",
-                                text=f"글 제목 : {row['title']}\n제출 날짜 : {row['dt'][:4]}년 {int(row['dt'][5:7])}월 {int(row['dt'][8:10])}일",
-                            ),
-                        ],
-                    ),
-                    ActionsBlock(
-                        elements=[
-                            ButtonElement(
-                                text="글 보러가기",
-                                action_id="open_subscription_permalink",
-                                url=permalink_res["permalink"],
-                                style="primary",
-                                value=dict_to_json_str(
-                                    {
-                                        "user_id": row["user_id"],  # 구독자
-                                        "ts": row["ts"],  # 클릭한 콘텐츠 id
-                                    }
-                                ),
-                            ),
-                            ButtonElement(
-                                text="감사의 종이비행기 보내기",
-                                action_id="send_paper_plane_message",
-                                value=row["target_user_id"],
-                            ),
-                        ]
-                    ),
-                    DividerBlock(),
-                ]
-                await slack_app.client.chat_postMessage(
-                    channel=row["user_id"],
-                    text=text,
-                    blocks=blocks,
-                )
-
-                # 슬랙은 메시지 전송을 초당 1개를 권장하기 때문에 1초 대기합니다.
-                # 참고문서: https://api.slack.com/methods/chat.postMessage#rate_limiting
-                await asyncio.sleep(1)
+                message: SubscriptionMessage = row.to_dict()
+                await self._send_subscription_message(slack_app, message)
 
             except Exception as e:
                 trace = traceback.format_exc()
-                message = f"⚠️ <@{row['user_id']}>님의 구독 알림 메시지 전송에 실패했습니다. 오류: {e} {trace}"
+                error_message = f"⚠️ <@{row['user_id']}>님의 구독 알림 메시지 전송에 실패했습니다. 오류: {e} {trace}"
                 log_event(
                     actor="slack_subscribe_service",
-                    event="send_subscribe_message_to_user",
+                    event="send_subscription_message_to_user",
                     type="error",
-                    description=message,
+                    description=error_message,
                 )
                 await slack_app.client.chat_postMessage(
                     channel=settings.ADMIN_CHANNEL,
-                    text=message,
+                    text=error_message,
                 )
                 continue
 
@@ -212,3 +175,62 @@ class BackgroundService:
             channel=settings.ADMIN_CHANNEL,
             text=f"총 {len(df)} 명에게 구독 알림 메시지를 전송했습니다.",
         )
+
+    @tenacity.retry(
+        stop=tenacity.stop_after_attempt(3),
+        wait=tenacity.wait_fixed(1),
+        reraise=True,
+    )
+    async def _send_subscription_message(
+        self, slack_app: AsyncApp, message: SubscriptionMessage
+    ) -> None:
+        permalink_res = await slack_app.client.chat_getPermalink(
+            message_ts=message["ts"],
+            channel=message["target_user_channel"],
+        )
+
+        text = f"구독하신 <@{message['target_user_id']}>님의 새로운 글이 올라왔어요! 🤩"
+        blocks = [
+            SectionBlock(
+                text=text,
+            ),
+            ContextBlock(
+                elements=[
+                    TextObject(
+                        type="mrkdwn",
+                        text=f"글 제목 : {message['title']}\n제출 날짜 : {message['dt'][:4]}년 {int(message['dt'][5:7])}월 {int(message['dt'][8:10])}일",
+                    ),
+                ],
+            ),
+            ActionsBlock(
+                elements=[
+                    ButtonElement(
+                        text="글 보러가기",
+                        action_id="open_subscription_permalink",
+                        url=permalink_res["permalink"],
+                        style="primary",
+                        value=dict_to_json_str(
+                            {
+                                "user_id": message["user_id"],  # 구독자
+                                "ts": message["ts"],  # 클릭한 콘텐츠 id
+                            }
+                        ),
+                    ),
+                    ButtonElement(
+                        text="감사의 종이비행기 보내기",
+                        action_id="send_paper_plane_message",
+                        value=message["target_user_id"],
+                    ),
+                ]
+            ),
+            DividerBlock(),
+        ]
+        await slack_app.client.chat_postMessage(
+            channel=message["user_id"],
+            text=text,
+            blocks=blocks,
+        )
+
+        # 슬랙은 메시지 전송을 초당 1개를 권장하기 때문에 1초 대기합니다.
+        # 참고문서: https://api.slack.com/methods/chat.postMessage#rate_limiting
+        await asyncio.sleep(1)

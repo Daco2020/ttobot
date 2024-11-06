@@ -163,7 +163,7 @@ if settings.ENV == "prod":
         slack_service = BackgroundService(repo=SlackRepository())
         try:
             await slack_service.prepare_subscribe_message_data()
-            await slack_service.send_subscribe_message_to_user(slack_app)
+            await slack_service.send_subscription_messages(slack_app)
         except Exception as e:
             trace = traceback.format_exc()
             error = f"멤버 구독 알림 전송 중 에러가 발생했어요. {str(e)} {trace}"
