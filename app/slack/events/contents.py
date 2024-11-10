@@ -204,6 +204,11 @@ async def submit_view(
                                 }
                             ),
                         ),
+                        ButtonElement(
+                            text="멤버 구독하기🔔",
+                            action_id="open_subscribe_member_view",
+                            value=dict_to_json_str({"target_user_id": content.user_id}),
+                        ),
                     ],
                 ),
             ],

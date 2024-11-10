@@ -722,7 +722,6 @@ async def handle_home_tab(
                         ButtonElement(
                             text="멤버 구독하기",
                             action_id="open_subscribe_member_view",
-                            value="open_subscribe_member_view",
                             style="primary",
                         ),
                     ]

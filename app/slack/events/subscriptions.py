@@ -22,6 +22,8 @@ from slack_sdk.models.views import View
 from slack_bolt.async_app import AsyncAck, AsyncSay
 from slack_sdk.web.async_client import AsyncWebClient
 
+from app.utils import json_str_to_dict
+
 
 async def open_subscribe_member_view(
     ack: AsyncAck,
@@ -34,7 +36,20 @@ async def open_subscribe_member_view(
     """멤버 구독 모달을 엽니다."""
     await ack()
 
-    view = _get_subscribe_member_view(user_id=user.user_id, service=service)
+    target_user_value = body["actions"][0].get("value")
+    if not target_user_value:
+        target_user_id = None
+        message = ""
+    else:
+        target_user_id = json_str_to_dict(target_user_value)["target_user_id"]
+        message = _process_user_subscription(user, service, target_user_id)
+
+    view = _get_subscribe_member_view(
+        user_id=user.user_id,
+        service=service,
+        message=message,
+        initial_target_user_id=target_user_id,
+    )
 
     await client.views_open(
         trigger_id=body["trigger_id"],
@@ -56,41 +71,54 @@ async def subscribe_member(
     if not target_user_id:
         return
 
-    error_message = ""
-    if target_user_id == user.user_id:
-        error_message = "⚠️ 자기 자신은 구독할 수 없어요."
-
-    if target_user_id in BOT_IDS:
-        error_message = "⚠️ 봇은 구독할 수 없어요."
-
-    if len(service.fetch_subscriptions_by_user_id(user_id=user.user_id)) >= 5:
-        error_message = "⚠️ 구독은 최대 5명까지 가능해요."
-
-    target_user = service.get_only_user(target_user_id)
-    if not target_user:
-        error_message = "⚠️ 구독할 멤버를 찾을 수 없습니다."
-
-    if any(
-        subscription.target_user_id == target_user_id
-        for subscription in service.fetch_subscriptions_by_user_id(user_id=user.user_id)
-    ):
-        error_message = "⚠️ 이미 구독한 멤버입니다."
-
-    if not error_message:
-        service.create_subscription(
-            user_id=user.user_id,
-            target_user_id=target_user_id,
-            target_user_channel=target_user.channel_id,
-        )
-
+    message = _process_user_subscription(user, service, target_user_id)
     view = _get_subscribe_member_view(
-        user_id=user.user_id, service=service, error_message=error_message
+        user_id=user.user_id, service=service, message=message
     )
 
     await client.views_update(
         view_id=body["view"]["id"],
         view=view,
     )
+
+
+def _process_user_subscription(
+    user: User,
+    service: SlackService,
+    target_user_id: str,
+) -> str:
+    """
+    멤버 구독을 처리합니다.
+    만약, 구독이 성공하면 빈 문자열을 반환하고, 실패하면 에러 메시지를 반환합니다.
+    """
+    message = ""
+    if target_user_id == user.user_id:
+        message = "⚠️ 자기 자신은 구독할 수 없어요."
+
+    if target_user_id in BOT_IDS:
+        message = "⚠️ 봇은 구독할 수 없어요."
+
+    if len(service.fetch_subscriptions_by_user_id(user_id=user.user_id)) >= 5:
+        message = "⚠️ 구독은 최대 5명까지 가능해요."
+
+    target_user = service.get_only_user(target_user_id)
+    if not target_user:
+        message = "⚠️ 구독할 멤버를 찾을 수 없습니다."
+
+    if any(
+        subscription.target_user_id == target_user_id
+        for subscription in service.fetch_subscriptions_by_user_id(user_id=user.user_id)
+    ):
+        message = "⚠️ 이미 구독한 멤버입니다."
+
+    if not message:
+        service.create_subscription(
+            user_id=user.user_id,
+            target_user_id=target_user_id,
+            target_user_channel=target_user.channel_id,
+        )
+
+    return message
 
 
 async def unsubscribe_member(
@@ -132,7 +160,7 @@ def _get_subscribe_member_view(
     user_id: str,
     service: SlackService,
     initial_target_user_id: str | None = None,
-    error_message: str | None = None,
+    message: str = "",
 ) -> View:
     """구독 목록과, 멤버를 구독할 수 있는 뷰를 반환합니다."""
     user_subscriptions = service.fetch_subscriptions_by_user_id(user_id=user_id)
@@ -161,16 +189,16 @@ def _get_subscribe_member_view(
             elements=[
                 UserSelectElement(
                     action_id="subscribe_member",
-                    placeholder=error_message or "구독할 멤버를 선택해주세요.",
+                    placeholder="구독할 멤버를 선택해주세요.",
                     initial_user=initial_target_user_id,
                 ),
             ],
             block_id="select_target_user",
         )
     )
-    if error_message:
+    if message:
         subscribe_blocks.append(
-            ContextBlock(elements=[MarkdownTextObject(text=f"*{error_message}*")])
+            ContextBlock(elements=[MarkdownTextObject(text=f"*{message}*")])
         )
     subscribe_blocks.append(
         ContextBlock(
