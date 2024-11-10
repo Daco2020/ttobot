@@ -99,10 +99,11 @@ class BackgroundService:
         # dt 컬럼을 datetime 타입으로 변환하고 date 부분만 추출합니다
         contents_df["dt"] = pd.to_datetime(contents_df["dt"]).dt.date
 
-        # 구독 대상자의 콘텐츠 중 어제 작성된 것만 필터링합니다
+        # 구독 대상자의 콘텐츠 중 어제 작성된 제출 글만 필터링합니다
         filtered_contents = contents_df[
             (contents_df["user_id"].isin(target_user_ids))
             & (contents_df["dt"] == yesterday)
+            & (contents_df["type"] == "submit")
         ]
 
         # 구독 알림 메시지 데이터를 저장할 리스트
