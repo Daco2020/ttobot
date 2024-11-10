@@ -357,6 +357,9 @@ app.action("unsubscribe_member")(subscriptions_events.unsubscribe_member)
 # log
 app.event("reaction_added")(log_events.handle_reaction_added)
 app.event("reaction_removed")(log_events.handle_reaction_removed)
+app.action("open_subscription_permalink")(
+    subscriptions_events.open_subscription_permalink
+)
 
 
 event_descriptions = {
@@ -398,7 +401,7 @@ event_descriptions = {
     "open_help_view": "도움말 조회",
     "open_point_history_view": "포인트 내역 조회",
     "open_point_guide_view": "포인트 가이드 조회",
-    "send_paper_plane_message": "종이비행기 메시지 전송",
+    "send_paper_plane_message": "종이비행기 메시지 전송 시작",
     "open_paper_plane_url": "종이비행기 URL 열기",
     "open_paper_plane_guide_view": "종이비행기 가이드 조회",
     "open_coffee_chat_history_view": "커피챗 내역 조회",
@@ -410,6 +413,6 @@ event_descriptions = {
     "/종이비행기": "종이비행기 모달 열기",
     "subscribe_member": "멤버 구독 완료",
     "open_subscribe_member_view": "멤버 구독 모달 열기",
-    "open_subscription_permalink": "구독 링크 열기",
+    "open_subscription_permalink": "구독한 멤버의 새 글 보기",
     "unsubscribe_member": "멤버 구독 취소",
 }

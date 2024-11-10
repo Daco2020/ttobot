@@ -151,7 +151,7 @@ async def open_subscription_permalink(
     user: User,
     service: SlackService,
 ) -> None:
-    """구독 링크를 엽니다. 로깅을 위한 이벤트입니다."""
+    """구독한 멤버의 새 글을 엽니다. 로깅을 위한 이벤트입니다."""
     await ack()
 
 
