@@ -174,7 +174,7 @@ class BackgroundService:
 
         await slack_app.client.chat_postMessage(
             channel=settings.ADMIN_CHANNEL,
-            text=f"총 {len(df)} 명에게 구독 알림 메시지를 전송했습니다.",
+            text=f"총 {len(df['user_id'].unique())} 명에게 {len(df)} 개의 구독 알림 메시지를 전송했습니다.",
         )
 
     @tenacity.retry(
