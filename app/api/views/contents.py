@@ -1,8 +1,6 @@
 from enum import StrEnum
 from typing import Any, Literal
 import polars as pl
-import re
-import html
 
 from starlette import status
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -14,7 +12,6 @@ from app.utils import translate_keywords
 from app.config import settings
 from app.slack.event_handler import app as slack_app
 from slack_sdk.errors import SlackApiError
-from pydantic import HttpUrl
 
 
 class JobCategoryEnum(StrEnum):
@@ -144,73 +141,6 @@ def match_keyword(keyword: str, row: tuple) -> bool:
     return keyword in f"{row[1]},{row[5]},{row[7]}".lower()  # title, tags, name
 
 
-@router.post(
-    "/contents/{ts}",
-    status_code=status.HTTP_200_OK,
-)
-async def update_content(
-    ts: str,
-    channel_id: str,
-    new_content_url: HttpUrl | None = Query(
-        None, description="수정할 링크, 빈 값이면 기존 링크를 사용합니다."
-    ),
-    new_title: str | None = Query(
-        None, description="수정할 제목, 빈 값이면 기존 제목을 사용합니다."
-    ),
-    user: SimpleUser = Depends(current_user),
-):
-    if user.user_id not in settings.ADMIN_IDS:
-        raise HTTPException(status_code=403, detail="수정 권한이 없습니다.")
-
-    try:
-        conversations_history = await slack_app.client.conversations_history(
-            channel=channel_id, latest=ts, inclusive=True, limit=1
-        )
-
-        message = next(
-            (msg for msg in conversations_history["messages"] if msg["ts"] == ts), None
-        )
-        if not message:
-            raise HTTPException(status_code=404, detail="콘텐츠를 찾을 수 없습니다.")
-
-        blocks = message["blocks"]
-        attachments = message.get("attachments", [])
-        section_text = html.unescape(blocks[0]["text"]["text"])
-
-        pattern = r"<(https?://[^|]+)\|([^>]+)>"
-        match = re.search(pattern, section_text)
-        if not match:
-            raise HTTPException(
-                status_code=400, detail="메시지 패턴을 찾지 못했습니다."
-            )
-
-        content_url = new_content_url or match.group(1)
-        title = new_title or match.group(2)
-        replace_text = f"<{content_url}|{title}>"
-        updated_text = re.sub(pattern, replace_text, section_text)
-
-        blocks[0]["text"]["text"] = updated_text
-
-        await slack_app.client.chat_update(
-            channel=channel_id,
-            ts=ts,
-            blocks=blocks,
-            attachments=(
-                [] if new_content_url else attachments
-            ),  # 링크가 수정된다면 미리보기 첨부파일을 삭제 합니다.
-        )
-
-        permalink_res = await slack_app.client.chat_getPermalink(
-            channel=channel_id,
-            message_ts=ts,
-        )
-
-        return {"permalink": permalink_res["permalink"]}
-
-    except SlackApiError as e:
-        raise HTTPException(status_code=409, detail=str(e))
-
-
 @router.get(
     "/messages",
     status_code=status.HTTP_200_OK,
@@ -264,6 +194,7 @@ class UpdateMessageRequest(dto.BaseModel):
     status_code=status.HTTP_200_OK,
 )
 async def update_message(
+    password: str,
     ts: str,
     channel_id: str,
     data: UpdateMessageRequest,
@@ -271,6 +202,9 @@ async def update_message(
 ):
     if user.user_id not in settings.ADMIN_IDS:
         raise HTTPException(status_code=403, detail="수정 권한이 없습니다.")
+
+    if password != settings.SECRET_KEY:
+        raise HTTPException(status_code=403, detail="비밀번호가 일치하지 않습니다.")
 
     try:
         await slack_app.client.chat_update(
