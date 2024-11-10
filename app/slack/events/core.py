@@ -712,8 +712,8 @@ async def handle_home_tab(
                     elements=[
                         TextObject(
                             type="mrkdwn",
-                            text="관심있는 멤버를 구독하면 새로운 글이 올라올 때마다 알림을 받을 수 있어요!\n"
-                            "(멤버 구독 기능은 채정현님의 제안으로 만들어졌어요. 🙇‍♂️)",
+                            text="구독한 멤버가 글을 제출하면 새 글 알림을 받을 수 있어요!\n"
+                            "이 기능은 멤버의 제안으로 만들어졌어요. Special thanks to 채정현 🙇‍♂️",
                         ),
                     ],
                 ),
