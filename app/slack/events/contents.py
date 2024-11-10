@@ -1,4 +1,7 @@
+import csv
 import re
+
+import pandas as pd
 
 from app.slack.components import static_select
 from app.constants import MAX_PASS_COUNT, ContentCategoryEnum
@@ -259,6 +262,17 @@ async def submit_view(
             channel=content.user_id,
             text=curation_point_msg,
         )
+
+    if content.user_id == settings.SUPER_ADMIN:
+        _modify_super_admin_subscription_channel(channel_id, content.user_id)
+
+
+def _modify_super_admin_subscription_channel(channel_id: str, user_id: str) -> None:
+    # 슈퍼 어드민의 경우 subscriptions.csv 파일에서 target_user_channel 값을 현재 채널로 업데이트 한다.
+    # 이를 통해 슈퍼 어드민이 어느 채널에 글을 제출해도 구독자들에게 정확한 알림을 보낼 수 있게 한다.
+    df = pd.read_csv("store/subscriptions.csv")
+    df.loc[df["target_user_id"] == user_id, "target_user_channel"] = channel_id
+    df.to_csv("store/subscriptions.csv", index=False, quoting=csv.QUOTE_ALL)
 
 
 # TODO: 방학기간에 담소에도 글을 보낼지에 대한 메시지 전송 로직
