@@ -3,6 +3,7 @@ import re
 
 import pandas as pd
 
+from app.slack_notification import send_point_noti_message
 from app.slack.components import static_select
 from app.constants import MAX_PASS_COUNT, ContentCategoryEnum
 from app.exception import BotException, ClientException
@@ -27,7 +28,7 @@ from slack_bolt.async_app import AsyncAck, AsyncSay
 
 from app import models
 from app.slack.services.base import SlackService
-from app.slack.services.point import PointService, send_point_noti_message
+from app.slack.services.point import PointService
 from app.slack.types import (
     ActionBodyType,
     BlockActionBodyType,

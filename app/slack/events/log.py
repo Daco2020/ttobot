@@ -5,8 +5,9 @@ import os
 from app.bigquery.queue import CommentDataType, EmojiDataType, PostDataType
 from app.constants import PRIMARY_CHANNEL
 from app.logging import log_event
+from app.slack_notification import send_point_noti_message
 from app.slack.repositories import SlackRepository
-from app.slack.services.point import PointService, send_point_noti_message
+from app.slack.services.point import PointService
 from app.slack.types import MessageBodyType, ReactionBodyType
 from app.bigquery import queue as bigquery_queue
 from app.config import settings

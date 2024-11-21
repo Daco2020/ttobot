@@ -3,8 +3,9 @@ import requests
 from slack_sdk.web.async_client import AsyncWebClient
 from app.exception import BotException
 from app.models import User
+from app.slack_notification import send_point_noti_message
 from app.slack.services.base import SlackService
-from app.slack.services.point import PointService, send_point_noti_message
+from app.slack.services.point import PointService
 from app.slack.types import (
     ActionBodyType,
     CommandBodyType,
