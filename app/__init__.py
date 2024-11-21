@@ -15,6 +15,7 @@ from app.api.views.contents import router as contents_router
 from app.api.views.login import router as login_router
 from app.api.views.paper_planes import router as paper_planes_router
 from app.api.views.point import router as point_router
+from app.api.views.inflearn import router as inflearn_router
 from slack_bolt.adapter.socket_mode.aiohttp import AsyncSocketModeHandler
 from fastapi.middleware.cors import CORSMiddleware
 from app.slack.services.background import BackgroundService
@@ -58,6 +59,7 @@ app.include_router(contents_router, prefix="/v1")
 app.include_router(login_router, prefix="/v1")
 app.include_router(paper_planes_router, prefix="/v1")
 app.include_router(point_router, prefix="/v1")
+app.include_router(inflearn_router, prefix="/v1")
 
 if settings.ENV == "prod":
     async_schedule = AsyncIOScheduler(daemon=True, timezone=ZoneInfo("Asia/Seoul"))
