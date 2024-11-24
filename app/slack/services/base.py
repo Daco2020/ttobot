@@ -409,6 +409,13 @@ class SlackService:
         """유저의 구독 내역을 가져옵니다."""
         return self._repo.fetch_subscriptions_by_user_id(user_id)
 
+    def fetch_subscriptions_by_target_user_id(
+        self,
+        target_user_id: str,
+    ) -> list[models.Subscription]:
+        """타겟 유저의 구독 내역을 가져옵니다."""
+        return self._repo.fetch_subscriptions_by_target_user_id(target_user_id)
+
     def create_subscription(
         self, user_id: str, target_user_id: str, target_user_channel: str
     ) -> models.Subscription:

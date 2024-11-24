@@ -26,7 +26,7 @@ from slack_sdk.models.blocks import (
 )
 from slack_bolt.async_app import AsyncAck, AsyncSay
 
-from app import models
+from app import models, store
 from app.slack.services.base import SlackService
 from app.slack.services.point import PointService
 from app.slack.types import (
@@ -37,7 +37,7 @@ from app.slack.types import (
     ViewBodyType,
     ViewType,
 )
-from app.utils import dict_to_json_str, json_str_to_dict
+from app.utils import dict_to_json_str, json_str_to_dict, tz_now_to_str
 from app.config import settings
 
 
@@ -271,6 +271,12 @@ async def submit_view(
 
     if content.user_id == settings.SUPER_ADMIN:
         _modify_super_admin_subscription_channel(channel_id, content.user_id)
+
+        # 슈퍼 어드민이 글을 제출한 경우 구독자들의 시트 데이터를 업데이트 한다.
+        subscriptions = service.fetch_subscriptions_by_target_user_id(content.user_id)
+        for subscription in subscriptions:
+            subscription.updated_at = tz_now_to_str()
+            store.subscription_update_queue.append(subscription.model_dump())
 
 
 def _modify_super_admin_subscription_channel(channel_id: str, user_id: str) -> None:
