@@ -27,7 +27,6 @@ router = APIRouter()
 )
 async def grant_points(
     user_ids: list[str],
-    password: str,
     point_type: PointTypeEnum,
     text: str = "",
     user: SimpleUser = Depends(current_user),
@@ -38,9 +37,6 @@ async def grant_points(
     """
     if user.user_id not in settings.ADMIN_IDS:
         raise HTTPException(status_code=403, detail="지급 권한이 없습니다.")
-
-    if password != settings.SECRET_KEY:
-        raise HTTPException(status_code=403, detail="비밀번호가 일치하지 않습니다.")
 
     if point_type == PointTypeEnum.CURATION:
         for user_id in user_ids:

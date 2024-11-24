@@ -194,7 +194,6 @@ class UpdateMessageRequest(dto.BaseModel):
     status_code=status.HTTP_200_OK,
 )
 async def update_message(
-    password: str,
     ts: str,
     channel_id: str,
     data: UpdateMessageRequest,
@@ -202,9 +201,6 @@ async def update_message(
 ):
     if user.user_id not in settings.ADMIN_IDS:
         raise HTTPException(status_code=403, detail="수정 권한이 없습니다.")
-
-    if password != settings.SECRET_KEY:
-        raise HTTPException(status_code=403, detail="비밀번호가 일치하지 않습니다.")
 
     try:
         await slack_app.client.chat_update(
