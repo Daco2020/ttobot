@@ -15,7 +15,7 @@ from app.constants import paper_plane_color_maps
 
 from bs4 import BeautifulSoup
 
-from app.utils import tz_now
+from app.utils import tz_now, tz_now_to_str
 
 
 class SlackService:
@@ -433,4 +433,5 @@ class SlackService:
             subscription_id, status=models.SubscriptionStatusEnum.CANCELED
         )
         if subscription:
+            subscription.updated_at = tz_now_to_str()
             store.subscription_update_queue.append(subscription.model_dump())
