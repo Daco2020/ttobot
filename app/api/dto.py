@@ -54,3 +54,8 @@ class PaperPlaneResponse(BaseModel):
             }
         ],
     )
+
+
+class SendMessageDTO(BaseModel):
+    channel_id: str = Field(..., description="채널 ID")
+    message: str = Field(..., description="메시지")
