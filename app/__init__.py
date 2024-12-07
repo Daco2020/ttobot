@@ -27,8 +27,6 @@ from app.slack.event_handler import app as slack_app
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
-from app.constants import DUE_DATES
-from datetime import datetime, time
 
 
 app = FastAPI()
@@ -85,21 +83,6 @@ if settings.ENV == "prod":
         queue = BigqueryQueue(client=BigqueryClient())
         async_schedule.add_job(upload_bigquery, trigger=bigquery_trigger, args=[queue])
 
-        # 제출 리마인드 스케줄러
-        first_remind_date = datetime.combine(
-            DUE_DATES[0], time(hour=10, minute=0), tzinfo=ZoneInfo("Asia/Seoul")
-        )
-        last_remind_date = datetime.combine(
-            DUE_DATES[-1], time(hour=10, minute=0), tzinfo=ZoneInfo("Asia/Seoul")
-        )
-        remind_trigger = IntervalTrigger(
-            weeks=2,
-            start_date=first_remind_date,
-            end_date=last_remind_date,
-            timezone="Asia/Seoul",
-        )
-        async_schedule.add_job(remind_job, trigger=remind_trigger, args=[slack_app])
-
         # 멤버 구독 알림 스케줄러: 매일 오전 8시
         subscribe_trigger = CronTrigger(
             hour=8,
@@ -142,21 +125,6 @@ if settings.ENV == "prod":
         except Exception as e:
             trace = traceback.format_exc()
             error = f"빅쿼리 업로드 중 에러가 발생했어요. {str(e)} {trace}"
-            message = f"🫢: {error=} 🕊️: {trace=}"
-            logger.error(message)
-
-            await slack_app.client.chat_postMessage(
-                channel=settings.ADMIN_CHANNEL,
-                text=message,
-            )
-
-    async def remind_job(slack_app: AsyncApp) -> None:
-        slack_service = BackgroundService(repo=SlackRepository())
-        try:
-            await slack_service.send_reminder_message_to_user(slack_app)
-        except Exception as e:
-            trace = traceback.format_exc()
-            error = f"제출 리마인드 전송 중 에러가 발생했어요. {str(e)} {trace}"
             message = f"🫢: {error=} 🕊️: {trace=}"
             logger.error(message)
 
