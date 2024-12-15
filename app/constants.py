@@ -46,27 +46,37 @@ remind_message = """👋 안녕하세요! 오늘은 글 제출 마감일이에�
 
 # fmt: off
 
+# paper_plane_color_maps = [
+#     {"color_label": "fiery_red", "bg_color": "#FF4500", "text_color": "#FFFFFF"},  # 불꽃 같은 빨간색
+#     {"color_label": "fresh_green", "bg_color": "#32CD32", "text_color": "#FFFFFF"},  # 싱그러운 초록색
+#     {"color_label": "sky_blue", "bg_color": "#1E90FF", "text_color": "#FFFFFF"},  # 맑은 하늘색
+#     {"color_label": "bright_gold", "bg_color": "#FFD700", "text_color": "#000000"},  # 밝은 금색
+#     {"color_label": "deep_violet", "bg_color": "#8A2BE2", "text_color": "#FFFFFF"},  # 진한 보라색
+#     {"color_label": "ripe_tomato", "bg_color": "#FF6347", "text_color": "#FFFFFF"},  # 잘 익은 토마토색
+#     {"color_label": "cool_steelblue", "bg_color": "#4682B4", "text_color": "#FFFFFF"},  # 차가운 스틸블루
+#     {"color_label": "soft_slateblue", "bg_color": "#6A5ACD", "text_color": "#FFFFFF"},  # 부드러운 슬레이트블루
+#     {"color_label": "pastel_chartreuse", "bg_color": "#A9F2A5", "text_color": "#2F4F4F"},  # 파스텔 차트레즈
+#     {"color_label": "vivid_deeppink", "bg_color": "#FF1493", "text_color": "#FFFFFF"},  # 선명한 딥핑크
+#     {"color_label": "blush_rosybrown", "bg_color": "#BC8F8F", "text_color": "#FFFFFF"},  # 블러쉬 로지브라운
+#     {"color_label": "peach_silver", "bg_color": "#FFDAB9", "text_color": "#8B4513"},  # 복숭아빛 실버
+#     {"color_label": "muted_seagreen", "bg_color": "#8FBC8F", "text_color": "#FFFFFF"},  # 차분한 바다초록색
+#     {"color_label": "soft_lightcoral", "bg_color": "#F08080", "text_color": "#FFFFFF"},  # 부드러운 라이트코랄
+#     {"color_label": "lavender_gray", "bg_color": "#E6E6FA", "text_color": "#4B0082"},  # 라벤더 그레이
+#     {"color_label": "sunset_orange", "bg_color": "#FF7F50", "text_color": "#FFFFFF"},  # 석양 오렌지
+#     {"color_label": "ocean_teal", "bg_color": "#008080", "text_color": "#FFFFFF"},  # 바다 청록색
+#     {"color_label": "midnight_blue", "bg_color": "#191970", "text_color": "#FFFFFF"},  # 자정의 파란색
+#     {"color_label": "buttercup_yellow", "bg_color": "#FFDD44", "text_color": "#000000"},  # 버터컵 옐로우
+#     {"color_label": "rosewood", "bg_color": "#65000B", "text_color": "#FFFFFF"}  # 로즈우드
+# ]
+
+# 크리스마스 버전
 paper_plane_color_maps = [
-    {"color_label": "fiery_red", "bg_color": "#FF4500", "text_color": "#FFFFFF"},  # 불꽃 같은 빨간색
-    {"color_label": "fresh_green", "bg_color": "#32CD32", "text_color": "#FFFFFF"},  # 싱그러운 초록색
-    {"color_label": "sky_blue", "bg_color": "#1E90FF", "text_color": "#FFFFFF"},  # 맑은 하늘색
-    {"color_label": "bright_gold", "bg_color": "#FFD700", "text_color": "#000000"},  # 밝은 금색
-    {"color_label": "deep_violet", "bg_color": "#8A2BE2", "text_color": "#FFFFFF"},  # 진한 보라색
-    {"color_label": "ripe_tomato", "bg_color": "#FF6347", "text_color": "#FFFFFF"},  # 잘 익은 토마토색
-    {"color_label": "cool_steelblue", "bg_color": "#4682B4", "text_color": "#FFFFFF"},  # 차가운 스틸블루
-    {"color_label": "soft_slateblue", "bg_color": "#6A5ACD", "text_color": "#FFFFFF"},  # 부드러운 슬레이트블루
-    {"color_label": "pastel_chartreuse", "bg_color": "#A9F2A5", "text_color": "#2F4F4F"},  # 파스텔 차트레즈
-    {"color_label": "vivid_deeppink", "bg_color": "#FF1493", "text_color": "#FFFFFF"},  # 선명한 딥핑크
-    {"color_label": "blush_rosybrown", "bg_color": "#BC8F8F", "text_color": "#FFFFFF"},  # 블러쉬 로지브라운
-    {"color_label": "peach_silver", "bg_color": "#FFDAB9", "text_color": "#8B4513"},  # 복숭아빛 실버
-    {"color_label": "muted_seagreen", "bg_color": "#8FBC8F", "text_color": "#FFFFFF"},  # 차분한 바다초록색
-    {"color_label": "soft_lightcoral", "bg_color": "#F08080", "text_color": "#FFFFFF"},  # 부드러운 라이트코랄
-    {"color_label": "lavender_gray", "bg_color": "#E6E6FA", "text_color": "#4B0082"},  # 라벤더 그레이
-    {"color_label": "sunset_orange", "bg_color": "#FF7F50", "text_color": "#FFFFFF"},  # 석양 오렌지
-    {"color_label": "ocean_teal", "bg_color": "#008080", "text_color": "#FFFFFF"},  # 바다 청록색
-    {"color_label": "midnight_blue", "bg_color": "#191970", "text_color": "#FFFFFF"},  # 자정의 파란색
-    {"color_label": "buttercup_yellow", "bg_color": "#FFDD44", "text_color": "#000000"},  # 버터컵 옐로우
-    {"color_label": "rosewood", "bg_color": "#65000B", "text_color": "#FFFFFF"}  # 로즈우드
+    {"color_label": "christmas_1", "bg_color": "#BC2026", "text_color": "#FFCCCC"},  # 불꽃 같은 빨간색
+    {"color_label": "christmas_2", "bg_color": "#118911", "text_color": "#E2FAE2"},  # 싱그러운 초록색
+    {"color_label": "christmas_3", "bg_color": "#EBB84E", "text_color": "#252525"},  # 맑은 하늘색
+    {"color_label": "christmas_4", "bg_color": "#DB7F3E", "text_color": "#F2DED0"},  # 밝은 금색
+    {"color_label": "christmas_5", "bg_color": "#74528F", "text_color": "#F5EBFC"},  # 진한 보라색
+    {"color_label": "christmas_6", "bg_color": "#874544", "text_color": "#F7E3E3"},  # 잘 익은 토마토색
 ]
 
 # fmt: on
