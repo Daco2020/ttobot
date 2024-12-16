@@ -25,6 +25,7 @@ DUE_DATES = [  # 글또 시작일 을 포함한 오름차순 마감일 리스트
 
 class ContentCategoryEnum(str, Enum):
     GILBUT = "길벗 책 리뷰"
+    HANBIT = "한빛미디어 책 리뷰"
     PROJECT = "프로젝트"
     TECH = "기술 & 언어"
     CULTURE = "조직 & 문화"
