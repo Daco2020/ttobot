@@ -30,7 +30,7 @@ class ContentCategoryEnum(str, Enum):
     TECH = "기술 & 언어"
     CULTURE = "조직 & 문화"
     JOB = "취준 & 이직"
-    DAILY = "일상 & 생각"
+    DAILY = "일상 & 생각 & 회고"
     ETC = "기타"
 
 
