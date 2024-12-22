@@ -148,22 +148,35 @@ def match_keyword(keyword: str, row: tuple) -> bool:
 async def get_message(
     ts: str,
     channel_id: str,
+    multiple_messages: bool = False,
     type: Literal["message", "reply"] = "message",
     user: SimpleUser = Depends(current_user),
-) -> dict[str, Any]:
+) -> dict[str, Any] | list[dict[str, Any]]:
     if user.user_id not in settings.ADMIN_IDS:
         raise HTTPException(status_code=403, detail="수정 권한이 없습니다.")
 
     try:
         if type == "message":
             data = await slack_app.client.conversations_history(
-                channel=channel_id, latest=ts, inclusive=True, limit=1
+                channel=channel_id,
+                latest=ts,
+                inclusive=True,
+                limit=10 if multiple_messages else 1,
             )
-
         else:
             data = await slack_app.client.conversations_replies(
                 channel=channel_id, ts=ts, inclusive=True, limit=1
             )
+
+        if multiple_messages:
+            return [
+                {
+                    "text": message["text"],
+                    "blocks": message["blocks"],
+                    "attachments": message.get("attachments", []),
+                }
+                for message in data["messages"]
+            ]
 
         message = next((msg for msg in data["messages"] if msg["ts"] == ts), None)
         if not message:
