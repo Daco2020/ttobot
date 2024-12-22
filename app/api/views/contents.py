@@ -171,6 +171,7 @@ async def get_message(
         if multiple_messages:
             return [
                 {
+                    "ts": message["ts"],
                     "text": message["text"],
                     "blocks": message["blocks"],
                     "attachments": message.get("attachments", []),
