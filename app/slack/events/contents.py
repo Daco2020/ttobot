@@ -461,7 +461,7 @@ async def contents_modal(
             type="modal",
             title=f"{other_user.name}님의 작성글",
             close="닫기",
-            blocks=_fetch_blocks(other_user.contents),
+            blocks=_fetch_blocks(other_user.contents[::-1]),
         ),
     )
 
