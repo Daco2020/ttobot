@@ -66,6 +66,11 @@ async def log_event_middleware(
     ]:
         # message 와 reaction 은 handle 함수에서 별도로 로깅합니다.
         description = event_descriptions.get(str(event), "알 수 없는 이벤트")
+
+        # 종이비행기 메시지 전송 완료 이벤트는 내용을 로그에 포함시키지 않는다.
+        if description == "종이비행기 메시지 전송 완료":
+            body = body["view"] = {}
+
         log_event(
             actor=req.context.user_id,
             event=event,  # type: ignore
