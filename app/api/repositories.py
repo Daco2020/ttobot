@@ -1,3 +1,4 @@
+import csv
 from app import models
 import polars as pl
 
@@ -48,3 +49,20 @@ class ApiRepository:
         count = len(data)
         paper_planes = data.slice(offset, limit).to_dicts()
         return count, [models.PaperPlane(**paper_plane) for paper_plane in paper_planes]
+
+    def fetch_paper_planes(self, sender_id: str) -> list[models.PaperPlane]:
+        """종이비행기를 가져옵니다."""
+        with open("store/paper_plane.csv") as f:
+            reader = csv.DictReader(f)
+            paper_planes = [
+                models.PaperPlane(**paper_plane)  # type: ignore
+                for paper_plane in reader
+                if paper_plane["sender_id"] == sender_id
+            ]
+            return paper_planes
+
+    def create_paper_plane(self, paper_plane: models.PaperPlane) -> None:
+        """종이비행기를 생성합니다."""
+        with open("store/paper_plane.csv", "a", newline="", encoding="utf-8") as f:
+            writer = csv.writer(f, quoting=csv.QUOTE_ALL)
+            writer.writerow(paper_plane.to_list_for_csv())
