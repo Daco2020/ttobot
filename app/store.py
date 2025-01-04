@@ -238,13 +238,13 @@ class Store:
                     queue=paper_plane_upload_queue,
                     temp_queue=temp_paper_plane_upload_queue,
                 )
-                log_event(
-                    actor="system",
-                    event="uploaded_paper_plane",
-                    type="community",
-                    description=f"{len(temp_paper_plane_upload_queue)}개 종이비행기 업로드",
-                    body={},  # 종이 비행기는 로그에 내용을 포함하지 않는다.
-                )
+                # log_event(
+                #     actor="system",
+                #     event="uploaded_paper_plane",
+                #     type="community",
+                #     description=f"{len(temp_paper_plane_upload_queue)}개 종이비행기 업로드",
+                #     body="",  # 종이 비행기는 로그에 내용을 포함하지 않는다.
+                # )
 
             temp_subscription_upload_queue = list(subscription_upload_queue)
             if temp_subscription_upload_queue:

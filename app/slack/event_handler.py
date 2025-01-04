@@ -42,7 +42,6 @@ async def log_event_middleware(
 ) -> None:
     """이벤트를 로그로 남깁니다."""
     body = req.body
-    print(body, "log_event_middleware - body")  # 디버깅용
     if body.get("command"):
         event = body.get("command")
         type = "command"
@@ -70,7 +69,8 @@ async def log_event_middleware(
 
         # 종이비행기 메시지 전송 완료 이벤트는 내용을 로그에 포함시키지 않는다.
         if description == "종이비행기 메시지 전송 완료":
-            body["view"] = {}
+            req.context["event"] = event
+            await next()
 
         log_event(
             actor=req.context.user_id,
