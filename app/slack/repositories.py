@@ -182,11 +182,13 @@ class SlackRepository:
         ts: str | None = None,
         user_id: str | None = None,
         dt: str | None = None,
+        content_url: str | None = None,
     ) -> models.Content | None:
         """
         콘텐츠를 조회합니다.
         - 우선적으로 ts(타임스탬프)를 기준으로 검색합니다. 이는 Unique한 값입니다.
         - ts가 없을 경우, user_id와 dt(생성일시)를 조합하여 검색합니다. 이는 Unique한 값입니다.
+        - content_url 이 있을 경우, content_url을 검색합니다. 이는 Unique한 값입니다.
         - Unique한 값이 아닌 경우, 검색된 결과 중 가장 최신의 결과를 반환합니다.
         """
         with open("store/contents.csv") as f:
@@ -196,6 +198,7 @@ class SlackRepository:
                 for content in reader
                 if content["ts"] == ts
                 or (content["user_id"] == user_id and content["dt"] == dt)
+                or (content["content_url"] == content_url)
             ]
 
         if not contents:

@@ -183,7 +183,10 @@ class SlackService:
     def validate_url(self, view, content_url: str) -> None:
         if not re.match(URL_REGEX, content_url):
             raise ValueError("링크는 url 형식이어야 해요.")
-        if content_url in self._user.content_urls:
+        if (
+            content_url in self._user.content_urls
+            or content_url == self.get_content_by(content_url=content_url).content_url
+        ):
             raise ValueError("이미 제출한 url 이에요.")
         if "tistory.com/manage/posts" in content_url:
             # 티스토리 posts 페이지는 글 링크가 아니므로 제외합니다.
@@ -286,11 +289,13 @@ class SlackService:
         ts: str | None = None,
         user_id: str | None = None,
         dt: str | None = None,
+        content_url: str | None = None,
     ) -> models.Content:
         content = self._repo.get_content_by(
             ts=ts,
             user_id=user_id,
             dt=dt,
+            content_url=content_url,
         )
         if not content:
             raise BotException("해당 콘텐츠 정보가 없어요.")
