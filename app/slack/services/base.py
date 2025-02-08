@@ -188,6 +188,11 @@ class SlackService:
         if "tistory.com/manage/posts" in content_url:
             # 티스토리 posts 페이지는 글 링크가 아니므로 제외합니다.
             raise ValueError("잠깐! 입력한 링크가 '글 링크'가 맞는지 확인해주세요.")
+        if "blog.naver.com" in content_url and "redirect" in content_url.lower():
+            # 네이버 블로그 리다이렉트 링크는 글 링크가 아니므로 제외합니다.
+            raise ValueError(
+                "잠깐! 입력한 링크는 리다이렉트 링크입니다. 다시 확인해주세요."
+            )
         if (
             "notion." in content_url
             or "oopy.io" in content_url
