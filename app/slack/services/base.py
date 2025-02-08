@@ -183,11 +183,15 @@ class SlackService:
     def validate_url(self, view, content_url: str) -> None:
         if not re.match(URL_REGEX, content_url):
             raise ValueError("링크는 url 형식이어야 해요.")
-        if (
-            content_url in self._user.content_urls
-            or content_url == self.get_content_by(content_url=content_url).content_url
-        ):
-            raise ValueError("이미 제출한 url 이에요.")
+
+        try:
+            content = self.get_content_by(content_url=content_url)
+            if content:
+                raise ValueError("이미 제출한 url 이에요.")
+        except BotException:
+            # 존재하지 않는 url 인 경우 통과
+            pass
+
         if "tistory.com/manage/posts" in content_url:
             # 티스토리 posts 페이지는 글 링크가 아니므로 제외합니다.
             raise ValueError("잠깐! 입력한 링크가 '글 링크'가 맞는지 확인해주세요.")
