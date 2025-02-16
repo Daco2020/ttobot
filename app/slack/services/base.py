@@ -76,6 +76,7 @@ class SlackService:
             type="submit",
             tags=self._get_tags(view),
             curation_flag=self._get_curation_flag(view),
+            feedback_intensity=self._get_feedback_intensity(view),
         )
         return content
 
@@ -132,6 +133,12 @@ class SlackService:
             "selected_option"
         ]["value"]
         return curation_flag
+
+    def _get_feedback_intensity(self, view) -> str:
+        feedback_intensity: str = view["state"]["values"]["feedback_intensity"][
+            "feedback_intensity_select"
+        ]["selected_option"]["value"]
+        return feedback_intensity
 
     async def get_title(self, view, url: str) -> str:
 

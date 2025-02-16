@@ -224,6 +224,7 @@ class Content(StoreModel):
     tags: str = ""
     curation_flag: str = "N"  # "Y", "N"
     ts: str = ""
+    feedback_intensity: str = "HOT"  # "MILD", "HOT", "FIRE", "DIABLO"
 
     def __hash__(self) -> int:
         return hash(self.ts)
@@ -258,6 +259,7 @@ class Content(StoreModel):
             self.tags,
             self.curation_flag,
             self.ts,
+            self.feedback_intensity,
         ]
 
     def to_list_for_sheet(self) -> list[str]:
@@ -273,6 +275,7 @@ class Content(StoreModel):
             self.tags,
             self.curation_flag,
             self.ts,
+            self.feedback_intensity,
         ]
 
     def get_round(self) -> int:
@@ -296,6 +299,7 @@ class Content(StoreModel):
             "tags",
             "curation_flag",
             "ts",
+            "feedback_intensity",
         ]
 
 

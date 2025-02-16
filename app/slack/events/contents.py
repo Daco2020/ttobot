@@ -103,6 +103,20 @@ async def submit_command(
                         ],
                     ),
                 ),
+                InputBlock(
+                    block_id="feedback_intensity",
+                    label="피드백 강도",
+                    element=StaticSelectElement(
+                        action_id="feedback_intensity_select",
+                        initial_option=Option(text="🧄 보통맛", value="HOT"),
+                        options=[
+                            Option(text="🌱 순한맛", value="MILD"),
+                            Option(text="🧄 보통맛", value="HOT"),
+                            Option(text="🌶️ 매운맛", value="FIRE"),
+                            Option(text="☠️ 지옥맛", value="DIABLO"),
+                        ],
+                    ),
+                ),
                 DividerBlock(),
                 InputBlock(
                     block_id="tag",
