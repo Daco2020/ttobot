@@ -27,19 +27,27 @@ class PointMap(Enum):
     빌리지_반상회_참여 = settings.POINT_MAP["빌리지_반상회_참여"]
     자기소개_작성 = settings.POINT_MAP["자기소개_작성"]
     성윤을_잡아라 = settings.POINT_MAP["성윤을_잡아라"]
+    특별_보너스 = {"point": 0, "reason": "특별 보너스", "category": "기타"}
 
 # fmt: on
     @property
     def point(self) -> int:
-        return self.value["point"]
+        return self.value["point"]  # type: ignore
 
     @property
     def reason(self) -> str:
-        return self.value["reason"]
+        return self.value["reason"]  # type: ignore
 
     @property
     def category(self) -> str:
-        return self.value["category"]
+        return self.value["category"]  # type: ignore
+
+    @classmethod
+    def set_special_bonus(cls, point: int, reason: str) -> "PointMap":
+        """특별 보너스 포인트를 동적으로 생성합니다."""
+        special_bonus = cls.특별_보너스
+        special_bonus._value_ = {"point": point, "reason": reason, "category": "기타"}
+        return special_bonus
 
 
 class UserPoint(BaseModel):
@@ -210,4 +218,12 @@ class PointService:
         DM으로 알림을 줍니다.
         """
         point_info = PointMap.자기소개_작성
+        return self.add_point_history(user_id, point_info)
+
+    def grant_if_special_point(self, user_id: str, point: int, reason: str) -> str:
+        """
+        수동: 특별한 경우 포인트를 지급합니다.
+        DM으로 알림을 줍니다.
+        """
+        point_info = PointMap.set_special_bonus(point=point, reason=reason)
         return self.add_point_history(user_id, point_info)
