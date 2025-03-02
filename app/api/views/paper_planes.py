@@ -48,12 +48,13 @@ async def send_paper_plane(
     if user.user_id == settings.SUPER_ADMIN:
         pass
     else:
-        paper_planes = service.fetch_current_week_paper_planes(user_id=user.user_id)
-        if len(paper_planes) >= 7:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="종이비행기는 한 주에 7개까지 보낼 수 있어요. (토요일 00시에 충전)",
-            )
+        pass
+        # paper_planes = service.fetch_current_week_paper_planes(user_id=user.user_id)
+        # if len(paper_planes) >= 7:
+        #     raise HTTPException(
+        #         status_code=status.HTTP_400_BAD_REQUEST,
+        #         detail="종이비행기는 한 주에 7개까지 보낼 수 있어요. (토요일 00시에 충전)",
+        #     )
 
     await service.send_paper_plane(
         sender_id=user.user_id,

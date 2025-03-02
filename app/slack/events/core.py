@@ -581,8 +581,9 @@ async def handle_home_tab(
     if user.user_id == settings.SUPER_ADMIN:
         remain_paper_planes = "∞"
     else:
-        paper_planes = service.fetch_current_week_paper_planes(user_id=user.user_id)
-        remain_paper_planes = 7 - len(paper_planes) if len(paper_planes) < 7 else 0
+        remain_paper_planes = "∞"
+        # paper_planes = service.fetch_current_week_paper_planes(user_id=user.user_id)
+        # remain_paper_planes = 7 - len(paper_planes) if len(paper_planes) < 7 else 0
 
     # 홈 탭 메시지 구성
     await client.views_publish(
@@ -628,7 +629,7 @@ async def handle_home_tab(
                     elements=[
                         TextObject(
                             type="mrkdwn",
-                            text=f"종이비행기는 글또 멤버에게 따뜻한 감사나 응원의 메시지를 보낼 수 있는 기능이에요.\n매주 토요일 0시에 7개가 충전되며, 한 주 동안 자유롭게 원하는 분께 보낼 수 있어요.\n*{user.name[1:]}* 님이 이번 주에 보낼 수 있는 종이비행기 수는 현재 *{remain_paper_planes}개* 입니다. 😊",
+                            text=f"종이비행기는 글또 멤버에게 따뜻한 감사나 응원의 메시지를 보낼 수 있는 기능이에요.\n*{user.name[1:]}* 님이 이번 주에 보낼 수 있는 종이비행기 수는 현재 *{remain_paper_planes}개* 입니다. 😊",
                         ),
                     ],
                 ),
@@ -1035,15 +1036,16 @@ async def send_paper_plane_message_view(
     if user.user_id == settings.SUPER_ADMIN:
         pass
     else:
-        paper_planes = service.fetch_current_week_paper_planes(user_id=user.user_id)
-        if len(paper_planes) >= 7:
-            await ack(
-                response_action="errors",
-                errors={
-                    "paper_plane_receiver": "종이비행기는 한 주에 7개까지 보낼 수 있어요. (토요일 00시에 충전)",
-                },
-            )
-            return
+        pass
+        # paper_planes = service.fetch_current_week_paper_planes(user_id=user.user_id)
+        # if len(paper_planes) >= 7:
+        #     await ack(
+        #         response_action="errors",
+        #         errors={
+        #             "paper_plane_receiver": "종이비행기는 한 주에 7개까지 보낼 수 있어요. (토요일 00시에 충전)",
+        #         },
+        #     )
+        #     return
 
     await ack()
 

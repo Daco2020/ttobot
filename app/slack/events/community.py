@@ -281,8 +281,9 @@ async def paper_plane_command(
     if user.user_id == settings.SUPER_ADMIN:
         remain_paper_planes = "∞"
     else:
-        paper_planes = service.fetch_current_week_paper_planes(user_id=user.user_id)
-        remain_paper_planes = 7 - len(paper_planes) if len(paper_planes) < 7 else 0
+        remain_paper_planes = "∞"
+        # paper_planes = service.fetch_current_week_paper_planes(user_id=user.user_id)
+        # remain_paper_planes = 7 - len(paper_planes) if len(paper_planes) < 7 else 0
 
     await client.views_open(
         trigger_id=body["trigger_id"],
@@ -298,7 +299,7 @@ async def paper_plane_command(
                             "type": "mrkdwn",
                             "text": (
                                 "종이비행기는 글또 멤버에게 따뜻한 감사나 응원의 메시지를 보낼 수 있는 기능이에요.\n"
-                                "매주 토요일 0시에 7개가 충전되며, 한 주 동안 자유롭게 원하는 분께 보낼 수 있어요.\n"
+                                # "매주 토요일 0시에 7개가 충전되며, 한 주 동안 자유롭게 원하는 분께 보낼 수 있어요.\n"
                                 f"*{user.name[1:]}* 님이 이번 주에 보낼 수 있는 종이비행기 수는 현재 *{remain_paper_planes}개* 입니다."
                             ),
                         }
