@@ -857,7 +857,7 @@ async def open_point_guide_view(
                 SectionBlock(
                     text={
                         "type": "mrkdwn",
-                        "text": "포인트는 다음과 같은 방법으로 획득할 수 있어요.",
+                        "text": "포인트는 다음과 같은 방법으로 획득할 수 있어요.\n12회차 이후부터 `연속 제출 콤보`를 제외한 모든 포인트가 2배로 늘어납니다.",
                     }
                 ),
                 DividerBlock(),
