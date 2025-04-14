@@ -17,6 +17,10 @@ class PointMap(Enum):
     글_제출_3콤보_보너스 = settings.POINT_MAP["글_제출_3콤보_보너스"]
     글_제출_6콤보_보너스 = settings.POINT_MAP["글_제출_6콤보_보너스"]
     글_제출_9콤보_보너스 = settings.POINT_MAP["글_제출_9콤보_보너스"]
+    글_제출_12콤보_보너스 = settings.POINT_MAP["글_제출_12콤보_보너스"]
+    글_제출_15콤보_보너스 = settings.POINT_MAP["글_제출_15콤보_보너스"]
+    글_제출_18콤보_보너스 = settings.POINT_MAP["글_제출_18콤보_보너스"]
+    글_제출_21콤보_보너스 = settings.POINT_MAP["글_제출_21콤보_보너스"]
     글_제출_코어채널_1등 = settings.POINT_MAP["글_제출_코어채널_1등"]
     글_제출_코어채널_2등 = settings.POINT_MAP["글_제출_코어채널_2등"]
     글_제출_코어채널_3등 = settings.POINT_MAP["글_제출_코어채널_3등"]
@@ -128,14 +132,22 @@ class PointService:
             return None
         
         combo_point = None
-        if continuous_submit_count == 9:
+        if continuous_submit_count == 21:
+            point_info = PointMap.글_제출_21콤보_보너스
+        elif continuous_submit_count == 18:
+            point_info = PointMap.글_제출_18콤보_보너스
+        elif continuous_submit_count == 15:
+            point_info = PointMap.글_제출_15콤보_보너스
+        elif continuous_submit_count == 12:
+            point_info = PointMap.글_제출_12콤보_보너스
+        elif continuous_submit_count == 9:
             point_info = PointMap.글_제출_9콤보_보너스
         elif continuous_submit_count == 6:
             point_info = PointMap.글_제출_6콤보_보너스
         elif continuous_submit_count == 3:
             point_info = PointMap.글_제출_3콤보_보너스
         else:
-            # 3,6,9 외에는 연속 제출 횟수에 따라 연속 포인트를 지급합니다.
+            # 3배수 외의 콤보는 일반 콤보 포인트를 지급합니다.
             point_info = PointMap.글_제출_콤보
             combo_point = point_info.point * continuous_submit_count
             
