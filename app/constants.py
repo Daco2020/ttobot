@@ -19,7 +19,22 @@ DUE_DATES = [  # 글또 시작일 을 포함한 오름차순 마감일 리스트
     datetime.datetime(2025, 3, 2).date(),  # 10회차
     datetime.datetime(2025, 3, 16).date(),  # 11회차
     datetime.datetime(2025, 3, 30).date(),  # 12회차
-    datetime.datetime(2025, 4, 13).date(),  # 추가회차(임시)
+    datetime.datetime(2025, 4, 13).date(),  # 추가회차(13회차)
+    datetime.datetime(2025, 4, 27).date(),  # 추가회차(14회차)
+    datetime.datetime(2025, 5, 11).date(),  # 추가회차(15회차)
+    datetime.datetime(2025, 5, 25).date(),  # 추가회차(16회차)
+    datetime.datetime(2025, 6, 8).date(),  # 추가회차(17회차)
+    datetime.datetime(2025, 6, 22).date(),  # 추가회차(18회차)
+    datetime.datetime(2025, 7, 6).date(),  # 추가회차(19회차)
+    datetime.datetime(2025, 7, 20).date(),  # 추가회차(20회차)
+    datetime.datetime(2025, 8, 3).date(),  # 추가회차(21회차)
+    datetime.datetime(2025, 8, 17).date(),  # 추가회차(22회차)
+    datetime.datetime(2025, 8, 31).date(),  # 추가회차(23회차)
+    datetime.datetime(2025, 9, 14).date(),  # 추가회차(24회차)
+    datetime.datetime(2025, 9, 28).date(),  # 추가회차(25회차)
+    datetime.datetime(2025, 10, 12).date(),  # 추가회차(26회차)
+    datetime.datetime(2025, 10, 26).date(),  # 추가회차(27회차)
+    datetime.datetime(2025, 11, 9).date(),  # 추가회차(28회차)
 ]
 
 
