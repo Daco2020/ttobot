@@ -113,6 +113,10 @@ class User(BaseModel):
             if due_date >= tz_now().date():
                 break
 
+            # 2025년 3월 30일 이후 회차는 제출 여부를 판단하지 않는다.
+            if due_date > datetime.datetime(2025, 3, 30):
+                break
+
             # 기본값은 미제출
             submit_status[i] = "미제출"
 
