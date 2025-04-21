@@ -571,7 +571,7 @@ async def handle_home_tab(
     current_combo_point = ""
     if combo_count < 1:
         pass
-    elif combo_count in [3, 6, 9]:
+    elif combo_count in [3, 6, 9, 12, 15, 18, 21, 24, 27, 30]:
         current_combo_point = "*+ ???(특별 콤보 보너스)* "
     else:
         current_combo_point = (
