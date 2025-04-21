@@ -76,8 +76,9 @@ async def open_deposit_view(
         remained_pass_count = 2
         remained_pass_count -= user.pass_count
 
-        # 미제출 수
+        # 1-12회차만 필터링
         submit_status = user.get_submit_status()
+        submit_status = {k: v for k, v in submit_status.items() if 1 <= k <= 12}
         not_submitted_count = list(submit_status.values()).count("미제출")
 
         # 커피챗 인증 수
