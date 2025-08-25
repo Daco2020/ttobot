@@ -20,6 +20,10 @@ from app.slack.events import core as core_events
 from app.slack.events import log as log_events
 from app.slack.events import subscriptions as subscriptions_events
 from app.exception import BotException
+from app.slack.events.writing_participation import (
+    open_writing_participation_view,
+    submit_writing_participation_view,
+)
 from app.slack.repositories import SlackRepository
 from app.slack.services.base import SlackService
 from app.slack.services.point import PointService
@@ -367,6 +371,9 @@ app.action("open_subscription_permalink")(
     subscriptions_events.open_subscription_permalink
 )
 
+# 글쓰기 참여 신청
+app.action("open_writing_participation_view")(open_writing_participation_view)
+app.view("writing_participation_view")(submit_writing_participation_view)
 
 event_descriptions = {
     "/제출": "글 제출 시작",
@@ -421,4 +428,6 @@ event_descriptions = {
     "open_subscribe_member_view": "멤버 구독 모달 열기",
     "open_subscription_permalink": "구독한 멤버의 새 글 보기",
     "unsubscribe_member": "멤버 구독 취소",
+    "open_writing_participation_view": "글쓰기 참여 신청 모달 열기",
+    "writing_participation_view": "글쓰기 참여 신청 완료",
 }

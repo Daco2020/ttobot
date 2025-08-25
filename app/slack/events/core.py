@@ -593,10 +593,22 @@ async def handle_home_tab(
         view=View(
             type="home",
             blocks=[
-                # 포인트 시스템 섹션
+                HeaderBlock(
+                    text="✏️ 글쓰기 참여 신청",
+                ),
+                ActionsBlock(
+                    elements=[
+                        ButtonElement(
+                            text="글쓰기 참여 신청하기",
+                            action_id="open_writing_participation_view",
+                            value="open_writing_participation_view",
+                        ),
+                    ],
+                ),
                 HeaderBlock(
                     text="🍭 내 글또 포인트",
                 ),
+                # 포인트 시스템 섹션
                 SectionBlock(
                     text=f"현재 *{user.name[1:]}* 님이 획득한 총 포인트는 *{user_point_history.total_point} point* 입니다.",
                 ),

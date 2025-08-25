@@ -26,6 +26,7 @@ class Settings(BaseSettings):
     THANKS_CHANNEL: str
     COFFEE_CHAT_PROOF_CHANNEL: str
     ADMIN_CHANNEL: str
+    WRITING_CHANNEL: str
     ADMIN_IDS: list[str]
     TTOBOT_USER_ID: str
     SUPER_ADMIN: str
