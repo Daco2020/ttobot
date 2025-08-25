@@ -115,7 +115,7 @@ def _process_user_subscription(
         service.create_subscription(
             user_id=user.user_id,
             target_user_id=target_user_id,
-            target_user_channel=target_user.channel_id,
+            target_user_channel=target_user.writing_channel_id,
         )
 
     return message

@@ -56,7 +56,7 @@ async def submit_command(
 
     # 어드민 유저는 제출하는 곳에 메세지가 전송됩니다.
     private_metadata = (
-        body["channel_id"] if user.user_id in settings.ADMIN_IDS else user.channel_id
+        body["channel_id"] if user.user_id in settings.ADMIN_IDS else user.writing_channel_id
     )
 
     await client.views_open(
@@ -603,7 +603,7 @@ async def pass_command(
 
     # 어드민 유저는 제출하는 곳에 메세지가 전송됩니다.
     private_metadata = (
-        body["channel_id"] if user.user_id in settings.ADMIN_IDS else user.channel_id
+        body["channel_id"] if user.user_id in settings.ADMIN_IDS else user.writing_channel_id
     )
 
     if user.is_submit:
@@ -637,7 +637,7 @@ async def pass_command(
                         \n- 현재 회차는 {round}회차, 마감일은 {due_date} 이에요.\
                         \n- 패스는 연속으로 사용할 수 없어요.\
                         \n- 남은 패스는 {MAX_PASS_COUNT - user.pass_count}번 이에요.\
-                        \n- 패스 메시지는 코어 채널인 <#{user.channel_id}> 채널에 표시됩니다.",
+                        \n- 패스 메시지는 코어 채널인 <#{user.writing_channel_id}> 채널에 표시됩니다.",
                 ),
                 InputBlock(
                     block_id="description",

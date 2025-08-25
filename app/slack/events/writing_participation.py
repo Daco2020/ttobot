@@ -20,15 +20,7 @@ async def open_writing_participation_view(
 ):
     await ack()
 
-    is_participation = False
-    with open("store/writing_participation.csv", encoding="utf-8") as f:
-        reader = csv.DictReader(f)
-        for row in reader:
-            if row["user_id"] == user.user_id:
-                is_participation = row["is_writing_participation"] == "True"
-                break
-
-    if is_participation:
+    if user.is_writing_participation:
         view = View(
             type="modal",
             title="글쓰기 참여 신청 완료",

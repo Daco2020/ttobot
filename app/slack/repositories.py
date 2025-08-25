@@ -5,6 +5,7 @@ import polars as pl
 
 from app import store
 from app import models
+from app.config import settings
 from app.exception import BotException
 from app.utils import tz_now_to_str
 
@@ -269,15 +270,35 @@ class SlackRepository:
         """
         채널의 유저를 가져옵니다.
         성능향상을 위해 polars를 사용합니다.
+        글쓰기 참여를 신청한 경우에는 글쓰기 채널 유저들을 반환합니다.
         """
         users_df = pl.read_csv("store/users.csv", dtypes={"deposit": pl.Utf8})
-        users = users_df.filter(pl.col("channel_id") == channel_id).to_dicts()
+        
+        if channel_id == settings.WRITING_CHANNEL:
+            writing_participation_df = pl.read_csv(
+                "store/writing_participation.csv",
+                dtypes={"user_id": pl.Utf8, "is_writing_participation": pl.Utf8},
+            )
+            user_ids = (
+                writing_participation_df
+                .filter(pl.col("is_writing_participation") == "True")
+                .select("user_id")
+                .to_series()
+                .to_list()
+            )
+            users_df = users_df.filter(pl.col("user_id").is_in(user_ids))
+        else:
+            users_df = users_df.filter(pl.col("channel_id") == channel_id)
+
+        users = users_df.to_dicts()
         users = [models.User(**user) for user in users]
 
         contents_df = pl.read_csv("store/contents.csv", dtypes={"ts": pl.Utf8})
         for user in users:
             contents = contents_df.filter(pl.col("user_id") == user.user_id).to_dicts()
             user.contents = [models.Content(**content) for content in contents]
+
+        print("users@@@@", users)
 
         return users
 

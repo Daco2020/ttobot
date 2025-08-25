@@ -2,10 +2,12 @@ from __future__ import annotations
 
 from abc import abstractmethod
 
+import csv
 from enum import Enum
 from zoneinfo import ZoneInfo
 from pydantic import BaseModel, Field, field_validator
 import datetime
+from app.config import settings
 from app.constants import DUE_DATES, MAX_PASS_COUNT
 from app.exception import BotException
 
@@ -21,6 +23,22 @@ class User(BaseModel):
     deposit: str = ""  # 예치금
     cohort: str = ""  # 기수
     contents: list[Content] = []  # 제출한 콘텐츠
+
+    @property
+    def is_writing_participation(self) -> bool:
+        with open("store/writing_participation.csv", "r") as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                if row["user_id"] == self.user_id:
+                    return row["is_writing_participation"] == "True"
+        return False
+
+    @property
+    def writing_channel_id(self) -> str:
+        """글쓰기 참여 여부를 반환합니다."""
+        if self.is_writing_participation:
+            return settings.WRITING_CHANNEL
+        return self.channel_id
 
     @field_validator("contents", mode="before")
     def get_contents(cls, v: list[Content]) -> list[Content]:
@@ -142,15 +160,6 @@ class User(BaseModel):
                 break
         return count
 
-    def check_channel(self, channel_id: str) -> None:
-        """코어 채널이 일치하는지 체크합니다."""
-        if self.channel_id == "ALL":
-            return
-        if self.channel_id != channel_id:
-            raise BotException(
-                f"{self.name} 님의 코어 채널 <#{self.channel_id}> 에서 다시 시도해주세요."
-            )
-
     @property
     def submission_guide_message(self) -> str:
         """제출 모달 가이드 메시지를 반환합니다."""
@@ -163,7 +172,7 @@ class User(BaseModel):
                 f"\n({self.name} 님은 아직 {round}회차 글을 제출하지 않았어요)"
             )
         guide_message += (
-            f"\n제출 메시지는 코어 채널인 <#{self.channel_id}> 에 표시됩니다."
+            f"\n제출 메시지는 코어 채널인 <#{self.writing_channel_id}> 에 표시됩니다."
         )
         return guide_message
 

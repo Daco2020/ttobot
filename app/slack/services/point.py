@@ -162,7 +162,7 @@ class PointService:
             raise BotException("유저 정보가 없어 글 제출 포인트를 지급할 수 없습니다.")
         
         rank_map = {}
-        channel_users = self._repo.fetch_channel_users(user.channel_id)
+        channel_users = self._repo.fetch_channel_users(user.writing_channel_id)
         for channel_user in channel_users:
             if channel_user.is_submit is True:
                 content = channel_user.recent_content
