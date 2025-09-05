@@ -301,43 +301,6 @@ def _modify_super_admin_subscription_channel(channel_id: str, user_id: str) -> N
     df.to_csv("store/subscriptions.csv", index=False, quoting=csv.QUOTE_ALL)
 
 
-# TODO: 방학기간에 담소에도 글을 보낼지에 대한 메시지 전송 로직
-# async def forward_message(
-#     ack: AsyncAck,
-#     body: ActionBodyType,
-#     client: AsyncWebClient,
-#     service: SlackService,
-#     point_service: PointService,
-# ) -> None:
-#     await ack()
-
-#     content_ts = body["actions"][0]["value"]
-#     source_channel = body["channel"]["id"]
-#     # target_channel = "C05J4FGB154"  # 자유로운 담소 채널 ID 테스트용
-#     target_channel = "C0672HTT36C"  # 자유로운 담소 채널 ID 운영용
-
-#     permalink_response = await client.chat_getPermalink(
-#         channel=source_channel, message_ts=content_ts
-#     )
-#     permalink = permalink_response["permalink"]
-#     content = service.get_content_by(ts=content_ts)
-
-#     # 담소 채널에 보내는 메시지
-#     text = f"<@{content.user_id}>님이 글을 공유했어요! \n👉 *<{permalink}|{content.title}>*"
-#     await client.chat_postMessage(channel=target_channel, text=text)
-
-#     # 나에게만 표시 메시지 수정하는 요청(slack bolt 에서는 지원하지 않음)
-#     requests.post(
-#         body["response_url"],
-#         json={
-#             "response_type": "ephemeral",
-#             "text": f"<#{target_channel}> 에 전송되었어요. 📨",
-#             "replace_original": True,
-#             # "delete_original": True, # 삭제도 가능
-#         },
-#     )
-
-
 async def open_intro_modal(
     ack: AsyncAck,
     body: ActionBodyType,
