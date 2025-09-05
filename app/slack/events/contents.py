@@ -1,7 +1,9 @@
+import asyncio
 import csv
 import re
 
 import pandas as pd
+from app.logging import logger
 
 from app.slack_notification import send_point_noti_message
 from app.slack.components import static_select
@@ -228,13 +230,27 @@ async def submit_view(
                 ),
             ],
         )
-        content.ts = message.get("ts", "")
+        message_ts = message.get("ts", "")
+        content.ts = message_ts
 
         await service.update_user_content(content)
 
     except Exception as e:
         message = f"{user.name}({user.channel_name}) 님의 제출이 실패했어요. {str(e)}"  # type: ignore
         raise BotException(message)  # type: ignore
+
+    try:
+        # 만약 글쓰기 채널이 아닌 기존 코어 채널로 제출한 글이라면 글쓰기 활동 안내 메시지를 보낸다.
+        if channel_id != settings.WRITING_CHANNEL:
+            await asyncio.sleep(3)  # 부모 메시지 딜레이를 감안하여 3초 대기
+            await client.chat_postMessage(
+                channel=channel_id,
+                thread_ts=message_ts,  # 스레드로 연결
+                text="새로운 글쓰기 활동이 시작했다는 걸 아시나요?\n또봇 [홈] 탭에서 [글쓰기 참여 신청하기]를 통해 함께할 수 있어요! 📝",
+            )
+    except Exception as e:
+        logger.error(f"글쓰기 활동 안내 메시지 전송 에러 👉 error: {str(e)} {user.name}({user.channel_name})")
+        pass
 
     # 포인트 지급 1. 글 제출 시 포인트 지급
     submission_point_msg, is_additional = point_service.grant_if_post_submitted(

@@ -594,7 +594,18 @@ async def handle_home_tab(
             type="home",
             blocks=[
                 HeaderBlock(
-                    text="✏️ 글쓰기 참여 신청",
+                    text="✏️ UWUW 글쓰기 참여 신청",
+                ),
+                SectionBlock(
+                    text="U want to Unended Writing",
+                ),
+                ContextBlock(
+                    elements=[
+                        TextObject(
+                            type="mrkdwn",
+                            text="지금 글쓰기 참여 신청을 하면 2주 단위 글쓰기를 4회 참여할 수 있어요.\n아래 [참여 신청하기]를 하면 제출할 '글쓰기 채널'을 안내드릴게요. \n제출일은 9월 14일, 28일, 10월 12일, 26일 이에요. ",
+                        ),
+                    ],
                 ),
                 ActionsBlock(
                     elements=[
