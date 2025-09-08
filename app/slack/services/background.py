@@ -109,6 +109,13 @@ class BackgroundService:
         # 구독 알림 메시지 데이터를 저장할 리스트
         subscription_messages: list[SubscriptionMessage] = []
 
+        # 글쓰기 참여자 목록을 로드합니다.
+        try:
+            writing_df = pd.read_csv("store/writing_participation.csv", dtype=str)
+            writing_user_ids = set(writing_df.get("user_id", pd.Series(dtype=str)).tolist())
+        except FileNotFoundError:
+            writing_user_ids = set()
+
         # 각 구독 대상자별로 처리를 시작합니다
         for target_user_id in target_user_ids:
             target_contents = filtered_contents[
@@ -131,7 +138,11 @@ class BackgroundService:
                         {
                             "user_id": subscription.user_id,
                             "target_user_id": target_user_id,
-                            "target_user_channel": subscription.target_user_channel,
+                            "target_user_channel": (
+                                settings.WRITING_CHANNEL
+                                if target_user_id in writing_user_ids
+                                else subscription.target_user_channel
+                            ),
                             "ts": content["ts"],
                             "title": content["title"],
                             "dt": content["dt"],
