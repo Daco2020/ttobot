@@ -298,8 +298,6 @@ class SlackRepository:
             contents = contents_df.filter(pl.col("user_id") == user.user_id).to_dicts()
             user.contents = [models.Content(**content) for content in contents]
 
-        print("users@@@@", users)
-
         return users
 
     def create_paper_plane(self, paper_plane: models.PaperPlane) -> None:
