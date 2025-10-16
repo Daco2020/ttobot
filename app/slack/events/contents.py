@@ -66,11 +66,11 @@ async def submit_command(
                 submit="글쓰기 참여 바로신청",
                 close="닫기",
                 blocks=[
-                    SectionBlock(text=f"현재는 [uwuw 글쓰기 채널]에서만 글을 제출할 수 있어요."),
+                    SectionBlock(text=f"현재는 <#{settings.WRITING_CHANNEL}>에서만 글을 제출할 수 있어요."),
                     ContextBlock(
                         elements=[
                             MarkdownTextObject(
-                                text="참여를 원하신다면 아래 [글쓰기 참여 바로신청] 버튼을 클릭해주세요.",
+                                text="참여를 원하신다면 아래 [글쓰기 참여 바로신청] 버튼을 클릭해주세요.\n이미 참여를 신청하셨다면 [닫기] 버튼을 눌러주세요.",
                             ),
                         ],
                     ),
