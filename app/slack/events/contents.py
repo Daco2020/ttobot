@@ -56,6 +56,29 @@ async def submit_command(
     await ack()
     callback_id = "submit_view"
 
+    if body["channel_id"] != user.writing_channel_id:
+        await client.views_open(
+            trigger_id=body["trigger_id"],
+            view=View(
+                type="modal",
+                callback_id="writing_participation_view",
+                title="글쓰기 참여 신청 안내",
+                submit="글쓰기 참여 바로신청",
+                close="닫기",
+                blocks=[
+                    SectionBlock(text=f"현재는 [uwuw 글쓰기 채널]에서만 글을 제출할 수 있어요."),
+                    ContextBlock(
+                        elements=[
+                            MarkdownTextObject(
+                                text="참여를 원하신다면 아래 [글쓰기 참여 바로신청] 버튼을 클릭해주세요.",
+                            ),
+                        ],
+                    ),
+                ],
+            ),
+        )
+        return
+
     # 어드민 유저는 제출하는 곳에 메세지가 전송됩니다.
     private_metadata = (
         body["channel_id"] if user.user_id in settings.ADMIN_IDS else user.writing_channel_id
