@@ -76,9 +76,9 @@ if settings.ENV == "prod":
             upload_queue, "interval", seconds=20, args=[store, slack_app]
         )
 
-        # 로그 업로드 스케줄러
-        log_trigger = IntervalTrigger(minutes=1, timezone=ZoneInfo("Asia/Seoul"))
-        async_schedule.add_job(upload_logs, trigger=log_trigger, args=[store])
+        # 로그 업로드 스케줄러 (비활성화)
+        # log_trigger = IntervalTrigger(minutes=1, timezone=ZoneInfo("Asia/Seoul"))
+        # async_schedule.add_job(upload_logs, trigger=log_trigger, args=[store])
 
         # 빅쿼리 업로드 스케줄러
         bigquery_trigger = IntervalTrigger(minutes=10, timezone=ZoneInfo("Asia/Seoul"))
@@ -118,17 +118,20 @@ if settings.ENV == "prod":
             )
 
     async def upload_logs(store: Store) -> None:
-        store.upload_all("logs")
+        """로그를 시트에 업로드하지 않고 로그 파일만 초기화합니다."""
+        # store.upload_all("logs")
         store.initialize_logs()
 
     async def upload_bigquery(queue: BigqueryQueue) -> None:
         try:
+            logger.info("BigQuery 업로드 작업 시작")
             await queue.upload()
+            logger.info("BigQuery 업로드 작업 완료")
         except Exception as e:
             trace = traceback.format_exc()
-            error = f"빅쿼리 업로드 중 에러가 발생했어요. {str(e)} {trace}"
-            message = f"🫢: {error=} 🕊️: {trace=}"
-            logger.error(message)
+            error = f"빅쿼리 업로드 중 에러가 발생했어요. {str(e)}"
+            message = f"🫢 BigQuery 업로드 에러\n에러: {str(e)}\n\n트레이스:\n{trace}"
+            logger.error(f"BigQuery 업로드 실패: {error}\n{trace}")
 
             await slack_app.client.chat_postMessage(
                 channel=settings.ADMIN_CHANNEL,
@@ -158,7 +161,7 @@ if settings.ENV == "prod":
 
         store = Store(client=SpreadSheetClient())
         await store.upload_queue()
-        store.upload_all("logs")
+        # store.upload_all("logs")
         store.initialize_logs()
 
         queue = BigqueryQueue(client=BigqueryClient())

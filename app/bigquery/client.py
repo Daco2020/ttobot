@@ -5,6 +5,7 @@ from typing import Any
 from google.cloud import bigquery
 from google.oauth2 import service_account
 from app.config import settings
+from app.logging import logger
 
 import pandas as pd
 from pandas_gbq import to_gbq
@@ -78,7 +79,7 @@ class BigqueryClient:
             table.time_partitioning = partitioning
 
         self.client.create_table(table)
-        print(f"{table_path}가 정상적으로 생성 됐습니다.")
+        logger.info(f"BigQuery 테이블 생성 완료: {table_path}")
 
     def run_query_to_dataframe(self, query: str) -> pd.DataFrame:
         """
@@ -150,7 +151,7 @@ class BigqueryClient:
             if_exists=if_exists,
             table_schema=self.schemas[table_name],
         )
-        print(f"{table_path}가 정상적으로 적재 됐습니다.")
+        logger.info(f"BigQuery 테이블 업데이트 완료: {table_path}, 행 수: {len(df)}, 모드: {if_exists}")
 
     def delete_table(
         self,
@@ -176,7 +177,7 @@ class BigqueryClient:
         query_job = self.client.query(qr)
         query_job.result()
 
-        print(f"{table_path}의 {where_clause}가 정상적으로 삭제 됐습니다.")
+        logger.info(f"BigQuery 테이블 삭제 완료: {table_path}, 조건: {where_clause}")
 
     def upsert_table(
         self,
@@ -225,7 +226,7 @@ class BigqueryClient:
         query_job = self.client.query(qr)
         query_job.result()
 
-        print(f"{target_path}의 upsert가 정상적으로 진행 됐습니다.")
+        logger.info(f"BigQuery 테이블 upsert 완료: {target_path}")
 
     def _read_schema(self, file_path: str) -> list[dict[str, Any]]:
         """
