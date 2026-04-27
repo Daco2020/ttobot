@@ -145,29 +145,33 @@
 
 ### 4-1. `POST /v1/points`
 
-- [ ] ✅ `point_type=curation` 다수 유저 처리 (`grant_if_curation_selected` 호출)
-- [ ] ✅ `point_type=village_conference` 처리
-- [ ] ✅ `point_type=special` + point/reason 정상
-- [ ] ⚠️ 비-admin → 403
-- [ ] ⚠️ `point_type=special` 인데 point=0 또는 reason="" → 400
-- [ ] 🌀 `user_ids` 빈 리스트 → 200 + 호출 0회
+- [x] ✅ `point_type=curation` 다수 유저 처리 (`grant_if_curation_selected` 호출 + 알림)
+- [x] ✅ `point_type=village_conference` 처리
+- [x] ✅ `point_type=special` + point/reason 정상
+- [x] ⚠️ 비-admin → 403
+- [x] ⚠️ 인증 누락 → 403
+- [x] ⚠️ `point_type=special` 인데 point=0 → 400
+- [x] ⚠️ `point_type=special` 인데 reason="" → 400
+- [x] 🌀 `user_ids` 빈 리스트 → 200 + 호출 0회
 
 ### 4-2. `POST /v1/send-messages`
 
-- [ ] ✅ admin이 다수 메시지 전송
-- [ ] ⚠️ 비-admin → 403
-- [ ] 🌀 `dto_list`가 빈 리스트 → 200 + 호출 0회
+- [x] ✅ admin이 다수 메시지 전송
+- [x] ⚠️ 비-admin → 403
+- [x] ⚠️ 인증 누락 → 403
+- [x] 🌀 `dto_list`가 빈 리스트 → 200 + 호출 0회
 
 ### 4-3. `GET /v1/inflearn/coupons`
 
-- [ ] ✅ admin → CSV 데이터 반환
-- [ ] ⚠️ 비-admin → 403
-- [ ] 🌀 CSV가 비어 있을 때 빈 리스트
+- [x] ✅ admin → CSV 데이터 반환
+- [x] ⚠️ 비-admin → 403
+- [x] ⚠️ 인증 누락 → 403
+- [x] 🌀 CSV가 비어 있을 때 빈 리스트
 
 ### 4-4. `GET /v1/writing-participation`
 
-- [ ] ✅ CSV 행을 dict 리스트로 반환
-- [ ] 🌀 CSV가 비어있거나 헤더만 있는 경우 빈 리스트
+- [x] ✅ CSV 행을 dict 리스트로 반환
+- [x] 🌀 CSV가 헤더만 있는 경우 빈 리스트
 
 ---
 
@@ -474,7 +478,7 @@
 - 1. API 인증/로그인: 16/16 ✅ (refresh 라우터 버그 발견 + 수정 완료)
 - 2. API 콘텐츠/메시지: 21/21 ✅ (category 필터 버그 발견 + 수정 완료, polars<1.0 핀)
 - 3. API 종이비행기: 22/22 ✅ (라우터 14 + ApiService 단위 8, 토~금 경계 포함)
-- 4. API 포인트/메시지/인프런/글쓰기: 0/9
+- 4. API 포인트/메시지/인프런/글쓰기: 18/18 ✅
 - 5. 슬랙 core: 0/30
 - 6. 슬랙 contents: 0/24
 - 7. 슬랙 community: 0/12
