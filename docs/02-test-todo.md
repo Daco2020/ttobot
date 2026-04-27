@@ -72,31 +72,31 @@
 
 ### 2-1. `GET /v1/contents`
 
-- [ ] ✅ "전체보기" 키워드 → 최신순으로 limit/offset 잘 적용
-- [ ] ✅ 일반 키워드 → 매칭된 콘텐츠 반환 + relevance 정렬
-- [ ] ✅ `category` 필터 적용
-- [ ] ✅ `job_category` 필터 적용
-- [ ] ⚠️ `limit > 50` → 422 (Query 검증)
-- [ ] 🌀 매칭되는 콘텐츠 없음 → `count=0, data=[]`
-- [ ] 🌀 키워드에 콤마/슬래시 포함 → 다중 키워드로 분리되는지
-- [ ] 🌀 `keyword` 빈 문자열 → 422 또는 빈 응답 (현 구현 동작 확인)
-- [ ] 🌀 `descending=False` 정렬
+- [x] ✅ "전체보기" 키워드 → 최신순으로 limit/offset 잘 적용
+- [x] ✅ 일반 키워드 → 매칭된 콘텐츠 반환 + relevance 정렬
+- [x] ✅ `category` 필터 — 키워드 검색 / 전체보기 양쪽 모두에서 동작. (버그 발견 후 수정 완료: `joined_df` 를 필터하도록 변경 + 분기를 전체보기 앞으로 이동. 별도 회귀: polars 1.x 에서 `.apply`/`.groupby` 제거 → `polars<1.0` 으로 핀)
+- [x] ✅ `job_category` 필터 적용
+- [x] ⚠️ `limit > 50` → 422 (Query 검증)
+- [x] 🌀 매칭되는 콘텐츠 없음 → `count=0, data=[]`
+- [x] 🌀 키워드에 콤마/슬래시 포함 → 다중 키워드로 분리되는지
+- [x] 🌀 `keyword` 빈 문자열(누락) → 422
+- [x] 🌀 `descending=False` 정렬
 
 ### 2-2. `GET /v1/messages`
 
-- [ ] ✅ admin이 조회 → slack 메시지 dict 반환 (slack mock)
-- [ ] ✅ `multiple_messages=True` → 리스트 반환
-- [ ] ✅ `type=reply` → conversations_replies 호출
-- [ ] ⚠️ 비-admin 유저 → 403
-- [ ] ⚠️ 메시지가 검색되지 않음 → 404
-- [ ] ⚠️ Slack `SlackApiError` → 409
-- [ ] 🌀 인증 누락 → 403
+- [x] ✅ admin이 조회 → slack 메시지 dict 반환 (slack mock)
+- [x] ✅ `multiple_messages=True` → 리스트 반환
+- [x] ✅ `type=reply` → conversations_replies 호출
+- [x] ⚠️ 비-admin 유저 → 403
+- [x] ⚠️ 메시지가 검색되지 않음 → 404
+- [x] ⚠️ Slack `SlackApiError` → 409
+- [x] 🌀 인증 누락 → 403
 
 ### 2-3. `POST /v1/messages`
 
-- [ ] ✅ admin이 메시지 수정 + permalink 반환
-- [ ] ⚠️ 비-admin → 403
-- [ ] ⚠️ Slack `SlackApiError` → 409
+- [x] ✅ admin이 메시지 수정 + permalink 반환
+- [x] ⚠️ 비-admin → 403
+- [x] ⚠️ Slack `SlackApiError` → 409
 
 ---
 
@@ -468,7 +468,7 @@
 
 - 0. 사전 작업: 7/7 ✅
 - 1. API 인증/로그인: 16/16 ✅ (refresh 라우터 버그 발견 + 수정 완료)
-- 2. API 콘텐츠/메시지: 0/15
+- 2. API 콘텐츠/메시지: 21/21 ✅ (category 필터 버그 발견 + 수정 완료, polars<1.0 핀)
 - 3. API 종이비행기: 0/13
 - 4. API 포인트/메시지/인프런/글쓰기: 0/9
 - 5. 슬랙 core: 0/30

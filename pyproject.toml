@@ -14,7 +14,9 @@ dependencies = [
     "PyJWT>=2.9",
     # 데이터/유틸
     "pandas>=2.1",
-    "polars>=0.19",
+    # polars 1.x 에서 .apply / .groupby 가 제거되어 contents.py 가 깨진다.
+    # 운영 환경 호환을 위해 0.19 계열로 핀.
+    "polars>=0.19,<1.0",
     "orjson>=3.8",
     "regex>=2023.12",
     "tenacity>=9.0",

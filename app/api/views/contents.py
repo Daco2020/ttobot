@@ -91,6 +91,10 @@ async def fetch_contents(
         users_df, on="user_id", how="inner"
     )
 
+    # 카테고리 필터는 전체보기와 키워드 검색 양쪽 모두에 적용한다.
+    if category:
+        joined_df = joined_df.filter(joined_df["category"] == category)
+
     if keyword == "전체보기":
         # '전체보기'는 최신순으로 정렬하여 반환
         contents = joined_df.sort(["dt"], descending=descending)
@@ -102,9 +106,6 @@ async def fetch_contents(
             )
         )
         return dto.ContentResponse(count=count, data=data)
-
-    if category:
-        contents_df = contents_df.filter(contents_df["category"] == category)
 
     # 키워드 추출, TODO: 명사 단위로 쪼개서 검색하기
     keywords = [
