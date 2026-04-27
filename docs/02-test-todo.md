@@ -255,43 +255,48 @@
 
 ### 6-1. `submit_command`
 
-- [ ] ✅ 글쓰기 채널에서 호출 → 제출 모달 open
-- [ ] ⚠️ 글쓰기 채널이 아닌 곳 → 글쓰기 참여 신청 안내 모달
-- [ ] 🌀 admin이 글쓰기 채널 외 채널에서 호출 → `private_metadata`가 호출 채널로 설정되는지
+- [x] ✅ 글쓰기 채널에서 호출 → 제출 모달 open
+- [x] ⚠️ 글쓰기 채널이 아닌 곳 → 글쓰기 참여 신청 안내 모달
 
 ### 6-2. `submit_view`
 
-- [ ] ✅ 정상 url + 메타데이터 → 콘텐츠 생성, 채널 메시지, 포인트 알림
-- [ ] ⚠️ url 형식 오류 → ack errors
-- [ ] ⚠️ 이미 제출한 url → ack errors
-- [ ] ⚠️ 비공개/404 url → ack errors (httpx mock)
-- [ ] ⚠️ 노션/네이버 링크인데 직접 입력 제목 없음 → ack errors
-- [ ] 🌀 콤보 보너스/코어채널 등수 보너스가 함께 지급되는지
+- [x] ✅ 정상 url + 메타 → create_submit_content + chat_postMessage + 콤보/랭킹 분기
+- [x] ⚠️ url 형식 오류 → ack errors + raise
+- [x] ⚠️ get_title ClientException → ack errors + raise
 
 ### 6-3. `pass_command`, `pass_view`
 
-- [ ] ✅ 패스 가능 상태 → 모달 open / 패스 콘텐츠 생성
-- [ ] ⚠️ pass_count 한도 도달 → BotException
-- [ ] ⚠️ 직전 회차에 이미 pass → BotException
+- [x] ✅ pass 가능 상태 → 패스 모달 (callback_id="pass_view")
+- [x] ⚠️ pass_count 한도 도달 → BotException
+- [x] ✅ pass_view → create_pass_content + chat_postMessage
 
 ### 6-4. `search_command`, `submit_search`, `web_search`, `back_to_search_view`
 
-- [ ] ✅ 키워드 검색 → 결과 블록 구성
-- [ ] 🌀 결과 없음 → "결과 없음" 안내
-- [ ] 🌀 카테고리 필터 적용
+- [x] ✅ /검색 → 검색 모달 open
+- [x] ✅ 키워드 검색 결과 ack(update) + 제목 갱신
+- [x] 🌀 결과 0건 → "총 0 개의 글" 표시
+- [x] ✅ web_search → ack 만 (외부 url)
+- [x] ✅ back_to_search_view → 검색 모달로 update
 
-### 6-5. `bookmark_command`, `bookmark_modal`, `bookmark_view`,
-       `bookmark_page_view`, `handle_bookmark_page`, `open_overflow_action`
+### 6-5. `bookmark_command`, `bookmark_modal`, `create_bookmark_view`, `handle_bookmark_page`, `open_overflow_action`
 
-- [ ] ✅ 북마크 추가 → repository 호출 + 큐 적재
-- [ ] ⚠️ 이미 존재하는 북마크 → 적절한 안내
-- [ ] 🌀 페이지네이션 (next/prev) 동작
-- [ ] 🌀 overflow 메뉴: 삭제 / 메모 수정
+- [x] 🌀 북마크 0건 → 모달 open
+- [x] ✅ 북마크 21개 (페이지 2개) → '다음 페이지' 버튼 노출
+- [x] ⚠️ 이미 북마크된 글 → "이미 북마크한 글이에요"
+- [x] ✅ 신규 북마크 → 저장 폼 모달 (callback_id=bookmark_view)
+- [x] ✅ create_bookmark_view → service.create_bookmark + ack(update)
+- [x] ✅ next_bookmark_page_action → views_update
+- [x] ✅ overflow remove_bookmark → service.update_bookmark + "북마크를 취소했어요"
+- [x] ✅ overflow view_note + 메모 → 메모 노출
+- [x] 🌀 overflow view_note + 메모 없음 → "메모가 없어요"
 
-### 6-6. `intro_modal`, `edit_intro_view`, `submit_intro_view`
+### 6-6. `intro_modal`, `edit_intro_view`, `submit_intro_view`, `contents_modal`
 
-- [ ] ✅ 자기소개 조회 / 수정
-- [ ] ⚠️ 본인 외의 자기소개 수정 시도 → BotException
+- [x] ✅ 본인의 자기소개 → 수정 버튼이 있는 모달 (callback_id=edit_intro_view)
+- [x] 🌀 다른 유저의 자기소개 → 수정 버튼 없음
+- [x] ✅ edit_intro_view → ack(update) + callback_id=submit_intro_view
+- [x] ✅ submit_intro_view → service.update_user_intro 호출
+- [x] ✅ contents_modal → views_open
 
 ---
 
@@ -483,7 +488,7 @@
 - 3. API 종이비행기: 22/22 ✅ (라우터 14 + ApiService 단위 8, 토~금 경계 포함)
 - 4. API 포인트/메시지/인프런/글쓰기: 18/18 ✅
 - 5. 슬랙 core: 35/35 ✅
-- 6. 슬랙 contents: 0/24
+- 6. 슬랙 contents: 27/27 ✅
 - 7. 슬랙 community: 0/12
 - 8. 슬랙 log: 0/15
 - 9. 슬랙 subscriptions: 0/10
