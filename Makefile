@@ -1,17 +1,23 @@
 prod:
-	nohup uvicorn app:app --host 0.0.0.0 --port 3389 &
+	nohup uv run uvicorn app:app --host 0.0.0.0 --port 3389 &
 
 dev:
-	ENV=dev uvicorn app:app --host 0.0.0.0 --port 8000 --reload
+	ENV=dev uv run uvicorn app:app --host 0.0.0.0 --port 8000 --reload
 
 run-server:
-	ENV=prod uvicorn app:app --host 0.0.0.0
-
-freeze:
-	pip freeze > requirements.txt
+	ENV=prod uv run uvicorn app:app --host 0.0.0.0
 
 install:
-	pip install -r requirements.txt
+	uv sync
+
+freeze:
+	uv export --format requirements-txt --no-hashes > requirements.txt
+
+test:
+	uv run pytest
+
+lint:
+	uv run ruff check .
 
 kill-server:
 	@PID=$$(ps -ef | grep "ttobot" | grep -v "grep" | awk '{print $$2}'); \
