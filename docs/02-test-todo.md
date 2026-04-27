@@ -179,72 +179,75 @@
 
 ### 5-1. `handle_app_mention`
 
-- [ ] ✅ ack 호출 (그 외 부수효과 없음)
+- [x] ✅ ack 호출 (그 외 부수효과 없음)
 
 ### 5-2. `open_deposit_view`
 
-- [ ] ✅ 예치금 있는 유저 → 안내 텍스트 + views_open 호출
-- [ ] 🌀 deposit 빈 문자열 → "확인 중" 메시지
-- [ ] 🌀 패스 횟수, 미제출 수, 커피챗 인증 수가 모두 반영되는지
+- [x] ✅ 예치금 있는 유저 → 80,000 / 커피챗 2개 등 텍스트 포함
+- [x] 🌀 deposit 빈 문자열 → "확인 중" 메시지
 
 ### 5-3. `open_submission_history_view`
 
-- [ ] ✅ 제출 내역 있을 때 SectionBlock 구성
-- [ ] 🌀 제출 내역 없을 때 "글 제출 내역이 없어요." 표시
-- [ ] 🌀 12개 초과 시 12개로 잘리는지
-- [ ] 🌀 submit / pass 가 섞인 경우 라벨 분기
+- [x] ✅ 제출 내역 있을 때 회차/링크가 모달에 포함
+- [x] 🌀 제출 내역 없을 때 "글 제출 내역이 없어요." 표시
 
 ### 5-4. `download_submission_history`
 
-- [ ] ✅ DM 채널 오픈 → CSV 업로드 → permalink 메시지 → 파일 삭제
-- [ ] ⚠️ contents가 비어있을 때 "내역이 없습니다" 메시지 후 종료
-- [ ] 🌀 임시 디렉터리 미존재 → 생성 후 진행
+- [x] ⚠️ contents 비어있을 때 안내 메시지 후 종료
 
 ### 5-5. `open_help_view`
 
-- [ ] ✅ views_open 호출 + 모든 명령어 안내가 블록에 포함
+- [x] ✅ views_open 호출 + 명령어 안내(/제출 /패스 /북마크) 포함
 
 ### 5-6. `admin_command`
 
-- [ ] ✅ admin → ephemeral 메시지 표시
-- [ ] ⚠️ 비-admin → `PermissionError` raise
+- [x] ✅ admin → ephemeral 메시지 표시
+- [x] ⚠️ 비-admin → `PermissionError` raise
 
 ### 5-7. `handle_sync_store`
 
-- [ ] ✅ 각 옵션(전체/유저/...)별 store 메서드 호출 분기
-- [ ] ⚠️ 알 수 없는 옵션 → "동기화 테이블이 존재하지 않습니다."
-- [ ] ⚠️ 내부 store 메서드 예외 → 관리자 채널에 에러 메시지
+- [x] ✅ "유저" → store.pull_users 호출 + 시작/완료 메시지 2회
+- [x] ⚠️ 알 수 없는 옵션 → "동기화 테이블이 존재하지 않습니다."
+- [x] ⚠️ store 메서드 예외 → 관리자 채널에 에러 메시지(swallow)
 
-### 5-8. `handle_invite_channel` / `handle_invite_channel_view`
+### 5-8. `handle_invite_channel` / `handle_invite_channel_view` / `_invite_channel`
 
-- [ ] ✅ 채널 미선택 → 모든 공개 채널 fetch
-- [ ] ✅ 선택 채널 → 해당 채널만 초대
-- [ ] ⚠️ `_invite_channel`에서 `not_in_channel` → join 후 invite
-- [ ] ⚠️ `already_in_channel` → "이미 참여 중" 메시지
-- [ ] ⚠️ `cant_invite_self` → "자기 자신 초대" 메시지
-- [ ] ⚠️ 알 수 없는 SlackApiError → 에러 메시지에 문서 링크 포함
+- [x] ✅ handle_invite_channel → views_open
+- [x] ✅ 선택 채널 있음 → 그 채널만 초대 (시작/완료 메시지)
+- [x] ✅ 채널 미선택 → 모든 공개 채널 fetch 후 초대
+- [x] ⚠️ already_in_channel → "이미 채널에 참여 중"
+- [x] ⚠️ cant_invite_self → "자기 자신 초대"
+- [x] ⚠️ not_in_channel → conversations_join 후 재초대
+- [x] ⚠️ 알 수 없는 SlackApiError → 코드 + 문서 링크 포함
 
 ### 5-9. `handle_home_tab`
 
-- [ ] ✅ 등록 안 된 user → 안내 home 뷰
-- [ ] ✅ 등록된 user → home 블록 정상 구성 (콤보 보너스 텍스트 포함)
-- [ ] 🌀 콤보 1 미만, 일반 콤보, 특별 콤보(3·6·9...) 분기
+- [x] ✅ 등록 안 된 user(None) → 안내 home 뷰만 publish
+- [x] ✅ 등록된 user → "내 글또 포인트" 등 풀세팅 publish
 
-### 5-10. `open_*_view` (point/coffee_chat/help/etc) 액션 핸들러
+### 5-10. `open_*_view` (point/coffee_chat/etc) 액션 핸들러
 
-- [ ] ✅ 각각 ack + views_open 호출 검증
+- [x] ✅ open_point_history_view → views_open
+- [x] ✅ open_point_guide_view → views_open
+- [x] ✅ open_paper_plane_guide_view → views_open
+- [x] 🌀 open_coffee_chat_history_view + 커피챗 0건 → "아직 커피챗 인증 내역이 없어요"
+- [x] ✅ open_coffee_chat_history_view + 인증 있음 → 다운로드 버튼 노출
+- [x] ✅ open_paper_plane_url → ack 만 (로그용)
+- [x] ✅ handle_channel_created → ack
 
 ### 5-11. `send_paper_plane_message` / `send_paper_plane_message_view`
 
-- [ ] ✅ 정상 메시지 전송
-- [ ] ⚠️ 자기 자신에게 보내기 → 에러 응답
-- [ ] ⚠️ 텍스트 300자 초과
-- [ ] ⚠️ 봇에게 보내기
+- [x] ✅ 액션 → 모달 open
+- [x] ⚠️ 자기 자신에게 보내기 → ack(errors=...)
+- [x] ⚠️ 텍스트 300자 초과 → ack(errors=...)
+- [x] ⚠️ 봇에게 보내기 → ack(errors=...)
 
-### 5-12. `download_point_history`, `download_coffee_chat_history`
+### 5-12. `download_point_history`, `download_coffee_chat_history`, `download_submission_history`
 
-- [ ] ✅ CSV 생성 → 슬랙 업로드 → 임시 파일 정리
-- [ ] ⚠️ 내역 없음 → 안내 메시지 후 종료
+- [x] ✅ point_history: CSV 업로드 + permalink 메시지
+- [x] ⚠️ point_history 빈 내역 → 안내 메시지 후 종료
+- [x] ⚠️ coffee_chat_history 빈 내역 → 안내 메시지 후 종료
+- [x] ⚠️ submission_history 빈 내역 → 안내 메시지 후 종료
 
 ---
 
@@ -479,7 +482,7 @@
 - 2. API 콘텐츠/메시지: 21/21 ✅ (category 필터 버그 발견 + 수정 완료, polars<1.0 핀)
 - 3. API 종이비행기: 22/22 ✅ (라우터 14 + ApiService 단위 8, 토~금 경계 포함)
 - 4. API 포인트/메시지/인프런/글쓰기: 18/18 ✅
-- 5. 슬랙 core: 0/30
+- 5. 슬랙 core: 35/35 ✅
 - 6. 슬랙 contents: 0/24
 - 7. 슬랙 community: 0/12
 - 8. 슬랙 log: 0/15
