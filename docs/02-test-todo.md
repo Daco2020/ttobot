@@ -104,36 +104,40 @@
 
 ### 3-1. `POST /v1/paper-planes`
 
-- [ ] ✅ 정상 발송 → 201 + service.send_paper_plane 호출
-- [ ] ⚠️ 자기 자신에게 발송 → 400
-- [ ] ⚠️ 텍스트 300자 초과 → 400
-- [ ] ⚠️ receiver_id가 BOT_IDS에 포함 → 400
-- [ ] ⚠️ receiver 없는 유저 → 404 (service 내부)
-- [ ] ⚠️ 인증 누락 → 403
-- [ ] 🌀 정확히 300자 → 성공
-- [ ] 🌀 SUPER_ADMIN 발신자는 횟수 제한이 적용되지 않는지 (현재 코드는 비활성화 상태이지만 분기 자체는 검증)
+- [x] ✅ 정상 발송 → 201 + service.send_paper_plane 호출
+- [x] ⚠️ 자기 자신에게 발송 → 400
+- [x] ⚠️ 텍스트 300자 초과 → 400
+- [x] ⚠️ receiver_id가 BOT_IDS에 포함 → 400
+- [x] ⚠️ receiver 없는 유저 → 404 (service 내부)
+- [x] ⚠️ 인증 누락 → 403
+- [x] 🌀 정확히 300자 → 성공
+- [x] 🌀 SUPER_ADMIN 발신자도 분기 통과해 service까지 도달 (현재 코드는 비활성화 상태)
 
 ### 3-2. `GET /v1/paper-planes/sent`
 
-- [ ] ✅ 보낸 종이비행기 페이지네이션 응답
-- [ ] ⚠️ 인증 누락 → 403
-- [ ] 🌀 limit > 1000 → 422
-- [ ] 🌀 offset 매우 큼 → 빈 data
+- [x] ✅ 보낸 종이비행기 페이지네이션 응답
+- [x] ⚠️ 인증 누락 → 403
+- [x] 🌀 limit > 1000 → 422
+- [x] 🌀 offset 매우 큼 → 빈 data
 
 ### 3-3. `GET /v1/paper-planes/received`
 
-- [ ] ✅ 받은 종이비행기 응답
-- [ ] ⚠️ 인증 누락 → 403
+- [x] ✅ 받은 종이비행기 응답
+- [x] ⚠️ 인증 누락 → 403
 
 ### 3-4. `ApiService.send_paper_plane`
 
-- [ ] ✅ receiver 존재 → PaperPlane 생성 + chat_postMessage 두 번 호출
-- [ ] ⚠️ receiver 없음 → HTTPException(404)
+- [x] ✅ receiver 존재 → PaperPlane 생성 + repo create + 큐 적재 + chat_postMessage 2번
+- [x] ⚠️ receiver 없음 → HTTPException(404)
 
 ### 3-5. `ApiService.fetch_current_week_paper_planes`
 
-- [ ] ✅ 토~금 범위 내 비행기 필터
-- [ ] 🌀 토요일 00:00 경계 / 금요일 23:59:59 경계 / 범위 밖
+- [x] ✅ 토~금 범위 내 비행기 필터
+- [x] 🌀 토요일 00:00 정시 → 포함 (시작 boundary)
+- [x] 🌀 시작 1초 전 → 제외
+- [x] 🌀 금요일 23:59:59 → 포함 (end boundary)
+- [x] 🌀 다음주 토요일 00:00 → 제외
+- [x] 🌀 비행기 0건 → 빈 리스트
 
 ---
 
@@ -469,7 +473,7 @@
 - 0. 사전 작업: 7/7 ✅
 - 1. API 인증/로그인: 16/16 ✅ (refresh 라우터 버그 발견 + 수정 완료)
 - 2. API 콘텐츠/메시지: 21/21 ✅ (category 필터 버그 발견 + 수정 완료, polars<1.0 핀)
-- 3. API 종이비행기: 0/13
+- 3. API 종이비행기: 22/22 ✅ (라우터 14 + ApiService 단위 8, 토~금 경계 포함)
 - 4. API 포인트/메시지/인프런/글쓰기: 0/9
 - 5. 슬랙 core: 0/30
 - 6. 슬랙 contents: 0/24
