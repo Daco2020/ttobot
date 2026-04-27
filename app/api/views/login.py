@@ -80,15 +80,15 @@ async def slack_auth_refresh(
 ):
     try:
         decoded_payload = decode_token(refresh_token)
-        if decoded_payload.get("type") != "refresh":
-            return HTTPException(status_code=403, detail="토큰이 유효하지 않습니다.")
-
-        user = service.get_user_by(user_id=decoded_payload["user_id"])
-        if not user:
-            return HTTPException(status_code=404, detail="해당하는 유저가 없습니다.")
-
     except PyJWTError:
-        return HTTPException(status_code=403, detail="토큰이 유효하지 않습니다.")
+        raise HTTPException(status_code=403, detail="토큰이 유효하지 않습니다.")
+
+    if decoded_payload.get("type") != "refresh":
+        raise HTTPException(status_code=403, detail="토큰이 유효하지 않습니다.")
+
+    user = service.get_user_by(user_id=decoded_payload["user_id"])
+    if not user:
+        raise HTTPException(status_code=404, detail="해당하는 유저가 없습니다.")
 
     access_token = encode_token(
         payload={"user_id": user.user_id}, expires_delta=timedelta(days=1)

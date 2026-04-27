@@ -13,13 +13,13 @@
 
 ## 0. 사전 작업
 
-- [ ] uv 가상환경 전환 (`pyproject.toml`, `uv.lock`)
-- [ ] `Makefile` `test` 타겟 추가 (`uv run pytest`)
-- [ ] `test/conftest.py` 정비 — 환경 변수, settings override, fake slack client
-- [ ] `test/factories.py` — `make_user()`, `make_content()`, `make_paper_plane()` 등
-- [ ] `test/api/conftest.py` — FastAPI `TestClient`, 토큰 발급 헬퍼
-- [ ] `test/slack/conftest.py` — slack_app/client mock, body 빌더
-- [ ] 기존 `test_point.py`, `test_reminder.py` → `test/services/` 이동
+- [x] uv 가상환경 전환 (`pyproject.toml`, `uv.lock`)
+- [x] `Makefile` `test` 타겟 추가 (`uv run pytest`)
+- [x] `test/conftest.py` 정비 — 환경 변수, settings override, fake slack client
+- [x] `test/factories.py` — `make_user()`, `make_content()`, `make_paper_plane()` 등
+- [x] `test/api/conftest.py` — FastAPI `TestClient`, 토큰 발급 헬퍼
+- [x] `test/slack/conftest.py` — slack_app/client mock, body 빌더
+- [x] 기존 `test_point.py`, `test_reminder.py` → `test/services/` 이동
 
 ---
 
@@ -27,43 +27,44 @@
 
 ### 1-1. `encode_token` / `decode_token`
 
-- [ ] ✅ 정상 페이로드 인코드 → 디코드 시 `user_id`, `iss`, `iat`, `exp` 보존
-- [ ] ⚠️ 만료된 토큰 → `decode_token`이 예외 발생
-- [ ] ⚠️ 잘못된 secret/algorithm → 예외 발생
-- [ ] 🌀 페이로드에 한국어/특수문자 포함되어도 round-trip 보존
+- [x] ✅ 정상 페이로드 인코드 → 디코드 시 `user_id`, `iss`, `iat`, `exp` 보존
+- [x] ⚠️ 만료된 토큰 → `decode_token`이 예외 발생
+- [x] ⚠️ 잘못된 secret/algorithm → 예외 발생
+- [x] 🌀 페이로드에 한국어/특수문자 포함되어도 round-trip 보존
 
 ### 1-2. `current_user` 의존성
 
-- [ ] ✅ 정상 access_token + 유효한 user → `SimpleUser` 반환
-- [ ] ⚠️ Authorization 헤더 없음 → 403 "토큰이 존재하지 않습니다."
-- [ ] ⚠️ 토큰 디코딩 실패 → 403 "토큰이 유효하지 않습니다."
-- [ ] ⚠️ refresh 타입 토큰을 access로 사용 → 403
-- [ ] ⚠️ 디코딩은 성공하지만 user 미존재 → 404
-- [ ] 🌀 user_id가 빈 문자열 → 404
+- [x] ✅ 정상 access_token + 유효한 user → `SimpleUser` 반환
+- [x] ⚠️ Authorization 헤더 없음 → 403 "토큰이 존재하지 않습니다."
+- [x] ⚠️ 토큰 디코딩 실패 → 403 "토큰이 유효하지 않습니다."
+- [x] ⚠️ refresh 타입 토큰을 access로 사용 → 403
+- [x] ⚠️ 디코딩은 성공하지만 user 미존재 → 404
+- [x] 🌀 user_id가 빈 문자열 → 404
 
 ### 1-3. `GET /v1/slack/login`
 
-- [ ] ✅ state 발급 후 redirect_url 반환
-- [ ] 🌀 state_store 호출 횟수/인자 검증
+- [x] ✅ state 발급 후 redirect_url 반환
+- [x] 🌀 state_store 호출 횟수/인자 검증 (authorize_url_generator.generate 호출 검증으로 대체)
 
 ### 1-4. `GET /v1/slack/auth`
 
-- [ ] ✅ code 정상 → access/refresh 토큰 JSON 반환 (oauth_flow.run_installation mock)
-- [ ] ⚠️ `error` 쿼리 파라미터 존재 → 404
-- [ ] ⚠️ `code`가 None → 403
-- [ ] ⚠️ `oauth_flow.run_installation`이 None 반환 → 403
+- [x] ✅ code 정상 → access/refresh 토큰 JSON 반환 (oauth_flow.run_installation mock)
+- [x] ⚠️ `error` 쿼리 파라미터 존재 → 404
+- [x] ⚠️ `code`가 None → 403
+- [x] ⚠️ `oauth_flow.run_installation`이 None 반환 → 403
 
 ### 1-5. `GET /v1/slack/auth/refresh`
 
-- [ ] ✅ refresh 토큰으로 access 재발급
-- [ ] ⚠️ access 타입 토큰을 refresh로 사용 → 403 처리
-- [ ] ⚠️ user 미존재 → 404 처리
-- [ ] ⚠️ 토큰 디코드 실패 → 403 처리
+- [x] ✅ refresh 토큰으로 access 재발급
+- [x] ⚠️ access 타입 토큰을 refresh로 사용 → 403 (버그 수정 완료: `return HTTPException` → `raise HTTPException`)
+- [x] ⚠️ user 미존재 → 404
+- [x] ⚠️ 토큰 디코드 실패 → 403
+- [x] 🌀 만료된 refresh 토큰 → 403
 
 ### 1-6. `GET /v1/slack/me`
 
-- [ ] ✅ 인증된 유저 → `SimpleUser` JSON 반환
-- [ ] ⚠️ 인증 누락 → 403
+- [x] ✅ 인증된 유저 → `SimpleUser` JSON 반환
+- [x] ⚠️ 인증 누락 → 403
 
 ---
 
@@ -465,8 +466,8 @@
 
 전체 항목 수와 완료 여부를 한눈에 보기 위한 칸. 대략적인 % 또는 N/M 형태로 갱신.
 
-- 0. 사전 작업: 0/7
-- 1. API 인증/로그인: 0/15
+- 0. 사전 작업: 7/7 ✅
+- 1. API 인증/로그인: 16/16 ✅ (refresh 라우터 버그 발견 + 수정 완료)
 - 2. API 콘텐츠/메시지: 0/15
 - 3. API 종이비행기: 0/13
 - 4. API 포인트/메시지/인프런/글쓰기: 0/9
