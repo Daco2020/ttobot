@@ -304,30 +304,30 @@
 
 ### 7-1. `handle_coffee_chat_message`
 
-- [ ] ✅ 일반 메시지 (스레드 아님) → ephemeral 인증 안내 전송
-- [ ] ✅ 답글 메시지 + 인증 가능 → reaction_add + 포인트 지급
-- [ ] ⚠️ 답글이지만 `check_coffee_chat_proof`에서 BotException → 무동작
-- [ ] ⚠️ subtype="message_changed" + thread → 무시
-- [ ] 🌀 file_share 첨부
+- [x] ✅ 일반(스레드 아님) → ephemeral 인증 안내 (cancel/submit 버튼 둘 다 포함)
+- [x] ✅ 답글 메시지 + 인증 가능 → reactions_add + 포인트 지급
+- [x] ⚠️ check_coffee_chat_proof BotException → 조용히 종료
+- [x] ⚠️ subtype="message_changed" + 답글 → 무동작
 
 ### 7-2. `cancel_coffee_chat_proof_button`
 
-- [ ] ✅ ephemeral 메시지 삭제 호출 (requests.post mock)
+- [x] ✅ requests.post 로 ephemeral 삭제 (delete_original=True)
 
 ### 7-3. `submit_coffee_chat_proof_button`
 
-- [ ] ✅ views_open 호출 + private_metadata 설정
+- [x] ✅ views_open + private_metadata(ephemeral_url, message_ts) JSON 직렬화 검증
 
 ### 7-4. `submit_coffee_chat_proof_view`
 
-- [ ] ✅ 본인 포함 2명 이상 → reaction + 포인트 + create_coffee_chat_proof
-- [ ] ⚠️ 1명만 선택 → ack errors
-- [ ] 🌀 참여자 호출 메시지 thread_ts가 결과에 반영되는지
+- [x] ⚠️ 본인만 선택(1명) → ack(errors=...)
+- [x] ✅ 본인 + 2명 이상 → reaction + 포인트 + 호출 메시지(본인 제외) + create_coffee_chat_proof + ephemeral 삭제
+- [x] 🌀 호출 메시지의 thread_ts 가 create_coffee_chat_proof.participant_call_thread_ts 로 전달
+- [x] 🌀 본인 + 1명 → 1명만 호출
 
 ### 7-5. `paper_plane_command`
 
-- [ ] ✅ 모달 open
-- [ ] 🌀 SUPER_ADMIN은 무한, 일반 유저도 현재 무한(코드 값)
+- [x] 🌀 SUPER_ADMIN → 무한(∞) 표시
+- [x] 🌀 일반 유저도 현재 코드 상 무한(∞) + send/open 버튼 노출
 
 ---
 
@@ -489,7 +489,7 @@
 - 4. API 포인트/메시지/인프런/글쓰기: 18/18 ✅
 - 5. 슬랙 core: 35/35 ✅
 - 6. 슬랙 contents: 27/27 ✅
-- 7. 슬랙 community: 0/12
+- 7. 슬랙 community: 11/11 ✅
 - 8. 슬랙 log: 0/15
 - 9. 슬랙 subscriptions: 0/10
 - 10. 슬랙 writing_participation: 0/7
