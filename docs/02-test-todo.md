@@ -335,33 +335,37 @@
 
 ### 8-1. `handle_comment_data` / `handle_post_data`
 
-- [ ] ✅ 큐(`comments_upload_queue`/`posts_upload_queue`)에 정확한 데이터 push
+- [x] ✅ comments_upload_queue 에 정확한 dict push (ts=thread_ts, comment_ts=event ts)
+- [x] ✅ posts_upload_queue 에 정확한 dict push
 
 ### 8-2. `handle_reaction_added`
 
-- [ ] ✅ 일반 리액션 → emoji 큐 적재만 수행
-- [ ] ✅ 공지 채널 + `noti-check` + 첫 확인 + 3일 이내 → 포인트 지급 + 기록 저장
-- [ ] ⚠️ 스레드 메시지인 경우 → 무시
-- [ ] ⚠️ 이미 확인한 경우 → 무시
-- [ ] ⚠️ 3일 초과 → 무시
-- [ ] ✅ PRIMARY 채널 + `catch-kyle` + 1일 이내 + super_admin 글 → 포인트
-- [ ] ⚠️ 이미 확인 / 1일 초과 / super_admin 글 아님 → 무시
+- [x] ✅ 일반 리액션 → emoji 큐 적재만
+- [x] ✅ 공지 채널 + noti-check + 첫 확인 + 3일 이내 → 포인트 + 기록 저장
+- [x] ⚠️ 스레드 메시지 → 포인트 X
+- [x] ⚠️ 이미 확인 → 포인트 X
+- [x] ⚠️ 3일 초과 → 포인트 X
+- [x] ✅ PRIMARY 채널 + catch-kyle + 1일 이내 + super_admin 글 → 포인트
+- [x] ⚠️ 1일 초과 → 포인트 X
+- [x] ⚠️ 글 작성자가 super_admin 아님 → 포인트 X
+- [x] ⚠️ 이미 확인한 글 → 포인트 X
 
 ### 8-3. `_is_thread_message`
 
-- [ ] ✅ thread_ts 없음 → False
-- [ ] ✅ thread_ts == ts → False
-- [ ] ✅ thread_ts != ts → True
-- [ ] 🌀 메시지 미존재 → False
+- [x] ✅ thread_ts 없음 → False
+- [x] ✅ thread_ts == ts → False (댓글 있는 일반 메시지)
+- [x] ✅ thread_ts != ts → True
+- [x] 🌀 messages 비어있음 → False
 
 ### 8-4. `_is_checked_notice` / `_write_checked_notice` & super_admin 버전
 
-- [ ] ✅ 신규 기록 작성 → 다음 호출에서 True
-- [ ] 🌀 파일 미존재 → False
+- [x] 🌀 파일 미존재 → False (notice / super_admin 각각)
+- [x] ✅ 신규 기록 작성 → 다음 호출에서 True (notice / super_admin 각각)
+- [x] 🌀 다른 user_id → False (notice)
 
 ### 8-5. `handle_reaction_removed`
 
-- [ ] ✅ ack 호출 (그 외 부수효과 없음)
+- [x] ✅ ack 만 호출
 
 ---
 
@@ -490,7 +494,7 @@
 - 5. 슬랙 core: 35/35 ✅
 - 6. 슬랙 contents: 27/27 ✅
 - 7. 슬랙 community: 11/11 ✅
-- 8. 슬랙 log: 0/15
+- 8. 슬랙 log: 21/21 ✅
 - 9. 슬랙 subscriptions: 0/10
 - 10. 슬랙 writing_participation: 0/7
 - 11. 미들웨어/에러: 0/11
