@@ -371,30 +371,39 @@
 
 ## 9. 슬랙 — subscriptions 이벤트 (`app/slack/events/subscriptions.py`)
 
+### 9-0. `_process_user_subscription` (5단계 검증)
+
+- [x] ⚠️ 자기 자신 → '자기 자신은 구독할 수 없어요'
+- [x] ⚠️ 봇 → '봇은 구독할 수 없어요'
+- [x] ⚠️ 이미 5명 → '구독은 최대 5명까지'
+- [x] ⚠️ 대상 미존재 → '구독할 멤버를 찾을 수 없습니다'
+- [x] ⚠️ 이미 구독 중 → '이미 구독한 멤버입니다'
+- [x] ✅ 모두 통과 → service.create_subscription 호출 + 빈 문자열 반환
+
 ### 9-1. `open_subscribe_member_view`
 
-- [ ] ✅ 액션 value 없음 → 빈 메시지 + 모달 open
-- [ ] ✅ 액션 value의 target_user 처리 후 모달 open
-- [ ] ⚠️ 자기 자신 구독 → 경고 메시지
+- [x] ✅ value 없음 → 빈 메시지 + 모달 open
+- [x] ✅ value 있음 → _process_user_subscription 처리 후 모달 open
 
 ### 9-2. `subscribe_member`
 
-- [ ] ✅ 정상 구독 → views_update + create_subscription 호출
-- [ ] ⚠️ 자기 자신, 봇, 5명 초과, 미존재 유저, 이미 구독 → 메시지로 차단
-- [ ] 🌀 `selected_user` 없음 → 무동작
+- [x] ✅ 정상 구독 → views_update + create_subscription 호출
+- [x] ⚠️ 자기 자신 선택 → 경고 메시지가 모달에 노출
+- [x] 🌀 selected_user 없음 → ack 만 + 무동작
 
 ### 9-3. `unsubscribe_member`
 
-- [ ] ✅ subscription_id로 cancel + 모달 갱신
+- [x] ✅ subscription_id로 cancel_subscription + views_update
 
 ### 9-4. `open_subscription_permalink`
 
-- [ ] ✅ ack 호출 (로깅만)
+- [x] ✅ ack 만 호출 (로깅용)
 
 ### 9-5. `_get_subscribe_member_view`
 
-- [ ] ✅ 구독 0/1/N 명에 따른 블록 구성
-- [ ] 🌀 message 인자 유무에 따른 안내 블록 포함 여부
+- [x] 🌀 구독 0건 → 구독 목록 블록 없음
+- [x] ✅ 구독 2건 → '구독 목록' + 각 멤버 + 날짜(01월 01일 형식)
+- [x] 🌀 message 인자 있음 → 경고 컨텍스트 블록
 
 ---
 
@@ -495,7 +504,7 @@
 - 6. 슬랙 contents: 27/27 ✅
 - 7. 슬랙 community: 11/11 ✅
 - 8. 슬랙 log: 21/21 ✅
-- 9. 슬랙 subscriptions: 0/10
+- 9. 슬랙 subscriptions: 16/16 ✅
 - 10. 슬랙 writing_participation: 0/7
 - 11. 미들웨어/에러: 0/11
 - 12. 백그라운드 서비스: 0/10
