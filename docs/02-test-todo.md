@@ -411,16 +411,17 @@
 
 ### 10-1. `open_writing_participation_view`
 
-- [ ] ✅ `is_writing_participation=True` → 완료 안내 모달
-- [ ] ✅ False → 신청 모달
+- [x] ✅ is_writing_participation=True → 완료 안내 모달 (callback_id 없음)
+- [x] ✅ False → 신청 모달 (callback_id=writing_participation_view)
 
 ### 10-2. `submit_writing_participation_view`
 
-- [ ] ✅ CSV 미존재 → 헤더 포함 신규 작성
-- [ ] ✅ 기존 CSV에 같은 user_id 없음 → 행 append
-- [ ] ✅ 기존 행 존재 → name/created_at/플래그 갱신
-- [ ] 🌀 컬럼 누락된 CSV → 누락 컬럼 자동 채움
-- [ ] ✅ DM 메시지 전송 (slack client mock)
+- [x] ✅ CSV 미존재 (FileNotFoundError) → 헤더 + 새 행 작성
+- [x] ✅ 기존 CSV에 같은 user_id 없음 → 행 append
+- [x] ✅ 기존 행(created_at 빈 문자열) → name/created_at/플래그 갱신
+- [x] 🌀 기존 created_at 채워져 있으면 유지 (덮어쓰지 않음)
+- [x] 🌀 컬럼 누락된 CSV → 누락 컬럼 자동 채움
+- [x] ✅ DM 메시지 전송 ("글쓰기 참여 신청을 완료")
 
 ---
 
@@ -505,7 +506,7 @@
 - 7. 슬랙 community: 11/11 ✅
 - 8. 슬랙 log: 21/21 ✅
 - 9. 슬랙 subscriptions: 16/16 ✅
-- 10. 슬랙 writing_participation: 0/7
+- 10. 슬랙 writing_participation: 8/8 ✅
 - 11. 미들웨어/에러: 0/11
 - 12. 백그라운드 서비스: 0/10
 - 13. 회귀 정리: 0/3
