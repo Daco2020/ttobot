@@ -429,27 +429,29 @@
 
 ### 11-1. `log_event_middleware`
 
-- [ ] ✅ command body → event/type=command 로 로깅
-- [ ] ✅ view_submission body → callback_id 로 로깅
-- [ ] ✅ block_actions body → action_id 로 로깅
-- [ ] ✅ event body → event.type 로 로깅
-- [ ] ✅ message/reaction 이벤트 → 로깅 우회
-- [ ] 🌀 description "종이비행기 메시지 전송 완료" 분기
+- [x] ✅ command → event=명령어, type=command, description 매핑
+- [x] ✅ view_submission → callback_id, type=view_submission
+- [x] ✅ block_actions → action_id, type=block_actions
+- [x] ✅ event_callback → event.type, type=event
+- [x] ⚠️ event=message → 로깅 우회 (handle_message 가 별도 처리)
+- [x] ⚠️ event=reaction_added → 로깅 우회
+- [x] 🌀 알 수 없는 body 모양 → event="unknown", type="unknown"
 
 ### 11-2. `dependency_injection_middleware`
 
-- [ ] ✅ 일반 이벤트 + 등록 유저 → service/point_service/user 주입
-- [ ] ✅ 메시지/멘션/리액션 등 우회 이벤트 → next() 즉시 호출
-- [ ] ✅ app_home_opened + 미등록 유저 → service None 주입 후 next
-- [ ] ⚠️ 미등록 유저 + 일반 이벤트 → 관리자 채널 알림 + BotException
+- [x] ✅ event=message → 의존성 주입 X, next() 즉시
+- [x] ✅ event=app_mention → 우회
+- [x] ✅ 일반 이벤트 + 등록 유저 → service/point_service/user 주입
+- [x] ✅ app_home_opened + 미등록 유저 → service/point_service/user 모두 None
+- [x] ⚠️ 미등록 유저 + 일반 이벤트 → 관리자 채널 알림 + BotException
+- [x] 🌀 user_id=None (일부 슬랙 봇) → silent return
 
 ### 11-3. `handle_error`
 
-- [ ] ✅ 한국어 에러 메시지 → 사용자에게 동일 메시지 노출
-- [ ] ✅ 영문 에러 → "예기치 못한 오류" 노출
-- [ ] ⚠️ ValueError → reraise (사용자 알림 X)
-- [ ] ✅ trigger_id가 있을 때 views_open으로 안내 모달 표시
-- [ ] ✅ 관리자 채널에 traceback 포함 메시지 전송
+- [x] ✅ 한국어 에러 → 사용자 모달 + 관리자 알림
+- [x] ✅ 영문 에러 → "예기치 못한 오류" 모달
+- [x] ⚠️ ValueError → reraise (모달/알림 없음)
+- [x] 🌀 trigger_id 없음 → views_open 안 부르고 관리자 알림만
 
 ---
 
@@ -507,7 +509,7 @@
 - 8. 슬랙 log: 21/21 ✅
 - 9. 슬랙 subscriptions: 16/16 ✅
 - 10. 슬랙 writing_participation: 8/8 ✅
-- 11. 미들웨어/에러: 0/11
+- 11. 미들웨어/에러: 17/17 ✅
 - 12. 백그라운드 서비스: 0/10
 - 13. 회귀 정리: 0/3
 
