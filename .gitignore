@@ -227,3 +227,5 @@ store
 nohup.out
 .ruff_cache
 logs.csv
+
+docs/*

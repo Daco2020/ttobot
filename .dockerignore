@@ -1,0 +1,37 @@
+# 가상환경/캐시
+.venv/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# 개발 환경
+.git/
+.github/
+.gitignore
+.pre-commit-config.yaml
+
+# 테스트/문서/작업 기록 — 런타임에 불필요
+test/
+docs/
+worklog/
+README.md
+Makefile
+
+# 운영 데이터/시크릿은 호스트에서 마운트 (이미지에 굽지 않음)
+store/
+logs.csv
+.env
+.env.test
+
+# 호스트 도구
+.python-version
+.DS_Store
+*.log
+
+# IDE
+.vscode/
+.idea/

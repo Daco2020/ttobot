@@ -1,0 +1,73 @@
+# 또봇 운영 스택 (앱 + nginx-certbot + watchtower).
+# - 로컬 개발: `docker compose up -d ttobot watchtower` 로 nginx 제외하고 기동.
+# - 운영(GCP 인스턴스): `docker compose up -d` 로 전체 기동.
+# - .env 와 store/ 는 호스트의 실제 데이터를 마운트한다 (이미지에 굽지 않음).
+
+services:
+  ttobot:
+    # 운영(GCP 인스턴스)은 GHCR 의 사전 빌드 이미지를 pull 한다.
+    image: ghcr.io/daco2020/ttobot:latest
+    # 로컬에서 직접 빌드한 이미지를 쓰려면 아래 build 줄과 함께 사용. image 와 build 가 둘 다 있으면
+    # 같은 태그(image)로 빌드해서 캐시 활용.
+    build: .
+    container_name: ttobot
+    restart: unless-stopped
+    volumes:
+      # .env 파일은 직접 마운트한다. docker-compose 의 env_file 은 KEY=VALUE 만 허용하지만
+      # 또봇의 .env 는 `KEY = "value"` 형식이라 pydantic-settings 가 자체 파서로 읽도록 컨테이너
+      # 안에서 파일로 노출.
+      - ./.env:/app/.env:ro
+      # CSV 데이터는 호스트 디스크에 영구 보관. 컨테이너가 삭제되어도 보존.
+      - ./store:/app/store
+    expose:
+      # 호스트 포트로 publish 하지 않고 docker network 안에서만 노출.
+      # nginx 가 reverse proxy 로 외부 트래픽을 받아서 ttobot 으로 넘긴다.
+      - "3389"
+    labels:
+      # Watchtower 가 이 컨테이너만 감시하도록 지정.
+      - "com.centurylinklabs.watchtower.enable=true"
+
+  nginx:
+    # nginx + certbot 통합 이미지. 자동 인증서 발급 + 매시간 갱신 cron 내장.
+    image: jonasal/nginx-certbot:latest
+    container_name: nginx
+    restart: unless-stopped
+    environment:
+      # Let's Encrypt 만료 임박 시 알림 받을 이메일. 운영 인스턴스에서 본인 메일로 변경.
+      CERTBOT_EMAIL: dacokim32@gmail.com
+    ports:
+      # 80: ACME http-01 challenge + HTTPS 리다이렉트
+      # 443: 실제 서비스 트래픽
+      - "80:80"
+      - "443:443"
+    volumes:
+      # 인증서/계정 정보 영속화. 컨테이너 재생성해도 유지된다.
+      - nginx_secrets:/etc/letsencrypt
+      # 사용자 nginx 설정 (server 블록 등)
+      - ./nginx/user_conf.d:/etc/nginx/user_conf.d:ro
+    depends_on:
+      - ttobot
+
+  watchtower:
+    # containrrr/watchtower 는 2023년 이후 유지보수 중단되어 최신 Docker API 와 호환이 깨졌다.
+    # 활성 유지보수 포크인 nickfedor/watchtower 를 사용한다 (드롭인 호환).
+    image: nickfedor/watchtower:latest
+    container_name: watchtower
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    # --interval 60: 60초마다 변경 확인 (기본 5분)
+    # --cleanup: 새 이미지 풀 후 이전 이미지 삭제
+    # --label-enable: 라벨 붙은 컨테이너만 감시
+    # --notifications-hostname: 슬랙 알림에 표시될 식별자 (URL 이 있을 때만 사용)
+    command: --interval 60 --cleanup --label-enable
+    # 슬랙 배포 알림을 켜려면 호스트 환경변수 SLACK_WEBHOOK_FOR_DEPLOY 를 export 한 뒤
+    # 아래 두 줄의 주석을 해제. URL 이 비어있으면 watchtower 가 시작에 실패하므로 기본은 비활성.
+    #   export SLACK_WEBHOOK_FOR_DEPLOY="https://hooks.slack.com/services/..."
+    # environment:
+    #   WATCHTOWER_NOTIFICATIONS: slack
+    #   WATCHTOWER_NOTIFICATION_SLACK_HOOK_URL: ${SLACK_WEBHOOK_FOR_DEPLOY}
+    #   WATCHTOWER_NOTIFICATION_SLACK_IDENTIFIER: ttobot-deployer
+
+volumes:
+  nginx_secrets:
