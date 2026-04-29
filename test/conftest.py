@@ -11,15 +11,23 @@ from __future__ import annotations
 
 import csv
 from pathlib import Path
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from app.slack.repositories import SlackRepository
-from app.slack.services.background import BackgroundService
-from app.slack.services.point import PointService
+# app.client 의 SpreadSheetClient 는 default argument 로 gc.open_by_url(...) 을 호출한다.
+# 즉 app 을 import 만 해도 import 시점에 Google Sheets 네트워크 호출이 일어난다.
+# 테스트는 외부 의존성을 모두 mock 하므로, gspread 도 import 전에 mock 으로 차단해서
+# CI 환경(더미 크리덴셜) 에서도 안전하게 import 되도록 한다.
+import gspread
 
-from test import factories
+gspread.authorize = MagicMock(return_value=MagicMock())  # type: ignore[assignment]
+
+from app.slack.repositories import SlackRepository  # noqa: E402
+from app.slack.services.background import BackgroundService  # noqa: E402
+from app.slack.services.point import PointService  # noqa: E402
+
+from test import factories  # noqa: E402
 
 
 @pytest.fixture
@@ -168,6 +176,26 @@ _STORE_FILES: dict[str, list[str]] = {
     "_checked_notice.csv": ["user_id", "notice_ts", "created_at"],
     "_checked_super_admin_post.csv": ["user_id", "post_id", "channel_id", "created_at"],
 }
+
+
+@pytest.fixture(autouse=True, scope="session")
+def _ensure_store_csv_skeleton() -> None:
+    """`tmp_store` 픽스처를 쓰지 않는 테스트들이 `User.is_writing_participation` 같은 property 를
+    통해 진짜 `store/*.csv` 를 읽어들일 때, CI 환경처럼 store/ 가 비어 있어도 동작하도록
+    헤더만 있는 빈 CSV 를 미리 깔아둔다.
+
+    - 이미 파일이 존재하면 건드리지 않는다 (로컬 운영 데이터 보호).
+    - autouse + scope="session" 으로 세션당 1회만 실행.
+    """
+    store_dir = Path("store")
+    store_dir.mkdir(exist_ok=True)
+    for name, header in _STORE_FILES.items():
+        path = store_dir / name
+        if path.exists():
+            continue
+        with path.open("w", newline="", encoding="utf-8") as f:
+            writer = csv.writer(f, quoting=csv.QUOTE_ALL)
+            writer.writerow(header)
 
 
 @pytest.fixture
