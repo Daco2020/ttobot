@@ -459,38 +459,37 @@
 
 > 기존 `test_reminder.py` 보완. mock 기반 단위 테스트.
 
-### 12-1. `send_reminder_message_to_user` (이미 일부 존재)
+### 12-1. `send_reminder_message_to_user`
 
-- [ ] ✅ 대상 필터링 (10기 / 채널명 - / 미제출)
-- [ ] ✅ 메시지 본문 포맷
-- [ ] ✅ 관리자 채널에 총원 메시지 전송
-- [ ] 🌀 대상 0명일 때 admin 채널에 "0 명" 메시지
+- [x] ✅ 대상 필터링 (10기 / 채널명 - / 미제출) — 기존 test_background_service.py
+- [x] ✅ 관리자 채널 총원 메시지 — 기존
+- [x] 🌀 대상 0명 → 관리자 채널에 "총 0 명" — 신규
 
 ### 12-2. `prepare_subscribe_message_data`
 
-- [ ] ✅ 어제 날짜의 submit 콘텐츠만 필터링
-- [ ] ✅ writing_participation 등록 유저는 WRITING_CHANNEL로 채널 치환
-- [ ] 🌀 구독 0건/대상 콘텐츠 0건 → CSV 미생성
-- [ ] 🌀 기존 임시 CSV 존재 시 삭제 후 진행
+- [x] ✅ 어제 날짜의 submit 만 필터링 (그저께/pass 제외)
+- [x] 🌀 매칭 콘텐츠 0건 → 임시 CSV 미생성
+- [x] ✅ writing_participation 등록 유저 → target_user_channel 을 WRITING_CHANNEL 로 치환
+- [x] 🌀 기존 임시 CSV 있음 → 삭제 후 진행
 
 ### 12-3. `send_subscription_messages`
 
-- [ ] ✅ CSV 행마다 chat_postMessage 호출
-- [ ] ⚠️ `_send_subscription_message`에서 예외 → 관리자 채널에 에러 메시지 + 다음 행 진행
-- [ ] ✅ 마지막에 총원 요약 메시지
+- [x] 🌀 임시 CSV 미존재 → silent return
+- [x] ✅ 행마다 _send_subscription_message + 마지막에 요약 메시지
+- [x] ⚠️ 개별 발송 실패 → 관리자 알림 + 다음 행 계속
 
 ### 12-4. `_send_subscription_message`
 
-- [ ] ✅ permalink 가져오기 + 블록 구성 + chat_postMessage 호출
-- [ ] ⚠️ 3회 재시도 후 실패 → 예외 전파
+- [x] ✅ permalink 가져오기 + chat_postMessage 호출
+- [x] ⚠️ chat_getPermalink 계속 실패 → tenacity 3회 재시도 후 예외 전파
 
 ---
 
 ## 13. 회귀(이미 있는 테스트) 정리
 
-- [ ] `test_point.py` → `test/services/test_point_service.py`로 이동, import 경로 갱신
-- [ ] `test_reminder.py` → `test/services/test_background_service.py`로 이동
-- [ ] 기존 conftest의 `FakeSlackApp`을 새 위치에서 재사용
+- [x] `test_point.py` → `test/services/test_point_service.py`로 이동 (0번 사전 작업에서 처리)
+- [x] `test_reminder.py` → `test/services/test_background_service.py`로 이동 (0번 사전 작업에서 처리)
+- [x] 기존 conftest의 `FakeSlackApp`을 새 위치에서 재사용 (백그라운드 서비스 테스트에서 활용)
 
 ---
 
@@ -510,7 +509,7 @@
 - 9. 슬랙 subscriptions: 16/16 ✅
 - 10. 슬랙 writing_participation: 8/8 ✅
 - 11. 미들웨어/에러: 17/17 ✅
-- 12. 백그라운드 서비스: 0/10
-- 13. 회귀 정리: 0/3
+- 12. 백그라운드 서비스: 11/11 ✅ (기존 1개 + 신규 10개)
+- 13. 회귀 정리: 3/3 ✅ (0번 사전 작업과 12번에서 자연스럽게 처리됨)
 
 **총합 약 180개 케이스** (정확한 수는 작성 중 변동). 단계 진행하며 본 문서 갱신.

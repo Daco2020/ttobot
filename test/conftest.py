@@ -43,11 +43,17 @@ def point_service(slack_repo: SlackRepository) -> PointService:
 
 
 class FakeAsyncWebClient:
-    """매우 단순한 fake. 메서드 호출 자체는 noop이고, 검증이 필요하면 patch.object로 감싼다."""
+    """매우 단순한 fake. 메서드 호출 자체는 noop이고, 검증이 필요하면 patch.object로 감싼다.
+
+    각 슬랙 SDK 메서드는 noop 으로 정의해두어 mypy 의 attr-defined 에러를 막는다.
+    필요하면 테스트에서 `mocker.patch.object(client, "메서드명", new=AsyncMock(...))` 로 갈아끼운다.
+    """
 
     def __init__(self) -> None: ...
 
     async def chat_postMessage(self, **kwargs) -> None: ...
+
+    async def chat_getPermalink(self, **kwargs) -> dict: ...  # type: ignore[empty-body]
 
 
 class FakeSlackApp:
