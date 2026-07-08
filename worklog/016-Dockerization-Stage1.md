@@ -234,9 +234,91 @@ Next scheduled run: ... in 59 seconds
 | docker compose 통합 (ttobot+watchtower) healthy       | ✅   |
 | 240+ 테스트 회귀                                      | ✅ (코드 변경 0건이라 회귀 무관) |
 
-## 9. 다음 단계
+## 9. 우회 사항의 장기적 영향 분석
 
-✅ **Stage 1 완료**. 다음은 **Stage 2** — `docs/06-GCP-인스턴스-셋업-가이드.md` 따라 GCP 콘솔에서
-인스턴스 생성. (사용자 직접 진행 필요)
+작업 중 세 가지 우회를 적용했어요. 운영 환경에서 장기적으로 문제 없는지 점검합니다.
 
-도중에 막히는 단계가 있으면 알려주시면 바로 도와드릴게요.
+### 9-1. `.env` 를 볼륨 마운트로 주입 — ✅ 장기적으로 OK, 단 개선 여지 있음
+
+**현재 우회**: docker `--env-file` 의 `KEY=VALUE` strict 파서가 `KEY = "value"` 형식을 거부해서,
+`.env` 파일을 컨테이너에 직접 bind-mount.
+
+**장기적 영향**:
+
+- ✅ **프로덕션 안정성**: 문제없음. bind-mount 자체는 Docker 의 표준 패턴이에요.
+- ✅ **재현성**: GCP 인스턴스에 `.env` 를 scp 로 한 번 올려두면 그대로 동작.
+- ⚠️ **시크릿 관리**: `.env` 가 평문 파일로 디스크에 존재. 인스턴스 침해 시 노출 위험.
+- ⚠️ **갱신 시 재시작 필요**: `.env` 변경 후 `docker compose restart ttobot` 필요.
+
+**개선 옵션 (선택, 추후)**:
+
+1. **`.env` 형식을 정규화** — `KEY="value"` (등호 양쪽 공백 제거) 로 일괄 변환하면 `--env-file` 도
+   사용 가능. 가장 가벼운 변경, 코드 영향 0.
+2. **Google Secret Manager 사용** — `.env` 를 Secret Manager 에 올리고, 인스턴스 부팅 시
+   metadata server 로 받아오는 패턴. 보안 향상 + 무료 한도 충분.
+3. **`docker secret`** — Swarm 모드에서만 동작. 단일 호스트에선 과함.
+
+**권장**: 일단 현재 패턴 유지. 운영이 안정화되면 1번(.env 정규화)을 먼저, 나중에 2번(Secret Manager)
+검토.
+
+### 9-2. Watchtower Slack 알림 환경변수 기본 비활성화 — ⚠️ 운영 준비 단계에 활성화 필요
+
+**현재 우회**: `WATCHTOWER_NOTIFICATIONS=slack` + 빈 URL 조합으로 watchtower 가 즉시 크래시. 환경변수
+세 줄을 모두 주석 처리해서 기본은 알림 없음.
+
+**장기적 영향**:
+
+- ✅ **안전한 기본값**: URL 없이도 컨테이너가 정상 부팅.
+- ⚠️ **활성화 잊을 위험**: Stage 5 에서 Slack Webhook 발급 후 docker-compose.yml 의 주석을 푸는 단계가
+  필요. 이걸 빠뜨리면 배포 알림이 안 와요.
+- ⚠️ **알림 누락 시 침묵 배포**: 무중단 재배포 자체는 동작하지만 사용자가 알림을 못 받음.
+
+**권장**: Stage 5 의 체크리스트에 "주석 해제 + restart" 단계를 명시 (아래 투두 갱신에 반영).
+
+### 9-3. `containrrr/watchtower` → `nickfedor/watchtower` 포크 교체 — ⚠️ 운영 환경에서 재검증 필요
+
+**현재 우회**: containrrr 가 2023년 이후 유지보수 중단되어 Docker Desktop 29.x 의 API v1.51 와
+호환 안 됨. 활성 포크인 nickfedor 로 교체.
+
+**장기적 영향**:
+
+| 항목                | 영향                                                                |
+| ------------------- | ------------------------------------------------------------------- |
+| 보안               | ⚠️ 단일 메인테이너 의존. 메인테이너가 멈추거나 악성 코드 주입 가능성. |
+| 호환성             | ✅ Docker Engine 24+ / API 1.40+ 와 호환. 최신 기능도 따라잡음.       |
+| 안정성             | ✅ 최근 활발한 릴리스 (1.16.x). 이슈 응답 양호.                       |
+| 신뢰                | ⚠️ 공식 채널이 아님. 이미지 다이제스트 핀 권장.                       |
+
+**운영(GCP e2-micro Ubuntu 22.04)에서 다시 점검할 항목**:
+
+- GCP 인스턴스의 Docker engine 버전은 보통 24.x ~ 26.x (apt 패키지 또는 공식 스크립트 기준).
+  containrrr 가 이 버전들과 호환되는지 한 번 더 검증해볼 것.
+- 만약 GCP 환경에서 containrrr 도 동작한다면 **공식 이미지로 되돌리는 편이 안전**.
+
+**미리 마련해둔 대안 두 가지**:
+
+1. **(우선)** GCP 인스턴스에서 `containrrr/watchtower:latest` 로 먼저 띄워보기. 동작하면 이걸로 가고,
+   안 되면 nickfedor 유지.
+2. **(폴백)** Watchtower 자체를 빼고 `cron` + 단순 스크립트로 대체:
+   ```bash
+   # /etc/cron.hourly/ttobot-update
+   cd /home/$USER/ttobot && docker compose pull && docker compose up -d --remove-orphans
+   ```
+   유지보수 의존성 0, 단순함 100. 폴링 주기는 cron 분 단위까지 자유 조정.
+
+**권장**: Stage 4 (인스턴스에서 컨테이너 실행) 에서 containrrr 로 먼저 시도, 실패 시 nickfedor 유지.
+이 결과를 worklog 에 기록.
+
+### 9-4. 종합 — 우회의 위험도 요약
+
+| 우회 항목                  | 위험도 | 우선 조치                                |
+| -------------------------- | :----: | ---------------------------------------- |
+| `.env` 파일 마운트          |  낮음  | 일단 유지, 추후 Secret Manager 검토       |
+| Watchtower 알림 비활성화    | 낮음   | Stage 5 에서 주석 해제 잊지 않기          |
+| watchtower 이미지 포크 교체 | 중간   | Stage 4 에서 containrrr 로 재시도, 결과 기록 |
+
+위 사항들을 `docs/05-배포-투두.md` 의 Stage 4, 5 체크리스트에 명시했어요.
+
+## 10. 다음 단계
+
+✅ **Stage 1 완료**. 다음은 **Stage 2** — `docs/05-배포-투두.md` 의 Stage 2 섹션을 따라 직접 진행.

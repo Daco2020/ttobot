@@ -8,7 +8,7 @@ from zoneinfo import ZoneInfo
 from pydantic import BaseModel, Field, field_validator
 import datetime
 from app.config import settings
-from app.constants import DUE_DATES, MAX_PASS_COUNT
+from app.constants import get_due_dates, MAX_PASS_COUNT
 from app.exception import BotException
 
 from app.utils import generate_unique_id, tz_now, tz_now_to_str
@@ -26,7 +26,7 @@ class User(BaseModel):
 
     @property
     def is_writing_participation(self) -> bool:
-        with open("store/writing_participation.csv", "r") as f:
+        with open("store/writing_participation.csv") as f:
             reader = csv.DictReader(f)
             for row in reader:
                 if row["user_id"] == self.user_id:
@@ -66,10 +66,11 @@ class User(BaseModel):
     def _is_prev_pass(self, recent_content: Content) -> bool:
         """전전회차 마감일 초과, 현재 날짜 이하 사이에 pass 했는지 여부를 반환합니다."""
         now_date = tz_now().date()
-        second_latest_due_date = DUE_DATES[-2]
-        for i, due_date in enumerate(DUE_DATES):
+        due_dates = get_due_dates(now_date)
+        second_latest_due_date = due_dates[-2]
+        for i, due_date in enumerate(due_dates):
             if now_date <= due_date:
-                second_latest_due_date = DUE_DATES[i - 2]
+                second_latest_due_date = due_dates[i - 2]
                 break
         return second_latest_due_date < recent_content.date <= now_date
 
@@ -92,7 +93,7 @@ class User(BaseModel):
     def get_due_date(self) -> tuple[int, datetime.date]:
         """현재 회차와 마감일을 반환합니다."""
         now_date = tz_now().date()
-        for i, due_date in enumerate(DUE_DATES):
+        for i, due_date in enumerate(get_due_dates(now_date)):
             if now_date <= due_date:
                 round = i
                 return round, due_date
@@ -110,10 +111,11 @@ class User(BaseModel):
             return False
 
         now_date = tz_now().date()
-        for i, due_date in enumerate(DUE_DATES):
+        due_dates = get_due_dates(now_date)
+        for i, due_date in enumerate(due_dates):
             if now_date <= due_date:  # 현재 날짜가 보다 같거나 크면 현재 마감일이다.
                 # 현재 마감일의 직전 마감일을 구한다.
-                latest_due_date = DUE_DATES[i - 1]
+                latest_due_date = due_dates[i - 1]
                 break
 
         # 최근 제출한 콘텐츠의 날짜가 직전 마감일 초과, 현재 날짜 이하 라면 제출했다고 판단한다.
@@ -122,13 +124,15 @@ class User(BaseModel):
     def get_submit_status(self) -> dict[int, str]:
         """현재 회차는 제외한 회차별 제출 여부를 반환합니다."""
         submit_status = {}
-        for i, due_date in enumerate(DUE_DATES):
+        now_date = tz_now().date()
+        due_dates = get_due_dates(now_date)
+        for i, due_date in enumerate(due_dates):
             # 0회차는 시작일이므로 제외한다.
             if i == 0:
                 continue
 
             # 현재 회차는 제출 여부를 판단하지 않는다.
-            if due_date >= tz_now().date():
+            if due_date >= now_date:
                 break
 
             # 기본값은 미제출
@@ -136,7 +140,7 @@ class User(BaseModel):
 
             # 콘텐츠의 제출 날짜가 직전 마감일 초과, 마감일 이하 라면 제출했다고 판단한다.
             for content in self.fetch_contents():
-                latest_due_date = DUE_DATES[i - 1]
+                latest_due_date = due_dates[i - 1]
                 if latest_due_date < content.date <= due_date:
                     if content.type == "submit":
                         submit_status[i] = "제출"
@@ -289,7 +293,7 @@ class Content(StoreModel):
 
     def get_round(self) -> int:
         """컨텐츠의 회차를 반환합니다."""
-        for i, due_date in enumerate(DUE_DATES):
+        for i, due_date in enumerate(get_due_dates(self.date)):
             if self.date <= due_date:
                 return i
         raise BotException("글또 활동 기간이 아니에요.")

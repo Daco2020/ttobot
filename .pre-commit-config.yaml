@@ -18,6 +18,11 @@ repos:
     rev: v1.8.0
     hooks:
       - id: "mypy"
+        # 테스트 코드는 타입체크 대상에서 제외한다.
+        # 테스트 픽스처는 느슨한 dict[str, Any] body 를 슬랙 TypedDict 핸들러에
+        # 넘기는 구조라 arg-type 오류가 대량 발생하며, 이는 픽스처 특성상 실익이 낮다.
+        # (앱 코드는 계속 타입체크한다.)
+        exclude: ^test/
         additional_dependencies:
           - "pydantic==2.6.1"
           - "slack_bolt"

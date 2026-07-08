@@ -20,7 +20,6 @@ import pytest
 from app.config import settings
 from app.exception import BotException, ClientException
 from app.slack.events import contents as contents_events
-from app.slack.services.point import UserPoint
 from test import factories
 from test.slack.conftest import make_action_body, make_command_body, make_view_body
 
@@ -103,7 +102,9 @@ def _submit_view_state(
         "category": {"category_select": {"selected_option": {"value": category}}},
         "curation": {"curation_select": {"selected_option": {"value": curation}}},
         "feedback_intensity": {
-            "feedback_intensity_select": {"selected_option": {"value": feedback_intensity}}
+            "feedback_intensity_select": {
+                "selected_option": {"value": feedback_intensity}
+            }
         },
         "tag": {"tags_input": {"value": tag or None}},
         "description": {"text_input": {"value": description or None}},
@@ -201,9 +202,7 @@ async def test_submit_view_success_grants_points_and_posts(
 
     fake_slack_client.chat_postMessage.return_value = {"ts": "msg_ts_1"}
 
-    mocker.patch(
-        "app.slack.events.contents.send_point_noti_message", new=AsyncMock()
-    )
+    mocker.patch("app.slack.events.contents.send_point_noti_message", new=AsyncMock())
     # 글쓰기 채널로 제출하면 활동 안내 분기를 타지 않아 asyncio.sleep 호출 없음
     body = make_view_body(
         user_id="U_X",
@@ -249,8 +248,8 @@ async def test_pass_command_opens_modal(
     """✅ pass 가능 상태 → 패스 모달 open."""
     user = factory.make_user(user_id="U_X", contents=[])
     mocker.patch(
-        "app.models.DUE_DATES",
-        [datetime.date(2025, 1, 1), datetime.date(2025, 12, 31)],
+        "app.models.get_due_dates",
+        return_value=[datetime.date(2025, 1, 1), datetime.date(2025, 12, 31)],
     )
     mocker.patch(
         "app.models.tz_now",
@@ -286,8 +285,8 @@ async def test_pass_command_when_pass_count_exceeded(
         ],
     )
     mocker.patch(
-        "app.models.DUE_DATES",
-        [datetime.date(2025, 1, 1), datetime.date(2025, 12, 31)],
+        "app.models.get_due_dates",
+        return_value=[datetime.date(2025, 1, 1), datetime.date(2025, 12, 31)],
     )
     mocker.patch(
         "app.models.tz_now",
@@ -499,9 +498,7 @@ async def test_bookmark_command_with_multiple_pages_shows_next_button(
     """✅ 컨텐츠 21개 (페이지 2개) → '다음 페이지' 버튼 노출."""
     user = factory.make_user(user_id="U_X")
     service = MagicMock()
-    bookmarks = [
-        factories.make_bookmark(content_ts=str(i)) for i in range(21)
-    ]
+    bookmarks = [factories.make_bookmark(content_ts=str(i)) for i in range(21)]
     contents = [
         factories.make_content(ts=str(i), content_url=f"https://e.com/{i}")
         for i in range(21)
@@ -661,9 +658,9 @@ async def test_open_intro_modal_self_shows_edit_button(
     service = MagicMock()
     service.get_user.return_value = factory.make_user(user_id="U_X", intro="안녕")
 
-    body = make_action_body(actions=[
-        {"action_id": "intro_modal", "value": "U_X", "type": "button"}
-    ])
+    body = make_action_body(
+        actions=[{"action_id": "intro_modal", "value": "U_X", "type": "button"}]
+    )
 
     await contents_events.open_intro_modal(
         ack=ack,
@@ -688,9 +685,9 @@ async def test_open_intro_modal_other_no_edit_button(
     service = MagicMock()
     service.get_user.return_value = other
 
-    body = make_action_body(actions=[
-        {"action_id": "intro_modal", "value": "U_Y", "type": "button"}
-    ])
+    body = make_action_body(
+        actions=[{"action_id": "intro_modal", "value": "U_Y", "type": "button"}]
+    )
 
     await contents_events.open_intro_modal(
         ack=ack,
@@ -777,9 +774,9 @@ async def test_contents_modal_shows_other_user_contents(
     service = MagicMock()
     service.get_user.return_value = other
 
-    body = make_action_body(actions=[
-        {"action_id": "contents_modal", "value": "U_OTHER", "type": "button"}
-    ])
+    body = make_action_body(
+        actions=[{"action_id": "contents_modal", "value": "U_OTHER", "type": "button"}]
+    )
 
     await contents_events.contents_modal(
         ack=ack,
@@ -866,9 +863,7 @@ async def test_open_overflow_action_remove_bookmark(
     fake_slack_client.views_update.assert_awaited_once()
     rendered = fake_slack_client.views_update.await_args.kwargs["view"].to_dict()
     body_text = "".join(
-        b.get("text", {}).get("text", "")
-        for b in rendered["blocks"]
-        if b.get("text")
+        b.get("text", {}).get("text", "") for b in rendered["blocks"] if b.get("text")
     )
     assert "북마크를 취소했어요" in body_text
 
@@ -909,9 +904,7 @@ async def test_open_overflow_action_view_note_with_existing_note(
 
     rendered = fake_slack_client.views_update.await_args.kwargs["view"].to_dict()
     body_text = "".join(
-        b.get("text", {}).get("text", "")
-        for b in rendered["blocks"]
-        if b.get("text")
+        b.get("text", {}).get("text", "") for b in rendered["blocks"] if b.get("text")
     )
     assert "좋은 글이었음" in body_text
 
@@ -952,8 +945,6 @@ async def test_open_overflow_action_view_note_without_note(
 
     rendered = fake_slack_client.views_update.await_args.kwargs["view"].to_dict()
     body_text = "".join(
-        b.get("text", {}).get("text", "")
-        for b in rendered["blocks"]
-        if b.get("text")
+        b.get("text", {}).get("text", "") for b in rendered["blocks"] if b.get("text")
     )
     assert "메모가 없어요" in body_text

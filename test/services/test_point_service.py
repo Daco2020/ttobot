@@ -188,8 +188,8 @@ def test_grant_if_post_submitted_continuously(
     """
     # given
     mocker.patch(
-        "app.models.DUE_DATES",
-        [
+        "app.models.get_due_dates",
+        return_value=[
             datetime.datetime(2024, 9, 29).date(),  # 0회차 (시작일)
             datetime.datetime(2024, 10, 13).date(),  # 1회차
             datetime.datetime(2024, 10, 27).date(),  # 2회차

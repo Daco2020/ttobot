@@ -4,7 +4,16 @@ from enum import Enum
 
 URL_REGEX = r"((http|https):\/\/)?[a-zA-Z0-9.-]+(\.[a-zA-Z]{2,})"
 MAX_PASS_COUNT = 2
-DUE_DATES = [  # 글또 시작일 을 포함한 오름차순 마감일 리스트
+
+# 회차 간격(2주). 마지막 하드코딩 마감일 이후는 이 간격으로 자동 생성된다.
+DUE_DATE_INTERVAL = datetime.timedelta(days=14)
+
+# 글또 시작일(0회차)을 포함한 "역사적" 마감일 앵커 리스트(오름차순).
+# 여기에 손으로 미래 회차를 계속 추가할 필요는 없다. 마지막 마감일 이후의
+# 추가 회차는 get_due_dates() 가 2주 간격으로 자동 생성한다.
+# 단, 4→5회차 사이 28일 간격(비상계엄 2주 연장)처럼 규칙에서 벗어난
+# 역사적 예외가 있으므로 이 앵커 리스트 자체는 보존한다.
+BASE_DUE_DATES = [
     datetime.date(2024, 9, 29),  # 0회차 - 글또 10기 시작
     datetime.date(2024, 10, 13),  # 1회차
     datetime.date(2024, 10, 27),  # 2회차
@@ -53,6 +62,22 @@ DUE_DATES = [  # 글또 시작일 을 포함한 오름차순 마감일 리스트
     datetime.date(2026, 6, 21),  # 추가회차(44회차)
     datetime.date(2026, 7, 5),  # 추가회차(45회차)
 ]
+
+
+def get_due_dates(reference_date: datetime.date) -> list[datetime.date]:
+    """기준일(reference_date)을 덮을 때까지 2주 간격으로 확장한 마감일 리스트를 반환한다.
+
+    - BASE_DUE_DATES(역사적 앵커)는 항상 그대로 앞부분에 보존된다.
+    - 마지막 마감일이 기준일보다 이르면, 기준일 이상이 될 때까지 DUE_DATE_INTERVAL
+      간격으로 회차를 자동 생성해 덧붙인다. (마감일을 손으로 추가할 필요가 없다.)
+    - 기준일이 과거이거나 앵커 범위 안이면 확장 없이 BASE_DUE_DATES 를 그대로 돌려준다.
+
+    순수 함수다: 인자로 받은 기준일에만 의존하며 BASE_DUE_DATES 원본을 변경하지 않는다.
+    """
+    due_dates = list(BASE_DUE_DATES)
+    while due_dates[-1] < reference_date:
+        due_dates.append(due_dates[-1] + DUE_DATE_INTERVAL)
+    return due_dates
 
 
 class ContentCategoryEnum(str, Enum):

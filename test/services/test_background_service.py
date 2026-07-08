@@ -25,8 +25,8 @@ async def test_send_reminder_message_to_user(
     """
     # given
     mocker.patch(
-        "app.models.DUE_DATES",
-        [
+        "app.models.get_due_dates",
+        return_value=[
             tz_now().date() - timedelta(days=14),  # 직전 회차 마감일
             tz_now().date(),  # 현재 회차 마감일
         ],

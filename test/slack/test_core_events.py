@@ -155,8 +155,11 @@ async def test_submission_history_with_contents(
 
     # get_due_date / get_round 가 동작하도록 DUE_DATES 를 mock
     mocker.patch(
-        "app.models.DUE_DATES",
-        [__import__("datetime").date(2025, 1, 1), __import__("datetime").date(2025, 1, 31)],
+        "app.models.get_due_dates",
+        return_value=[
+            __import__("datetime").date(2025, 1, 1),
+            __import__("datetime").date(2025, 1, 31),
+        ],
     )
     mocker.patch(
         "app.models.tz_now",
@@ -189,8 +192,11 @@ async def test_submission_history_empty(
     """🌀 제출 내역 없음 → '글 제출 내역이 없어요.'"""
     user = factory.make_user(contents=[])
     mocker.patch(
-        "app.models.DUE_DATES",
-        [__import__("datetime").date(2025, 1, 1), __import__("datetime").date(2025, 1, 31)],
+        "app.models.get_due_dates",
+        return_value=[
+            __import__("datetime").date(2025, 1, 1),
+            __import__("datetime").date(2025, 1, 31),
+        ],
     )
     mocker.patch(
         "app.models.tz_now",
@@ -563,9 +569,7 @@ async def test_invite_channel_unknown_error_includes_doc_link(
     posted = [
         c.kwargs["text"] for c in fake_slack_client.chat_postMessage.await_args_list
     ]
-    assert any(
-        "some_weird_error" in t and "문서 확인하기" in t for t in posted
-    )
+    assert any("some_weird_error" in t and "문서 확인하기" in t for t in posted)
 
 
 # ---------------------------------------------------------------------------
@@ -599,9 +603,7 @@ async def test_handle_home_tab_for_registered_user(
     """✅ 등록된 user → 홈 탭 풀세팅 publish."""
     user = factory.make_user(user_id="U_REG", name="홍길동")
     point_service = MagicMock()
-    point_service.get_user_point.return_value = UserPoint(
-        user=user, point_histories=[]
-    )
+    point_service.get_user_point.return_value = UserPoint(user=user, point_histories=[])
 
     await core_events.handle_home_tab(
         event={"user": "U_REG", "tab": "home"},
@@ -755,7 +757,11 @@ async def test_send_paper_plane_message_opens_modal(
     """✅ 종이비행기 보내기 액션 → 모달 open."""
     body = make_action_body(
         actions=[
-            {"action_id": "send_paper_plane_message", "value": "U_RECEIVER", "type": "button"}
+            {
+                "action_id": "send_paper_plane_message",
+                "value": "U_RECEIVER",
+                "type": "button",
+            }
         ]
     )
 
@@ -872,9 +878,7 @@ async def test_download_point_history_with_no_history(
     fake_slack_client.conversations_open.return_value = {"channel": {"id": "DM_X"}}
 
     point_service = MagicMock()
-    point_service.get_user_point.return_value = UserPoint(
-        user=user, point_histories=[]
-    )
+    point_service.get_user_point.return_value = UserPoint(user=user, point_histories=[])
 
     await core_events.download_point_history(
         ack=ack,
