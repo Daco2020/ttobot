@@ -140,6 +140,16 @@ class SlackService:
         ]["selected_option"]["value"]
         return feedback_intensity
 
+    @staticmethod
+    def _is_bot_protected(response: httpx.Response) -> bool:
+        """봇 차단(Cloudflare 챌린지) 응답인지 판별합니다.
+
+        Cloudflare 는 챌린지를 낼 때만 `cf-mitigated` 헤더를 붙인다. 권한이 없어서 나는
+        일반 403 에는 이 헤더가 없으므로 둘을 안전하게 구분할 수 있다.
+        (실측: Medium 403 → cf-mitigated=challenge / 일반 403 → 헤더 없음)
+        """
+        return response.status_code == 403 and "cf-mitigated" in response.headers
+
     async def get_title(self, view, url: str) -> str:
 
         try:
@@ -148,19 +158,31 @@ class SlackService:
             }
             async with httpx.AsyncClient(headers=headers) as client:
                 response = await client.get(url)
-                if response.status_code == 404:
-                    raise ClientException(
-                        f"비공개 글이거나, url을 찾을 수 없어요. 상태 코드 : {response.status_code}"
-                    )
-                if response.status_code >= 400:
-                    raise ClientException(
-                        f"url에 문제가 있어 확인이 필요해요. 상태 코드 : {response.status_code}"
-                    )
 
             # 제목을 직접 입력한 경우에는 status_code만 확인 후에 return
             title_input = view["state"]["values"]["manual_title_input"]["title_input"][
                 "value"
             ]
+
+            if response.status_code == 404:
+                raise ClientException(
+                    f"비공개 글이거나, url을 찾을 수 없어요. 상태 코드 : {response.status_code}"
+                )
+
+            # Medium 처럼 봇 차단을 거는 사이트는 서버가 글을 읽을 수 없다. 사람이 브라우저로
+            # 열면 정상인 글이므로 url 은 통과시키고 제목만 직접 입력받는다.
+            if self._is_bot_protected(response):
+                if title_input:
+                    return title_input
+                raise ClientException(
+                    "이 사이트는 자동 확인을 차단하고 있어요. 모달 하단에 '글 제목'을 직접 입력해주세요."
+                )
+
+            if response.status_code >= 400:
+                raise ClientException(
+                    f"url에 문제가 있어 확인이 필요해요. 상태 코드 : {response.status_code}"
+                )
+
             if title_input:
                 return title_input
 
