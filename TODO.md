@@ -1,115 +1,70 @@
 # 또봇 TODO (단일 추적 문서)
 
-> 마지막 업데이트 2026-07-08
+> 마지막 업데이트 2026-09-07
 >
-> 이 문서가 **활성 TODO의 유일한 source of truth**입니다. `docs/` 의 계획 문서들은
-> 배경·설계·클릭 가이드로 참고하고, "지금 뭘 해야 하나"는 여기서만 관리합니다.
-> (전역 규칙 #13)
+> 활성 TODO의 **유일한 source of truth**. 완료 항목과 결정 이력은 [`/TODO.DONE.md`](TODO.DONE.md).
+> `docs/`는 배경·설계 참고용. (전역 규칙 #13)
+>
+> **호스팅 결정: Koyeb 무료 웹 서비스** (사용자 결정 2026-09-07). GCP e2-micro는 폴백.
 
 ---
 
-## 현재 상황 한눈에
+## A. Koyeb 배포 (지금 할 일)
 
-| 영역 | 상태 | 근거 |
-| --- | --- | --- |
-| 테스트 보강 (API + 슬랙 전 계층) | ✅ 완료 | `docs/02` 180+ 케이스 전부 ✅, 현재 코드 **248개 테스트 함수** |
-| CI (`test.yml`) | ✅ 완료 | worklog 015, `.github/workflows/test.yml` |
-| Dockerization Stage 1 (로컬 컨테이너) | ✅ 완료 | worklog 016, `Dockerfile`·`docker-compose.yml`·`nginx/`·`scripts/` 존재 |
-| 마감일(DUE_DATES) 자동 확장 | ✅ 완료 | worklog 017 (이번 작업) |
-| **운영 배포 (GCP)** | ⬜ **Stage 2~7 미착수** | `docs/05` 대시보드 — Stage 1만 ✅ |
-| **비기능적 정리 (성능·구조)** | ⬜ **4건 전부 미착수** | `docs/04` — 코드 확인 결과 아직 원본 패턴 그대로 |
+> 무료 티어: 웹 서비스 1개, 512MB / 0.1 vCPU / 2GB SSD, 프랑크푸르트·워싱턴.
+> 디스크는 재배치마다 초기화(주 1회 이상), 1시간 인바운드 트래픽 없으면 잠듦.
+> 이 둘은 worklog 019에서 코드로 대응 완료(없는 테이블만 시트 복원, self-ping).
+>
+> ✋ 아래 둘은 자료가 엇갈려 **콘솔에서 확인 후 분기**:
+> (1) 무료 서비스에 Docker 이미지(GHCR) 배포 허용 여부 (2) 무료 서비스 커스텀 도메인 허용 여부.
 
-**결론:** 개발·테스트·로컬 컨테이너화는 끝났고, **남은 큰 덩어리는 (1) 실제 GCP 배포**와
-**(2) 배포 후 비기능적 리팩터링 4건**입니다. 나머지는 문서 정리 소소한 항목.
+### A-1. 서비스 생성
+- [ ] Koyeb 로그인 → Create Web Service → 소스 선택 ✋
+  - 이미지 배포가 되면: `ghcr.io/daco2020/ttobot:latest` (GHCR 패키지 public 전환 필요. push마다 재배포되는지 확인)
+  - git만 되면: GitHub 레포 연결 + Dockerfile 빌드, main push 자동 배포 (GHCR 파이프라인은 GCP 폴백용으로 유지)
+- [ ] 인스턴스 `Free`, 리전 프랑크푸르트 또는 워싱턴 ✋ (한국 지연은 비슷. 하나 골라 유지)
+- [ ] 포트 **3389**, 헬스체크 경로 `/`
+- [ ] 환경변수: `.env`의 모든 키를 Koyeb 환경변수로 (dict·list 값은 JSON 문자열). **`KOYEB_URL`**(https:// 포함 공개 URL) 추가하면 self-ping 활성
+- [ ] 첫 배포 로그 확인: "시트 탭 생성: writing_participation"(최초 1회) · "시트에서 복원한 테이블: [...]" · 슬랙 소켓 연결 · 5분 뒤 "self-ping 성공: 200"
 
----
+### A-2. 컷오버 (봇 두 개 동시 실행 금지)
+- [ ] 기존 서버: 마지막 활동 후 **20초 이상** 기다렸다가(큐 flush) `make kill-server`. 슬랙 소켓 모드는 두 곳이 같이 뜨면 이벤트가 분산됨
+- [ ] Koyeb 서비스 재배포 → 부팅 복원으로 시트에서 CSV 재구성 → 슬랙 `/도움말`·`/제출`·글쓰기 참여 신청 확인
+- [ ] 도메인 ✋
+  - 커스텀 도메인 되면: `ttobot.kro.kr` CNAME → Koyeb 제공 대상, TLS 자동
+  - 안 되면: 프론트(`geultto-paper-plane.vercel.app`)의 API 베이스 URL을 `*.koyeb.app`으로 교체
+- [ ] 며칠 무탈 후 기존 서버 정지 → 한 달 뒤 삭제
 
-## A. 운영 배포 — GCP (가장 큰 남은 작업)
-
-> 상세: `docs/05-배포-투두.md` (실행 체크리스트) + `docs/03-배포-가이드.md` (설계) +
-> `docs/06-GCP-인스턴스-셋업-가이드.md` (클릭 가이드).
-> 대부분 **인프라/콘솔 수작업**이라 사용자 주도가 필요. ✋ = 의사결정 포인트.
-
-### A-2. Stage 2 — GCP 인스턴스 셋업 (1~2h)
-- [ ] GCP 콘솔 진입 + 결제 계정 등록 + 예산 알림(₩1,000) 설정 ✋
-- [ ] `ttobot-prod` 프로젝트 + `e2-micro`(us-central1-a, Ubuntu 22.04, 30GB) 인스턴스 생성
-- [ ] 외부 고정 IP(`ttobot-static-ip`) 예약
-- [ ] `ttobot.kro.kr` A 레코드를 새 IP로 변경 + `dig` 전파 확인 ⚠️ 다운타임 시작점
-- [ ] gcloud CLI SSH 접속 + Docker 설치 + `hello-world` 검증
-- [ ] 80/443 방화벽 룰 확인
-- [ ] worklog 작성 (※ 번호는 018+ — 017은 마감일 작업이 이미 사용)
-
-### A-3. Stage 3 — GHCR 이미지 빌드/푸시 (1h)
-- [ ] GitHub repo Workflow 권한을 "Read and write"로
-- [ ] `.github/workflows/image-build.yml` 작성 (`docs/03` 4-4 참고) — **현재 `test.yml`만 존재**
-- [ ] main 푸시 → GHCR에 `ttobot:latest` + `ttobot:<sha>` 확인
-- [ ] worklog 작성
-
-### A-4. Stage 4 — 인스턴스에서 컨테이너 실행 (30m~1h)
-- [ ] 운영 데이터(`store/*.csv`, `.env`, `logs.csv`) 새 인스턴스로 scp
-- [ ] GHCR 로그인(private면 read:packages PAT)
-- [ ] `docker compose pull && up -d` → 슬랙 소켓 연결 + `/도움말` 동작 확인
-- [ ] ✋ **우회 해제 4-3-A**: watchtower를 공식 `containrrr/watchtower`로 재시도 → 되면 커밋, 안 되면 `nickfedor` 유지 (worklog 016 9장 참고)
-- [ ] 기존 인스턴스 정지(1주 후) → 삭제(1달 후)
-- [ ] worklog 작성
-
-### A-5. Stage 5 — Watchtower 자동 갱신 (30m)
-- [ ] ✋ 배포 알림 채널 결정 + Slack Incoming Webhook 발급
-- [ ] ✋ **우회 해제 5-2**: `docker-compose.yml` watchtower Slack 알림 4줄 주석 해제 + `SLACK_WEBHOOK_FOR_DEPLOY` 주입
-- [ ] 사소한 변경 push → 1~2분 내 자동 배포 + 알림 검증
-- [ ] worklog 작성
-
-### A-6. Stage 6 — HTTPS (nginx + Let's Encrypt) (30m)
-- [ ] `docker-compose.yml` `CERTBOT_EMAIL` 본인 이메일로
-- [ ] `docker compose up -d nginx` → 인증서 자동 발급 로그 확인
-- [ ] HTTP→HTTPS 리다이렉트 + `curl https://ttobot.kro.kr/ → true` + 외부 프론트 mixed-content 없음
-- [ ] 자동 갱신 시뮬레이션 + worklog 작성
-
-### A-7. Stage 7 — 운영 안정화 (선택)
-- [ ] UptimeRobot 헬스체크(5분) + 다운 알림
-- [ ] `store/*.csv` 일일 백업(cron → GCS/Drive)
-- [ ] 메모리/CPU 모니터링 + 컨테이너 로그 영속화
+### A-3. 운영 확인 (선택)
+- [ ] 주간 재배치 뒤 자동 복원 1회 관찰 (로그 + 글쓰기 참여 신청 기록 유지 여부)
+- [ ] UptimeRobot 등 외부 다운 알림 (self-ping과는 별개)
 
 ---
 
-## B. 비기능적 정리 (배포 후 권장, 코드 확인 결과 4건 모두 미착수)
+## B. 시트 동기화 리팩터링 (다음 작업, TDD 실패·성공·엣지)
 
-> 상세: `docs/04-비기능적-정리-가이드.md`. **기능 변경 0, 외부 응답 모양 보존, PR 단위 분리,
-> 248개 테스트 회귀 확인**이 공통 전제. 권장 순서대로 나열.
+> 한도(공식): 사용자당 읽기·쓰기 각 **60/분**, 배치 요청은 1건. 현재 갱신 경로는 항목마다
+> 시트 전체를 읽어서 버스트 시 429 위험. 기능 변경 0, 외부 응답 보존.
 
-### B-1. `requests` 동기 호출 → `httpx.AsyncClient` (가장 작음, 30m~1h)
-- [ ] `app/slack/events/community.py`의 `requests.post` **2곳**(라인 121·259) → `httpx.AsyncClient`
-- [ ] community 이벤트 테스트 mock 패턴 갱신
-- [ ] `import requests` app/ 전역 grep 후 0이면 `pyproject.toml`에서 `requests` 제거
-- [ ] worklog 작성
-
-### B-2. `/v1/contents` CSV 캐싱 (반나절)
-- [ ] `app/api/views/contents.py` — mtime 기반 LRU 캐시(`_load_*_df` 헬퍼)로 매요청 5MB 파싱 제거 (옵션 B 권장)
-- [ ] 캐시 적중/무효화 테스트 2~3개 + worklog
-
-### B-3. `app/__init__.py` startup 헬퍼 분리 (1~2일, 3 PR)
-- [ ] PR1: startup 안 중첩 함수(`upload_queue`/`upload_bigquery`/`subscribe_job`)를 모듈 최상위로 + 단위 테스트
-- [ ] PR2: `@app.on_event`(현재 deprecated 경고 발생) → `lifespan` 핸들러 전환
-- [ ] PR3: `app/jobs.py`·`app/lifespan.py`로 파일 분리 (현재 둘 다 없음)
-- [ ] 각 PR마다 회귀 확인 + worklog
-
-### B-4. `SlackRepository` CSV 매요청 read → 인메모리 인덱스 (1~2일, 신중)
-- [ ] `_Cache`(mtime 기반) 도입 → `get_user` 등 O(N)→O(1)
-- [ ] write 후 캐시 무효화 정책 결정 + 캐시 테스트 + worklog
-- [ ] (옵션 B: SQLite 이전은 데이터 폭증/동시성 이슈 보일 때만 검토)
+- [ ] 갱신 3테이블(bookmark·subscription·user): N읽기+N쓰기 → 틱당 **배치읽기 1 + 배치쓰기 1** (`values_batch_get` / `values_batch_update`)
+- [ ] 429 → **틱 단위 지수 백오프**(1·2·4분, 최대 5분), 지속될 때만 관리자 알림
+- [ ] 큐 정리를 값 동등성(`initial_queue`)에서 **인덱스 슬라이스**로 (업로드 중 append된 동일값 유실 방지)
+- [ ] `writing_participation` 반영을 clear+append(2쓰기, 빈 창)에서 **패딩 update 1쓰기**(원자적)로
+- [ ] 틱당 요청 예산 상한, 초과분은 다음 틱으로 이월
+- [ ] worklog 020
 
 ---
 
-## C. 문서·정합성 정리 (소소)
+## C. 비기능적 정리 (B 이후, `docs/04` 참고)
 
-- [x] ~~전역 규칙 #13 준수: `docs/02·03·04·05`의 체크박스를 일반 불릿으로 전환 + 각 문서에 `/TODO.md` 포인터 추가~~ (2026-07-08 완료, 385개 체크박스 정리)
-- [ ] worklog 번호 충돌 정리: `docs/05`가 "worklog/017-Stage2..."로 예약했으나 017은 마감일 작업이 사용 → 배포 worklog는 **018부터** 시작
+- [ ] `community.py`의 `requests.post` 2곳 → `httpx.AsyncClient`, 사용처 0이면 `requests` 의존성 제거
+- [ ] `/v1/contents` CSV를 mtime 기반 캐시로 (매요청 5MB 파싱 제거). 0.1 vCPU에서 체감 큼
+- [ ] `app/__init__.py` startup 헬퍼 분리 → `lifespan` 전환 → `jobs.py`·`lifespan.py` 분리 (3 PR)
+- [ ] `SlackRepository` 매요청 CSV read → mtime 기반 인메모리 인덱스
 
 ---
 
-## 변경 이력
+## D. 문서
 
-| 날짜 | 내용 |
-| --- | --- |
-| 2026-07-08 | 최초 작성 — `docs/` 6개 문서 + 코드 실태 대조하여 남은 작업 정리 |
-| 2026-07-08 | 체크박스 일원화 — `docs/02·03·04·05` 체크박스를 불릿으로 전환, 활성 TODO를 이 문서로 통일 |
+- [ ] `docs/05`·`docs/06`(GCP 가이드, gitignore 로컬 문서) 상단에 "Koyeb로 전환, GCP는 폴백" 한 줄
+- [ ] 배포·리팩터링 worklog는 **020부터** (017~019 사용됨)
