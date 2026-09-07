@@ -17,6 +17,21 @@ point_history_upload_queue: list[list[str]] = []
 paper_plane_upload_queue: list[list[str]] = []
 subscription_upload_queue: list[list[str]] = []
 subscription_update_queue: list[dict[str, Any]] = []
+# writing_participation 은 기존 행을 갱신하는 테이블이라 행 단위 큐가 맞지 않는다.
+# 변경 시 이 플래그만 켜고, upload_queue 가 clear + 전체 업로드로 시트에 반영한다.
+writing_participation_dirty: bool = False
+
+# 시트를 원본 백업으로 두는 테이블. restore_missing_tables / pull_all 의 대상.
+SYNC_TABLES = [
+    "users",
+    "contents",
+    "bookmark",
+    "coffee_chat_proof",
+    "point_histories",
+    "paper_plane",
+    "subscriptions",
+    "writing_participation",
+]
 
 
 class Store:
@@ -35,6 +50,10 @@ class Store:
         self.write("point_histories", values=self._client.get_values("point_histories"))
         self.write("paper_plane", values=self._client.get_values("paper_plane"))
         self.write("subscriptions", values=self._client.get_values("subscriptions"))
+        self.write(
+            "writing_participation",
+            values=self._client.get_values("writing_participation"),
+        )
 
     def pull_users(self) -> None:
         """유저 데이터를 가져와 서버 저장소를 동기화합니다."""
@@ -73,6 +92,53 @@ class Store:
         os.makedirs("store", exist_ok=True)
         self.write("subscriptions", values=self._client.get_values("subscriptions"))
 
+    def pull_writing_participation(self) -> None:
+        """글쓰기 참여 신청 데이터를 가져와 서버 저장소를 동기화합니다."""
+        os.makedirs("store", exist_ok=True)
+        self.write(
+            "writing_participation",
+            values=self._client.get_values("writing_participation"),
+        )
+
+    def upload_writing_participation(self) -> None:
+        """글쓰기 참여 신청 테이블을 시트에 통째로 반영합니다 (clear 후 전체 업로드).
+
+        기존 행을 갱신하는 테이블이라 append 전용 bulk_upload 만으로는 중복이 생긴다.
+        """
+        self._client.clear("writing_participation")
+        self._client.bulk_upload(
+            "writing_participation", self.read("writing_participation")
+        )
+
+    @staticmethod
+    def _needs_restore(table_name: str) -> bool:
+        path = f"store/{table_name}.csv"
+        return not os.path.exists(path) or os.path.getsize(path) == 0
+
+    def restore_missing_tables(self) -> list[str]:
+        """로컬 CSV 가 없거나 0바이트인 테이블만 시트에서 복원하고, 복원한 이름을 돌려줍니다.
+
+        로컬이 원본(시트보다 최대 20초 앞섬)이므로 파일이 있으면 절대 덮어쓰지 않는다.
+        무조건 pull_all 은 디스크 유지 서버에서 최근 쓰기를 되감아 유실을 만든다.
+        Koyeb 처럼 재배치마다 디스크가 초기화되는 환경에서 자동 복원용으로 쓴다.
+        """
+        pullers = {
+            "users": self.pull_users,
+            "contents": self.pull_contents,
+            "bookmark": self.pull_bookmark,
+            "coffee_chat_proof": self.pull_coffee_chat_proof,
+            "point_histories": self.pull_point_histories,
+            "paper_plane": self.pull_paper_plane,
+            "subscriptions": self.pull_subscriptions,
+            "writing_participation": self.pull_writing_participation,
+        }
+        restored: list[str] = []
+        for table_name in SYNC_TABLES:
+            if self._needs_restore(table_name):
+                pullers[table_name]()
+                restored.append(table_name)
+        return restored
+
     def write(self, table_name: str, values: list[list[str]]) -> None:
         """데이터를 저장소에 저장합니다."""
         with open(f"store/{table_name}.csv", "w", newline="", encoding="utf-8") as f:
@@ -102,6 +168,7 @@ class Store:
         global paper_plane_upload_queue
         global subscription_upload_queue
         global subscription_update_queue
+        global writing_participation_dirty
 
         async with queue_lock:
             temp_content_upload_queue = list(content_upload_queue)
@@ -287,6 +354,23 @@ class Store:
                     body={
                         "temp_subscription_update_queue": temp_subscription_update_queue
                     },
+                )
+
+            # writing_participation: 플래그를 먼저 내리고 올린다. 업로드 중 새 쓰기가 오면
+            # 플래그가 다시 켜져 다음 주기에 반영되고, 실패하면 되살려 재시도한다.
+            if writing_participation_dirty:
+                writing_participation_dirty = False
+                try:
+                    await asyncio.to_thread(self.upload_writing_participation)
+                except Exception:
+                    writing_participation_dirty = True
+                    raise
+                log_event(
+                    actor="system",
+                    event="uploaded_writing_participation",
+                    type="system",
+                    description="글쓰기 참여 신청 전체 업로드",
+                    body={},
                 )
 
     def backup(self, table_name: str) -> None:

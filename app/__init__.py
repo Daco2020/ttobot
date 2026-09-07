@@ -1,3 +1,4 @@
+import asyncio
 import traceback
 
 from app.bigquery.client import BigqueryClient
@@ -9,6 +10,7 @@ from app.client import SpreadSheetClient
 from app.slack.repositories import SlackRepository
 from fastapi import FastAPI, Request
 from apscheduler.triggers.interval import IntervalTrigger
+from app.keepalive import ping_self
 from app.config import settings
 from app.store import Store
 from app.api.views.contents import router as contents_router
@@ -71,6 +73,20 @@ if settings.ENV == "prod":
         # 서버 저장소 동기화
         store = Store(client=SpreadSheetClient())
 
+        # 저장소 복원: 로컬 CSV 가 없거나 비어 있는 테이블만 시트에서 가져온다.
+        # (Koyeb 처럼 재배치마다 디스크가 초기화되는 환경 대응. 파일이 있으면 덮어쓰지 않는다)
+        # 실패해도 봇은 뜬다. 데이터 없이 뜬 봇이 죽어 있는 봇보다 낫고, 관리자에게 알린다.
+        try:
+            restored = await asyncio.to_thread(store.restore_missing_tables)
+            if restored:
+                logger.info(f"시트에서 복원한 테이블: {restored}")
+        except Exception as e:
+            message = f"🫢 시트에서 저장소 복원 중 에러가 발생했어요. {e}"
+            logger.error(message)
+            await slack_app.client.chat_postMessage(
+                channel=settings.ADMIN_CHANNEL, text=message
+            )
+
         # # 업로드 스케줄러
         async_schedule.add_job(
             upload_queue, "interval", seconds=20, args=[store, slack_app]
@@ -94,6 +110,16 @@ if settings.ENV == "prod":
         async_schedule.add_job(
             subscribe_job, trigger=subscribe_trigger, args=[slack_app]
         )
+
+        # self-ping 스케줄러: 5분마다 자기 공개 URL 을 GET 해 인바운드 트래픽을 만든다.
+        # (Koyeb 무료 인스턴스의 1시간 유휴 scale-to-zero 방지. KOYEB_URL 미설정 시 비활성)
+        if settings.KOYEB_URL:
+            ping_trigger = IntervalTrigger(minutes=5, timezone=ZoneInfo("Asia/Seoul"))
+            async_schedule.add_job(
+                ping_self, trigger=ping_trigger, args=[settings.KOYEB_URL]
+            )
+        else:
+            logger.warning("KOYEB_URL 미설정: self-ping 비활성")
 
         # 스케줄러 시작
         async_schedule.start()

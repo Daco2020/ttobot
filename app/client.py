@@ -3,6 +3,7 @@ from app.logging import logger
 from app.config import settings
 
 from gspread import authorize, Spreadsheet, Worksheet
+from gspread.exceptions import WorksheetNotFound
 from oauth2client.service_account import ServiceAccountCredentials
 from app.models import StoreModel
 
@@ -12,11 +13,37 @@ credentials = ServiceAccountCredentials.from_json_keyfile_dict(
 )
 gc = authorize(credentials)
 
+# writing_participation 탭 헤더. store/writing_participation.csv 의 컬럼과 같아야 한다.
+WRITING_PARTICIPATION_HEADER = [
+    "user_id",
+    "name",
+    "created_at",
+    "is_writing_participation",
+]
+
+
+def _get_or_create_worksheet(
+    doc: Spreadsheet, name: str, header: list[str]
+) -> Worksheet:
+    """탭이 없으면 만들고 헤더를 쓴다. 있으면 그대로 돌려준다.
+
+    새로 추가되는 탭이 아직 시트에 없는 상태로 배포돼도 부팅이 죽지 않게 한다.
+    """
+    try:
+        return doc.worksheet(name)
+    except WorksheetNotFound:
+        sheet = doc.add_worksheet(title=name, rows=1000, cols=len(header))
+        sheet.append_row(header)
+        logger.info(f"시트 탭 생성: {name}")
+        return sheet
+
 
 class SpreadSheetClient:
     _instance = None
 
-    def __new__(cls):
+    def __new__(cls, *args, **kwargs):
+        # __init__ 이 doc/sheets 를 받으므로 __new__ 도 같은 인자를 받아 넘겨야 한다.
+        # (인자는 super().__new__ 에 넘기지 않는다. object.__new__ 는 인자를 받지 않음)
         if cls._instance is None:
             cls._instance = super().__new__(cls)
         return cls._instance
@@ -39,6 +66,9 @@ class SpreadSheetClient:
                     "point_histories": self._doc.worksheet("point_histories"),
                     "paper_plane": self._doc.worksheet("paper_plane"),
                     "subscriptions": self._doc.worksheet("subscriptions"),
+                    "writing_participation": _get_or_create_worksheet(
+                        self._doc, "writing_participation", WRITING_PARTICIPATION_HEADER
+                    ),
                 }
                 if not sheets
                 else sheets

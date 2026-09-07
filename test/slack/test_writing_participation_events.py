@@ -52,9 +52,7 @@ async def test_open_view_when_already_participating_shows_complete_modal(
     view = fake_slack_client.views_open.await_args.kwargs["view"]
     rendered = view.to_dict()
     body_text = "".join(
-        b.get("text", {}).get("text", "")
-        for b in rendered["blocks"]
-        if b.get("text")
+        b.get("text", {}).get("text", "") for b in rendered["blocks"] if b.get("text")
     )
     assert "이미 글쓰기 참여 신청을 완료했어요" in body_text
     # callback_id 가 없어야 한다 (제출 모달이 아니라 단순 안내)
@@ -240,7 +238,9 @@ async def test_submit_fills_missing_columns(
     """🌀 컬럼이 누락된 CSV → 누락 컬럼 자동 채움 후 행 추가."""
     csv_path = tmp_store / "writing_participation.csv"
     # is_writing_participation 컬럼이 누락된 CSV
-    df = pd.DataFrame([{"user_id": "U_OLD", "name": "기존", "created_at": "2025-01-01 09:00:00"}])
+    df = pd.DataFrame(
+        [{"user_id": "U_OLD", "name": "기존", "created_at": "2025-01-01 09:00:00"}]
+    )
     df.to_csv(csv_path, index=False, quoting=csv.QUOTE_ALL)
 
     user = factory.make_user(user_id="U_NEW", name="새유저")
@@ -284,3 +284,33 @@ async def test_submit_sends_dm_message(
     kwargs = fake_slack_client.chat_postMessage.await_args.kwargs
     assert kwargs["channel"] == "U_X"
     assert "글쓰기 참여 신청을 완료" in kwargs["text"]
+
+
+# ---------------------------------------------------------------------------
+# 시트 동기화 연결 (Koyeb 이행 견고화, 2026-09-07)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_submit_marks_writing_participation_dirty_for_sheet_upload(
+    ack, fake_slack_client, factory, slack_service, tmp_store
+) -> None:
+    """✅ 신청 저장 후 store.writing_participation_dirty 를 켜서 upload_queue 가 시트에 올리게 한다.
+
+    기존엔 로컬 CSV 에만 써서 디스크 초기화 시 신청 기록이 통째로 사라졌다.
+    """
+    from app import store
+
+    store.writing_participation_dirty = False
+    user = factory.make_user(user_id="U_NEW", name="새유저")
+
+    await wp_events.submit_writing_participation_view(
+        ack=ack,
+        body=make_view_body(user_id="U_NEW"),
+        client=fake_slack_client,
+        user=user,
+        service=slack_service,
+    )
+
+    assert store.writing_participation_dirty is True
+    store.writing_participation_dirty = False

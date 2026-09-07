@@ -3,6 +3,7 @@ from slack_bolt.async_app import AsyncAck
 from slack_sdk.models.views import View
 from slack_sdk.web.async_client import AsyncWebClient
 from app import models
+from app import store
 from app.slack.services.base import SlackService
 from slack_sdk.models.blocks import (
     SectionBlock,
@@ -14,6 +15,7 @@ import pandas as pd
 from app.slack.types import ActionBodyType, ViewBodyType
 from app.utils import tz_now_to_str
 from app.config import settings
+
 
 async def open_writing_participation_view(
     ack: AsyncAck, body: ActionBodyType, client: AsyncWebClient, user: models.User
@@ -114,6 +116,8 @@ async def submit_writing_participation_view(
     df = df[columns]
 
     df.to_csv("store/writing_participation.csv", index=False, quoting=csv.QUOTE_ALL)
+    # 로컬에만 두면 디스크 초기화 시 유실되므로 upload_queue 가 시트에 반영하게 표시한다.
+    store.writing_participation_dirty = True
 
     await client.chat_postMessage(
         channel=user.user_id,

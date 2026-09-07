@@ -31,6 +31,10 @@ class Settings(BaseSettings):
     TTOBOT_USER_ID: str
     SUPER_ADMIN: str
 
+    # self-ping 대상 공개 URL (https:// 포함). 비어 있으면 self-ping 비활성.
+    # Koyeb 무료 인스턴스의 1시간 유휴 scale-to-zero 를 막기 위해 5분마다 GET 한다.
+    KOYEB_URL: str = ""
+
     POINT_MAP: dict[str, Any]
 
     class Config:
