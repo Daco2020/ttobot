@@ -20,3 +20,12 @@
   (user_id, content_ts) 로 갱신하므로 로컬과도 어긋났다 (기존 데이터 버그).
 - 해결: `user_id AND content_ts` 로만 갱신. 서비스가 user_id 를 넘긴다. 저장소 4종 + 연결 1종.
 
+## 3. 복원 실패 시 fail-closed (`__init__.py` startup)
+
+- 문제: 019 는 복원 실패를 삼키고 봇을 띄웠다. Koyeb 는 새 배포가 healthy 면 옛 배포를 죽이므로,
+  데이터 없는 봇이 healthy 로 뜨면 정상이던 옛 배포가 사라진다.
+- 해결: 관리자 알림 뒤 `raise`. unhealthy → 옛 배포 유지, Koyeb 재시작 3회. 트레이드오프: 옛 배포가
+  없는 주간 재배치에서 시트 API 장애면 재시작 3회 뒤 멈추고 사람이 redeploy 해야 한다(외부 핑이 잡음).
+  fail-open 이어도 그 봇은 모든 핸들러가 FileNotFoundError 라 사실상 죽은 것과 같았다.
+- 테스트: prod 전용 블록이라 단위 테스트 대신 `ENV=prod` 임포트 스모크로 배선을 확인했다.
+

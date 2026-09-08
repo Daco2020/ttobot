@@ -81,17 +81,21 @@ if settings.ENV == "prod":
 
         # 저장소 복원: 로컬 CSV 가 없거나 비어 있는 테이블만 시트에서 가져온다.
         # (Koyeb 처럼 재배치마다 디스크가 초기화되는 환경 대응. 파일이 있으면 덮어쓰지 않는다)
-        # 실패해도 봇은 뜬다. 데이터 없이 뜬 봇이 죽어 있는 봇보다 낫고, 관리자에게 알린다.
+        # 실패하면 startup 을 실패시킨다(fail-closed). Koyeb 는 새 배포가 healthy 면 옛 배포를
+        # 죽이므로 데이터 없는 봇이 healthy 로 뜨면 정상이던 옛 배포가 사라진다. unhealthy 면
+        # 옛 배포가 계속 서비스하고 Koyeb 가 재시작(3회)한다. (사용자 결정 2026-09-08, 019 뒤집음)
         try:
             restored = await asyncio.to_thread(store.restore_missing_tables)
             if restored:
                 logger.info(f"시트에서 복원한 테이블: {restored}")
         except Exception as e:
-            message = f"🫢 시트에서 저장소 복원 중 에러가 발생했어요. {e}"
+            message = f"🫢 시트에서 저장소 복원에 실패해 부팅을 중단해요. {e}"
             logger.error(message)
-            await slack_app.client.chat_postMessage(
-                channel=settings.ADMIN_CHANNEL, text=message
-            )
+            try:
+                await _notify_admin(message)
+            except Exception as notify_error:
+                logger.error(f"복원 실패 알림 전송 실패: {notify_error}")
+            raise
 
         # # 업로드 스케줄러
         async_schedule.add_job(
