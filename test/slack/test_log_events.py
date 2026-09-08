@@ -5,8 +5,7 @@
 - handle_reaction_added (공지/성윤글 포인트 분기 다수)
 - handle_reaction_removed
 - _is_thread_message (캐시 적용된 외부 호출 헬퍼)
-- _is_checked_notice / _write_checked_notice
-- _is_checked_super_admin_post / _write_checked_super_admin_post
+- 공지 확인 / 성윤을 잡아라 중복 판정: SlackRepository.has_point_history_id 를 mock (결정적 id, worklog 021)
 """
 
 from __future__ import annotations
@@ -19,6 +18,7 @@ import pytest
 from app.config import settings
 from app.constants import PRIMARY_CHANNEL
 from app.slack.events import log as log_events
+from app.slack.services.point import notice_history_id
 from test import factories
 from test.slack.conftest import make_message_body, make_reaction_body
 
@@ -26,6 +26,15 @@ from test.slack.conftest import make_message_body, make_reaction_body
 # ---------------------------------------------------------------------------
 # handle_comment_data / handle_post_data — BigQuery 큐 적재
 # ---------------------------------------------------------------------------
+
+
+def _repo_mock(mocker, *, checked: bool) -> MagicMock:
+    """SlackRepository 를 mock 하고 has_point_history_id(중복 판정) 결과를 지정한다."""
+    repo = MagicMock()
+    repo.has_point_history_id.return_value = False
+    repo.has_point_history_id.return_value = checked
+    mocker.patch("app.slack.events.log.SlackRepository", return_value=repo)
+    return repo
 
 
 @pytest.mark.asyncio
@@ -133,7 +142,7 @@ async def test_handle_reaction_added_notice_grants_point_first_time(
     point_service = MagicMock()
     point_service.grant_if_notice_emoji_checked.return_value = "공지 포인트 지급!"
     mocker.patch("app.slack.events.log.PointService", return_value=point_service)
-    mocker.patch("app.slack.events.log.SlackRepository", return_value=MagicMock())
+    repo = _repo_mock(mocker, checked=False)
     mocker.patch("app.slack.events.log.send_point_noti_message", new=AsyncMock())
 
     body = make_reaction_body(
@@ -147,10 +156,12 @@ async def test_handle_reaction_added_notice_grants_point_first_time(
     await log_events.handle_reaction_added(ack=ack, body=body, client=fake_slack_client)
 
     point_service.grant_if_notice_emoji_checked.assert_called_once_with(
-        user_id="U_REACT"
+        user_id="U_REACT", notice_ts=recent_ts
     )
-    # 기록이 저장되었는지 (CSV 파일이 생성됨)
-    assert (tmp_store / "_checked_notice.csv").exists()
+    # 중복 판정이 결정적 id 로 point_histories 를 조회했는지
+    repo.has_point_history_id.assert_called_once_with(
+        notice_history_id("U_REACT", recent_ts)
+    )
 
 
 @pytest.mark.asyncio
@@ -185,7 +196,7 @@ async def test_handle_reaction_added_notice_skipped_when_already_checked(
     mocker.patch(
         "app.slack.events.log._is_thread_message", new=AsyncMock(return_value=False)
     )
-    mocker.patch("app.slack.events.log._is_checked_notice", return_value=True)
+    _repo_mock(mocker, checked=True)
     point_service = MagicMock()
     mocker.patch("app.slack.events.log.PointService", return_value=point_service)
 
@@ -210,7 +221,7 @@ async def test_handle_reaction_added_notice_skipped_when_too_old(
     mocker.patch(
         "app.slack.events.log._is_thread_message", new=AsyncMock(return_value=False)
     )
-    mocker.patch("app.slack.events.log._is_checked_notice", return_value=False)
+    _repo_mock(mocker, checked=False)
     point_service = MagicMock()
     mocker.patch("app.slack.events.log.PointService", return_value=point_service)
 
@@ -238,11 +249,9 @@ async def test_handle_reaction_added_super_admin_post_grants_point(
 ) -> None:
     """✅ PRIMARY 채널 + catch-kyle + 1일 이내 + super_admin 글 → 포인트."""
     mocker.patch("app.slack.events.log.bigquery_queue.emojis_upload_queue", new=[])
-    mocker.patch(
-        "app.slack.events.log._is_checked_super_admin_post", return_value=False
-    )
-    mocker.patch("app.slack.events.log._write_checked_super_admin_post")
+    _repo_mock(mocker, checked=False)
     repo = MagicMock()
+    repo.has_point_history_id.return_value = False
     repo.get_content_by.return_value = factories.make_content(
         user_id=settings.SUPER_ADMIN, ts="1700000000.000100"
     )
@@ -265,7 +274,7 @@ async def test_handle_reaction_added_super_admin_post_grants_point(
     await log_events.handle_reaction_added(ack=ack, body=body, client=fake_slack_client)
 
     point_service.grant_if_super_admin_post_reacted.assert_called_once_with(
-        user_id="U_REACT"
+        user_id="U_REACT", post_ts=recent_ts
     )
 
 
@@ -275,9 +284,7 @@ async def test_handle_reaction_added_super_admin_skipped_when_old(
 ) -> None:
     """⚠️ 1일 보다 이전 → 포인트 지급 X."""
     mocker.patch("app.slack.events.log.bigquery_queue.emojis_upload_queue", new=[])
-    mocker.patch(
-        "app.slack.events.log._is_checked_super_admin_post", return_value=False
-    )
+    _repo_mock(mocker, checked=False)
     point_service = MagicMock()
     mocker.patch("app.slack.events.log.PointService", return_value=point_service)
 
@@ -301,10 +308,9 @@ async def test_handle_reaction_added_super_admin_skipped_when_not_super_admin_po
 ) -> None:
     """⚠️ 글 작성자가 super_admin 이 아니면 → 포인트 지급 X."""
     mocker.patch("app.slack.events.log.bigquery_queue.emojis_upload_queue", new=[])
-    mocker.patch(
-        "app.slack.events.log._is_checked_super_admin_post", return_value=False
-    )
+    _repo_mock(mocker, checked=False)
     repo = MagicMock()
+    repo.has_point_history_id.return_value = False
     repo.get_content_by.return_value = factories.make_content(
         user_id="U_NOT_SUPER", ts="1.0"
     )
@@ -332,7 +338,7 @@ async def test_handle_reaction_added_super_admin_skipped_when_already_checked(
 ) -> None:
     """⚠️ 이미 확인한 기록 → 포인트 지급 X."""
     mocker.patch("app.slack.events.log.bigquery_queue.emojis_upload_queue", new=[])
-    mocker.patch("app.slack.events.log._is_checked_super_admin_post", return_value=True)
+    _repo_mock(mocker, checked=True)
     point_service = MagicMock()
     mocker.patch("app.slack.events.log.PointService", return_value=point_service)
 
@@ -419,44 +425,3 @@ async def test_is_thread_message_returns_false_when_message_not_found(
         client=fake_slack_client, channel_id="C_T4", ts="4.0"
     )
     assert result is False
-
-
-# ---------------------------------------------------------------------------
-# _is_checked_notice / _write_checked_notice
-# ---------------------------------------------------------------------------
-
-
-def test_is_checked_notice_false_when_file_missing(tmp_store) -> None:
-    """🌀 파일 자체가 없을 때 False."""
-    (tmp_store / "_checked_notice.csv").unlink()
-    assert log_events._is_checked_notice("U_X", "ts_1") is False
-
-
-def test_write_then_check_notice_returns_true(tmp_store) -> None:
-    """✅ 신규 기록 → 다음 호출에서 True."""
-    # 파일은 헤더만 있는 빈 상태에서 시작
-    log_events._write_checked_notice("U_X", "1700000000.000100")
-    assert log_events._is_checked_notice("U_X", "1700000000.000100") is True
-
-
-def test_check_notice_false_for_different_user(tmp_store) -> None:
-    """🌀 다른 user_id → False."""
-    log_events._write_checked_notice("U_A", "1.0")
-    assert log_events._is_checked_notice("U_B", "1.0") is False
-
-
-# ---------------------------------------------------------------------------
-# _is_checked_super_admin_post / _write_checked_super_admin_post
-# ---------------------------------------------------------------------------
-
-
-def test_is_checked_super_admin_post_false_when_file_missing(tmp_store) -> None:
-    """🌀 파일이 없을 때 False."""
-    (tmp_store / "_checked_super_admin_post.csv").unlink()
-    assert log_events._is_checked_super_admin_post("U_X", "ts_1") is False
-
-
-def test_write_then_check_super_admin_post_returns_true(tmp_store) -> None:
-    """✅ 신규 기록 → 다음 호출에서 True."""
-    log_events._write_checked_super_admin_post("U_X", "1.0", "C_X")
-    assert log_events._is_checked_super_admin_post("U_X", "1.0") is True
