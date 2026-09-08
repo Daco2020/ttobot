@@ -91,6 +91,13 @@ def json_str_to_dict(data: str) -> dict[str, Any]:
     return orjson.loads(data)
 
 
+KST = ZoneInfo("Asia/Seoul")
+
+
 def ts_to_dt(ts: str) -> datetime.datetime:
-    """timestamp를 datetime으로 변환합니다."""
-    return datetime.datetime.fromtimestamp(float(ts))
+    """슬랙 ts 를 KST 벽시계 naive datetime 으로 변환합니다.
+
+    프로세스 TZ 와 무관하다. 옛 서버(KST)의 naive fromtimestamp 와 같은 값이고 UTC 컨테이너에서도
+    날짜가 어긋나지 않는다. BigQuery DATETIME/DATE 와 strftime 호환을 위해 tzinfo 는 뗀다.
+    """
+    return datetime.datetime.fromtimestamp(float(ts), tz=KST).replace(tzinfo=None)

@@ -53,7 +53,9 @@ async def test_handle_comment_data_appends_to_queue(mocker) -> None:
     assert item["comment_ts"] == "1700000000.000200"
     assert item["text"] == "댓글 내용"
     # tddate 와 createtime 은 ts 로 변환된 datetime/date
-    assert item["tddate"] == datetime.fromtimestamp(float("1700000000.000200")).date()
+    assert (
+        item["tddate"] == datetime(2023, 11, 15).date()
+    )  # KST 벽시계. UTC 컨테이너에서도 15일
 
 
 @pytest.mark.asyncio
@@ -101,9 +103,7 @@ async def test_handle_reaction_added_general_only_appends_emoji_queue(
         reaction="thumbsup",
     )
 
-    await log_events.handle_reaction_added(
-        ack=ack, body=body, client=fake_slack_client
-    )
+    await log_events.handle_reaction_added(ack=ack, body=body, client=fake_slack_client)
 
     assert len(emoji_queue) == 1
     assert emoji_queue[0]["user_id"] == "U_REACT"
@@ -121,9 +121,7 @@ async def test_handle_reaction_added_notice_grants_point_first_time(
     ack, fake_slack_client, mocker, tmp_store
 ) -> None:
     """✅ 공지 채널 + noti-check + 첫 확인 + 3일 이내 → 포인트 지급 + 기록 저장."""
-    mocker.patch(
-        "app.slack.events.log.bigquery_queue.emojis_upload_queue", new=[]
-    )
+    mocker.patch("app.slack.events.log.bigquery_queue.emojis_upload_queue", new=[])
     # 스레드 아닌 일반 메시지로 만들기
     mocker.patch(
         "app.slack.events.log._is_thread_message", new=AsyncMock(return_value=False)
@@ -134,15 +132,9 @@ async def test_handle_reaction_added_notice_grants_point_first_time(
 
     point_service = MagicMock()
     point_service.grant_if_notice_emoji_checked.return_value = "공지 포인트 지급!"
-    mocker.patch(
-        "app.slack.events.log.PointService", return_value=point_service
-    )
-    mocker.patch(
-        "app.slack.events.log.SlackRepository", return_value=MagicMock()
-    )
-    mocker.patch(
-        "app.slack.events.log.send_point_noti_message", new=AsyncMock()
-    )
+    mocker.patch("app.slack.events.log.PointService", return_value=point_service)
+    mocker.patch("app.slack.events.log.SlackRepository", return_value=MagicMock())
+    mocker.patch("app.slack.events.log.send_point_noti_message", new=AsyncMock())
 
     body = make_reaction_body(
         user_id="U_REACT",
@@ -152,11 +144,11 @@ async def test_handle_reaction_added_notice_grants_point_first_time(
         event_ts=recent_ts,
     )
 
-    await log_events.handle_reaction_added(
-        ack=ack, body=body, client=fake_slack_client
-    )
+    await log_events.handle_reaction_added(ack=ack, body=body, client=fake_slack_client)
 
-    point_service.grant_if_notice_emoji_checked.assert_called_once_with(user_id="U_REACT")
+    point_service.grant_if_notice_emoji_checked.assert_called_once_with(
+        user_id="U_REACT"
+    )
     # 기록이 저장되었는지 (CSV 파일이 생성됨)
     assert (tmp_store / "_checked_notice.csv").exists()
 
@@ -166,26 +158,20 @@ async def test_handle_reaction_added_notice_skipped_when_thread_message(
     ack, fake_slack_client, mocker
 ) -> None:
     """⚠️ 공지 채널 + noti-check 인데 스레드 메시지 → 포인트 지급 X."""
-    mocker.patch(
-        "app.slack.events.log.bigquery_queue.emojis_upload_queue", new=[]
-    )
+    mocker.patch("app.slack.events.log.bigquery_queue.emojis_upload_queue", new=[])
     # _is_thread_message 가 True 를 반환하도록
     mocker.patch(
         "app.slack.events.log._is_thread_message", new=AsyncMock(return_value=True)
     )
     point_service = MagicMock()
-    mocker.patch(
-        "app.slack.events.log.PointService", return_value=point_service
-    )
+    mocker.patch("app.slack.events.log.PointService", return_value=point_service)
 
     body = make_reaction_body(
         channel_id=settings.NOTICE_CHANNEL,
         reaction="noti-check",
     )
 
-    await log_events.handle_reaction_added(
-        ack=ack, body=body, client=fake_slack_client
-    )
+    await log_events.handle_reaction_added(ack=ack, body=body, client=fake_slack_client)
 
     point_service.grant_if_notice_emoji_checked.assert_not_called()
 
@@ -195,17 +181,13 @@ async def test_handle_reaction_added_notice_skipped_when_already_checked(
     ack, fake_slack_client, mocker
 ) -> None:
     """⚠️ 이미 확인한 기록이 있다면 → 포인트 지급 X."""
-    mocker.patch(
-        "app.slack.events.log.bigquery_queue.emojis_upload_queue", new=[]
-    )
+    mocker.patch("app.slack.events.log.bigquery_queue.emojis_upload_queue", new=[])
     mocker.patch(
         "app.slack.events.log._is_thread_message", new=AsyncMock(return_value=False)
     )
     mocker.patch("app.slack.events.log._is_checked_notice", return_value=True)
     point_service = MagicMock()
-    mocker.patch(
-        "app.slack.events.log.PointService", return_value=point_service
-    )
+    mocker.patch("app.slack.events.log.PointService", return_value=point_service)
 
     body = make_reaction_body(
         channel_id=settings.NOTICE_CHANNEL,
@@ -214,9 +196,7 @@ async def test_handle_reaction_added_notice_skipped_when_already_checked(
         event_ts=str(datetime.now().timestamp()),
     )
 
-    await log_events.handle_reaction_added(
-        ack=ack, body=body, client=fake_slack_client
-    )
+    await log_events.handle_reaction_added(ack=ack, body=body, client=fake_slack_client)
 
     point_service.grant_if_notice_emoji_checked.assert_not_called()
 
@@ -226,17 +206,13 @@ async def test_handle_reaction_added_notice_skipped_when_too_old(
     ack, fake_slack_client, mocker
 ) -> None:
     """⚠️ 공지가 3일보다 이전이면 → 포인트 지급 X."""
-    mocker.patch(
-        "app.slack.events.log.bigquery_queue.emojis_upload_queue", new=[]
-    )
+    mocker.patch("app.slack.events.log.bigquery_queue.emojis_upload_queue", new=[])
     mocker.patch(
         "app.slack.events.log._is_thread_message", new=AsyncMock(return_value=False)
     )
     mocker.patch("app.slack.events.log._is_checked_notice", return_value=False)
     point_service = MagicMock()
-    mocker.patch(
-        "app.slack.events.log.PointService", return_value=point_service
-    )
+    mocker.patch("app.slack.events.log.PointService", return_value=point_service)
 
     old_ts = str((datetime.now() - timedelta(days=10)).timestamp())
     body = make_reaction_body(
@@ -246,9 +222,7 @@ async def test_handle_reaction_added_notice_skipped_when_too_old(
         event_ts=old_ts,
     )
 
-    await log_events.handle_reaction_added(
-        ack=ack, body=body, client=fake_slack_client
-    )
+    await log_events.handle_reaction_added(ack=ack, body=body, client=fake_slack_client)
 
     point_service.grant_if_notice_emoji_checked.assert_not_called()
 
@@ -263,30 +237,20 @@ async def test_handle_reaction_added_super_admin_post_grants_point(
     ack, fake_slack_client, mocker
 ) -> None:
     """✅ PRIMARY 채널 + catch-kyle + 1일 이내 + super_admin 글 → 포인트."""
-    mocker.patch(
-        "app.slack.events.log.bigquery_queue.emojis_upload_queue", new=[]
-    )
+    mocker.patch("app.slack.events.log.bigquery_queue.emojis_upload_queue", new=[])
     mocker.patch(
         "app.slack.events.log._is_checked_super_admin_post", return_value=False
     )
-    mocker.patch(
-        "app.slack.events.log._write_checked_super_admin_post"
-    )
+    mocker.patch("app.slack.events.log._write_checked_super_admin_post")
     repo = MagicMock()
     repo.get_content_by.return_value = factories.make_content(
         user_id=settings.SUPER_ADMIN, ts="1700000000.000100"
     )
-    mocker.patch(
-        "app.slack.events.log.SlackRepository", return_value=repo
-    )
+    mocker.patch("app.slack.events.log.SlackRepository", return_value=repo)
     point_service = MagicMock()
     point_service.grant_if_super_admin_post_reacted.return_value = "성윤 포인트!"
-    mocker.patch(
-        "app.slack.events.log.PointService", return_value=point_service
-    )
-    mocker.patch(
-        "app.slack.events.log.send_point_noti_message", new=AsyncMock()
-    )
+    mocker.patch("app.slack.events.log.PointService", return_value=point_service)
+    mocker.patch("app.slack.events.log.send_point_noti_message", new=AsyncMock())
 
     recent_ts = str(datetime.now().timestamp())
     body = make_reaction_body(
@@ -298,9 +262,7 @@ async def test_handle_reaction_added_super_admin_post_grants_point(
         reaction="catch-kyle",
     )
 
-    await log_events.handle_reaction_added(
-        ack=ack, body=body, client=fake_slack_client
-    )
+    await log_events.handle_reaction_added(ack=ack, body=body, client=fake_slack_client)
 
     point_service.grant_if_super_admin_post_reacted.assert_called_once_with(
         user_id="U_REACT"
@@ -312,16 +274,12 @@ async def test_handle_reaction_added_super_admin_skipped_when_old(
     ack, fake_slack_client, mocker
 ) -> None:
     """⚠️ 1일 보다 이전 → 포인트 지급 X."""
-    mocker.patch(
-        "app.slack.events.log.bigquery_queue.emojis_upload_queue", new=[]
-    )
+    mocker.patch("app.slack.events.log.bigquery_queue.emojis_upload_queue", new=[])
     mocker.patch(
         "app.slack.events.log._is_checked_super_admin_post", return_value=False
     )
     point_service = MagicMock()
-    mocker.patch(
-        "app.slack.events.log.PointService", return_value=point_service
-    )
+    mocker.patch("app.slack.events.log.PointService", return_value=point_service)
 
     old_ts = str((datetime.now() - timedelta(days=2)).timestamp())
     body = make_reaction_body(
@@ -332,9 +290,7 @@ async def test_handle_reaction_added_super_admin_skipped_when_old(
         reaction="catch-kyle",
     )
 
-    await log_events.handle_reaction_added(
-        ack=ack, body=body, client=fake_slack_client
-    )
+    await log_events.handle_reaction_added(ack=ack, body=body, client=fake_slack_client)
 
     point_service.grant_if_super_admin_post_reacted.assert_not_called()
 
@@ -344,9 +300,7 @@ async def test_handle_reaction_added_super_admin_skipped_when_not_super_admin_po
     ack, fake_slack_client, mocker
 ) -> None:
     """⚠️ 글 작성자가 super_admin 이 아니면 → 포인트 지급 X."""
-    mocker.patch(
-        "app.slack.events.log.bigquery_queue.emojis_upload_queue", new=[]
-    )
+    mocker.patch("app.slack.events.log.bigquery_queue.emojis_upload_queue", new=[])
     mocker.patch(
         "app.slack.events.log._is_checked_super_admin_post", return_value=False
     )
@@ -354,13 +308,9 @@ async def test_handle_reaction_added_super_admin_skipped_when_not_super_admin_po
     repo.get_content_by.return_value = factories.make_content(
         user_id="U_NOT_SUPER", ts="1.0"
     )
-    mocker.patch(
-        "app.slack.events.log.SlackRepository", return_value=repo
-    )
+    mocker.patch("app.slack.events.log.SlackRepository", return_value=repo)
     point_service = MagicMock()
-    mocker.patch(
-        "app.slack.events.log.PointService", return_value=point_service
-    )
+    mocker.patch("app.slack.events.log.PointService", return_value=point_service)
 
     recent_ts = str(datetime.now().timestamp())
     body = make_reaction_body(
@@ -371,9 +321,7 @@ async def test_handle_reaction_added_super_admin_skipped_when_not_super_admin_po
         reaction="catch-kyle",
     )
 
-    await log_events.handle_reaction_added(
-        ack=ack, body=body, client=fake_slack_client
-    )
+    await log_events.handle_reaction_added(ack=ack, body=body, client=fake_slack_client)
 
     point_service.grant_if_super_admin_post_reacted.assert_not_called()
 
@@ -383,16 +331,10 @@ async def test_handle_reaction_added_super_admin_skipped_when_already_checked(
     ack, fake_slack_client, mocker
 ) -> None:
     """⚠️ 이미 확인한 기록 → 포인트 지급 X."""
-    mocker.patch(
-        "app.slack.events.log.bigquery_queue.emojis_upload_queue", new=[]
-    )
-    mocker.patch(
-        "app.slack.events.log._is_checked_super_admin_post", return_value=True
-    )
+    mocker.patch("app.slack.events.log.bigquery_queue.emojis_upload_queue", new=[])
+    mocker.patch("app.slack.events.log._is_checked_super_admin_post", return_value=True)
     point_service = MagicMock()
-    mocker.patch(
-        "app.slack.events.log.PointService", return_value=point_service
-    )
+    mocker.patch("app.slack.events.log.PointService", return_value=point_service)
 
     recent_ts = str(datetime.now().timestamp())
     body = make_reaction_body(
@@ -403,9 +345,7 @@ async def test_handle_reaction_added_super_admin_skipped_when_already_checked(
         reaction="catch-kyle",
     )
 
-    await log_events.handle_reaction_added(
-        ack=ack, body=body, client=fake_slack_client
-    )
+    await log_events.handle_reaction_added(ack=ack, body=body, client=fake_slack_client)
 
     point_service.grant_if_super_admin_post_reacted.assert_not_called()
 
@@ -433,9 +373,7 @@ async def test_is_thread_message_returns_false_when_no_thread_ts(
     fake_slack_client,
 ) -> None:
     """✅ thread_ts 키가 없으면 False (일반 메시지)."""
-    fake_slack_client.conversations_replies.return_value = {
-        "messages": [{"ts": "1.0"}]
-    }
+    fake_slack_client.conversations_replies.return_value = {"messages": [{"ts": "1.0"}]}
     # 캐시를 우회하기 위해 매번 다른 ts 사용
     result = await log_events._is_thread_message(
         client=fake_slack_client, channel_id="C_T1", ts="1.0"

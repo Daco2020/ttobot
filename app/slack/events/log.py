@@ -13,7 +13,7 @@ from app.bigquery import queue as bigquery_queue
 from app.config import settings
 from slack_bolt.async_app import AsyncAck
 from slack_sdk.web.async_client import AsyncWebClient
-from app.utils import tz_now_to_str
+from app.utils import ts_to_dt, tz_now_to_str
 from aiocache import cached
 
 
@@ -23,8 +23,8 @@ async def handle_comment_data(body: MessageBodyType) -> None:
         channel_id=body["event"]["channel"],
         ts=body["event"]["thread_ts"],  # type: ignore
         comment_ts=body["event"]["ts"],
-        tddate=datetime.fromtimestamp(float(body["event"]["ts"])).date(),
-        createtime=datetime.fromtimestamp(float(body["event"]["ts"])),
+        tddate=ts_to_dt(body["event"]["ts"]).date(),
+        createtime=ts_to_dt(body["event"]["ts"]),
         text=body["event"]["text"],
     )
     bigquery_queue.comments_upload_queue.append(data)
@@ -35,8 +35,8 @@ async def handle_post_data(body: MessageBodyType) -> None:
         user_id=body["event"]["user"],
         channel_id=body["event"]["channel"],
         ts=body["event"]["ts"],
-        tddate=datetime.fromtimestamp(float(body["event"]["ts"])).date(),
-        createtime=datetime.fromtimestamp(float(body["event"]["ts"])),
+        tddate=ts_to_dt(body["event"]["ts"]).date(),
+        createtime=ts_to_dt(body["event"]["ts"]),
         text=body["event"]["text"],
     )
     bigquery_queue.posts_upload_queue.append(data)
@@ -55,8 +55,8 @@ async def handle_reaction_added(
         channel_id=body["event"]["item"]["channel"],
         ts=body["event"]["item"]["ts"],
         reactions_ts=body["event"]["event_ts"],
-        tddate=datetime.fromtimestamp(float(body["event"]["event_ts"])).date(),
-        createtime=datetime.fromtimestamp(float(body["event"]["event_ts"])),
+        tddate=ts_to_dt(body["event"]["event_ts"]).date(),
+        createtime=ts_to_dt(body["event"]["event_ts"]),
         reaction=body["event"]["reaction"],
     )
     bigquery_queue.emojis_upload_queue.append(data)
