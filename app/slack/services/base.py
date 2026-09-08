@@ -300,7 +300,7 @@ class SlackService:
     ) -> None:
         """북마크를 업데이트합니다."""
         # TODO: 북마크 삭제와 수정 분리할 것
-        self._repo.update_bookmark(content_ts, new_note, new_status)
+        self._repo.update_bookmark(user_id, content_ts, new_note, new_status)
         bookmark = self._repo.get_bookmark(user_id, content_ts, status=new_status)
         if bookmark:
             store.bookmark_update_queue.append(bookmark)

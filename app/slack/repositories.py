@@ -149,19 +149,21 @@ class SlackRepository:
 
     def update_bookmark(
         self,
+        user_id: str,
         content_ts: str,
         new_note: str = "",
         new_status: models.BookmarkStatusEnum = models.BookmarkStatusEnum.ACTIVE,
     ) -> None:
-        """북마크를 업데이트합니다."""
+        """북마크를 업데이트합니다. 같은 글을 북마크한 다른 사용자의 행은 건드리지 않는다."""
         df = pd.read_csv("store/bookmark.csv", dtype=str, na_filter=False)
+        target = (df["user_id"] == user_id) & (df["content_ts"] == content_ts)
 
         if new_note:
-            df.loc[df["content_ts"] == content_ts, "note"] = new_note
+            df.loc[target, "note"] = new_note
         if new_status:
-            df.loc[df["content_ts"] == content_ts, "status"] = new_status
+            df.loc[target, "status"] = new_status
         if new_note or new_status:
-            df.loc[df["content_ts"] == content_ts, "updated_at"] = tz_now_to_str()
+            df.loc[target, "updated_at"] = tz_now_to_str()
 
         df.to_csv("store/bookmark.csv", index=False, quoting=csv.QUOTE_ALL)
 
@@ -273,15 +275,16 @@ class SlackRepository:
         글쓰기 참여를 신청한 경우에는 글쓰기 채널 유저들을 반환합니다.
         """
         users_df = pl.read_csv("store/users.csv", dtypes={"deposit": pl.Utf8})
-        
+
         if channel_id == settings.WRITING_CHANNEL:
             writing_participation_df = pl.read_csv(
                 "store/writing_participation.csv",
                 dtypes={"user_id": pl.Utf8, "is_writing_participation": pl.Utf8},
             )
             user_ids = (
-                writing_participation_df
-                .filter(pl.col("is_writing_participation") == "True")
+                writing_participation_df.filter(
+                    pl.col("is_writing_participation") == "True"
+                )
                 .select("user_id")
                 .to_series()
                 .to_list()
