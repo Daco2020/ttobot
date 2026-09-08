@@ -1,9 +1,6 @@
-import asyncio
 import csv
 import os
-from typing import TypedDict
 import tenacity
-import pandas as pd
 
 from app.client import SpreadSheetClient
 from app.config import settings
@@ -1113,100 +1110,6 @@ async def send_paper_plane_message_view(
                 ],
             ),
         ],
-    )
-
-    # 인프런 쿠폰 지급 로직
-    inflearn_coupon = get_inflearn_coupon(user_id=user.user_id)
-    if not inflearn_coupon:
-        # 인프런 쿠폰이 존재하지 않다면 관리자에게 알립니다.
-        await client.chat_postMessage(
-            channel=settings.ADMIN_CHANNEL,
-            text=f"💌 *<@{user.user_id}>* 님의 인프런 쿠폰이 존재하지 않아요.",
-        )
-        return None
-    elif inflearn_coupon["status"] == "received":
-        # 이미 쿠폰을 받았다면 종이비행기를 보내지 않습니다.
-        return None
-    else:
-        # 인프런 쿠폰을 받지 않았다면 할인쿠폰 코드와 함께 종이비행기를 보냅니다.
-        text = (
-            f"{inflearn_coupon['user_name'][1:]}님의 따뜻함이 글또를 더 따뜻하게 만들었어요. 이에 감사한 마음을 담아 [인프런 할인 쿠폰]을 보내드려요.\n\n"
-            "- 할인율 : 30%\n"
-            "- 사용 기한 : 2025. 3. 30. 23:59 까지\n"
-            f"- 쿠폰 코드 : **{inflearn_coupon['code']}**\n"
-            "- 쿠폰 등록 : 쿠폰 등록 하러가기\n\n"
-            "쿠폰 코드를 [할인쿠폰 코드 입력란]에 등록하면 사용할 수 있어요."
-        )
-
-        ttobot = service.get_user(user_id=settings.TTOBOT_USER_ID)
-        service.create_paper_plane(
-            sender=ttobot,
-            receiver=user,
-            text=text,
-        )
-        update_inflearn_coupon_status(user_id=user.user_id, status="received")
-
-        await asyncio.sleep(
-            5
-        )  # 종이비행기 메시지 전송 후 5초 뒤에 전송. 이유는 바로 전송할 경우 본인 전송 알림 메시지와 구분이 어려움.
-
-        try:
-            await client.chat_postMessage(
-                channel=user.user_id,
-                text=f"💌 *<@{settings.TTOBOT_USER_ID}>* 의 깜짝 선물이 담긴 종이비행기가 도착했어요!🎁",
-                blocks=[
-                    SectionBlock(
-                        text=f"💌 *<@{settings.TTOBOT_USER_ID}>* 의 깜짝 선물이 담긴 종이비행기가 도착했어요!🎁\n\n",
-                    ),
-                    ContextBlock(
-                        elements=[
-                            MarkdownTextObject(
-                                text=">받은 종이비행기는 `/종이비행기` 명령어 -> [주고받은 종이비행기 보기] 를 통해 확인할 수 있어요."
-                            )
-                        ],
-                    ),
-                ],
-            )
-            return None
-        except Exception as e:
-            await client.chat_postMessage(
-                channel=settings.ADMIN_CHANNEL,
-                text=f"💌 *<@{user.user_id}>* 님에게 인프런 쿠폰을 보냈으나 메시지 전송에 실패했어요. {e}",
-            )
-            return None
-
-
-class InflearnCoupon(TypedDict):
-    user_id: str
-    user_name: str
-    code: str
-    status: str
-
-
-def get_inflearn_coupon(user_id: str) -> InflearnCoupon | None:
-    """인프런 쿠폰 코드를 반환합니다."""
-    try:
-        df = pd.read_csv(
-            "store/_inflearn_coupon.csv", encoding="utf-8", quoting=csv.QUOTE_ALL
-        )
-    except FileNotFoundError:
-        return None
-
-    coupon_row = df[df["user_id"] == user_id]
-    if not coupon_row.empty:
-        return coupon_row.iloc[0].to_dict()
-    return None
-
-
-def update_inflearn_coupon_status(user_id: str, status: str) -> None:
-    """인프런 쿠폰 수령 상태를 업데이트합니다."""
-    df = pd.read_csv("store/_inflearn_coupon.csv", encoding="utf-8")
-    df.loc[df["user_id"] == user_id, "status"] = status
-    df.to_csv(
-        "store/_inflearn_coupon.csv",
-        index=False,
-        encoding="utf-8",
-        quoting=csv.QUOTE_ALL,
     )
 
 

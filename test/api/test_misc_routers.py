@@ -1,7 +1,7 @@
 """미니 라우터 묶음 테스트.
 
 - POST /v1/send-messages         (관리자용 슬랙 메시지 일괄 전송)
-- GET  /v1/inflearn/coupons      (인프런 쿠폰 목록 조회)
+- GET  /v1/inflearn/coupons      (제거됨: 404 확인)
 - GET  /v1/writing-participation (글쓰기 참여 신청 목록 조회)
 """
 
@@ -101,73 +101,14 @@ def test_send_messages_without_token_returns_403(
 
 
 # ---------------------------------------------------------------------------
-# GET /v1/inflearn/coupons
+# GET /v1/inflearn/coupons (기능 제거, worklog 021)
 # ---------------------------------------------------------------------------
 
 
-def _write_inflearn_csv(path, rows):
-    with path.open("w", newline="", encoding="utf-8") as f:
-        writer = csv.DictWriter(
-            f, fieldnames=["code", "expired_at"], quoting=csv.QUOTE_ALL
-        )
-        writer.writeheader()
-        for row in rows:
-            writer.writerow(row)
-
-
-def test_inflearn_coupons_admin_returns_data(
-    client: TestClient, auth_for, factory, tmp_store
-) -> None:
-    """✅ admin → CSV 행을 그대로 dict 리스트로 반환."""
+def test_inflearn_coupons_route_is_gone(client: TestClient, auth_for, factory) -> None:
+    """⚠️ 인프런 쿠폰 기능 제거 → 라우트 없음(404). 쿠폰은 2025-03-30 만료."""
     auth_for(_admin(factory))
-    _write_inflearn_csv(
-        tmp_store / "_inflearn_coupon.csv",
-        [
-            {"code": "ABC123", "expired_at": "2025-12-31"},
-            {"code": "XYZ789", "expired_at": "2025-06-30"},
-        ],
-    )
-
-    response = client.get("/v1/inflearn/coupons")
-
-    assert response.status_code == 200
-    body = response.json()
-    assert body["data"] == [
-        {"code": "ABC123", "expired_at": "2025-12-31"},
-        {"code": "XYZ789", "expired_at": "2025-06-30"},
-    ]
-
-
-def test_inflearn_coupons_non_admin_returns_403(
-    client: TestClient, auth_for, factory, tmp_store
-) -> None:
-    """⚠️ admin 이 아닌 유저 → 403."""
-    auth_for(_non_admin(factory))
-
-    response = client.get("/v1/inflearn/coupons")
-
-    assert response.status_code == 403
-
-
-def test_inflearn_coupons_empty_csv_returns_empty_list(
-    client: TestClient, auth_for, factory, tmp_store
-) -> None:
-    """🌀 CSV 가 헤더만 있을 때 빈 리스트."""
-    auth_for(_admin(factory))
-    _write_inflearn_csv(tmp_store / "_inflearn_coupon.csv", rows=[])
-
-    response = client.get("/v1/inflearn/coupons")
-
-    assert response.status_code == 200
-    assert response.json() == {"data": []}
-
-
-def test_inflearn_coupons_without_token_returns_403(
-    client: TestClient, tmp_store
-) -> None:
-    """⚠️ 인증 누락 → 403."""
-    response = client.get("/v1/inflearn/coupons")
-    assert response.status_code == 403
+    assert client.get("/v1/inflearn/coupons").status_code == 404
 
 
 # ---------------------------------------------------------------------------

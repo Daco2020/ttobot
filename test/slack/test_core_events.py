@@ -870,6 +870,39 @@ async def test_send_paper_plane_message_view_to_bot(
 
 
 @pytest.mark.asyncio
+async def test_send_paper_plane_message_view_success_sends_two_dms_only(
+    ack, say, fake_slack_client, factory, slack_service, point_service_mock, tmp_store
+) -> None:
+    """✅ 정상 전송 → 받는 사람·보낸 사람 DM 2건뿐. 인프런 쿠폰 관리자 알림(기능 제거)은 없다."""
+    user = factory.make_user(user_id="U_ME")
+    slack_service.get_user = MagicMock(return_value=factory.make_user(user_id="U_RECV"))
+    slack_service.create_paper_plane = MagicMock()
+    body = make_view_body(
+        state_values={
+            "paper_plane_receiver": {"select_user": {"selected_user": "U_RECV"}},
+            "paper_plane_message": {"paper_plane_message": {"value": "고마워요"}},
+        }
+    )
+
+    await core_events.send_paper_plane_message_view(
+        ack=ack,
+        body=body,
+        client=fake_slack_client,
+        view=body["view"],
+        say=say,
+        user=user,
+        service=slack_service,
+        point_service=point_service_mock,
+    )
+
+    assert fake_slack_client.chat_postMessage.await_count == 2
+    channels = [
+        c.kwargs["channel"] for c in fake_slack_client.chat_postMessage.await_args_list
+    ]
+    assert settings.ADMIN_CHANNEL not in channels
+
+
+@pytest.mark.asyncio
 async def test_download_point_history_with_no_history(
     ack, say, fake_slack_client, factory, slack_service
 ) -> None:

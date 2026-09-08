@@ -164,7 +164,7 @@
 - ⚠️ 인증 누락 → 403
 - 🌀 `dto_list`가 빈 리스트 → 200 + 호출 0회
 
-### 4-3. `GET /v1/inflearn/coupons`
+### 4-3. `GET /v1/inflearn/coupons` (2026-09-08 기능 제거, worklog 021. 아래 케이스는 삭제됨)
 
 - ✅ admin → CSV 데이터 반환
 - ⚠️ 비-admin → 403

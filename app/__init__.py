@@ -17,7 +17,6 @@ from app.api.views.contents import router as contents_router
 from app.api.views.login import router as login_router
 from app.api.views.paper_planes import router as paper_planes_router
 from app.api.views.point import router as point_router
-from app.api.views.inflearn import router as inflearn_router
 from app.api.views.message import router as message_router
 from app.api.views.writing_participation import router as writing_participation_router
 from slack_bolt.adapter.socket_mode.aiohttp import AsyncSocketModeHandler
@@ -61,7 +60,6 @@ app.include_router(contents_router, prefix="/v1")
 app.include_router(login_router, prefix="/v1")
 app.include_router(paper_planes_router, prefix="/v1")
 app.include_router(point_router, prefix="/v1")
-app.include_router(inflearn_router, prefix="/v1")
 app.include_router(message_router, prefix="/v1")
 app.include_router(writing_participation_router, prefix="/v1")
 
