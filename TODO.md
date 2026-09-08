@@ -1,6 +1,6 @@
 # 또봇 TODO (단일 추적 문서)
 
-> 마지막 업데이트 2026-09-07
+> 마지막 업데이트 2026-09-08
 >
 > 활성 TODO의 **유일한 source of truth**. 완료 항목과 결정 이력은 [`/TODO.DONE.md`](TODO.DONE.md).
 > `docs/`는 배경·설계 참고용. (전역 규칙 #13)
@@ -41,21 +41,7 @@
 
 ---
 
-## B. 시트 동기화 리팩터링 (다음 작업, TDD 실패·성공·엣지)
-
-> 한도(공식): 사용자당 읽기·쓰기 각 **60/분**, 배치 요청은 1건. 현재 갱신 경로는 항목마다
-> 시트 전체를 읽어서 버스트 시 429 위험. 기능 변경 0, 외부 응답 보존.
-
-- [ ] 갱신 3테이블(bookmark·subscription·user): N읽기+N쓰기 → 틱당 **배치읽기 1 + 배치쓰기 1** (`values_batch_get` / `values_batch_update`)
-- [ ] 429 → **틱 단위 지수 백오프**(1·2·4분, 최대 5분), 지속될 때만 관리자 알림
-- [ ] 큐 정리를 값 동등성(`initial_queue`)에서 **인덱스 슬라이스**로 (업로드 중 append된 동일값 유실 방지)
-- [ ] `writing_participation` 반영을 clear+append(2쓰기, 빈 창)에서 **패딩 update 1쓰기**(원자적)로
-- [ ] 틱당 요청 예산 상한, 초과분은 다음 틱으로 이월
-- [ ] worklog 020
-
----
-
-## C. 비기능적 정리 (B 이후, `docs/04` 참고)
+## B. 비기능적 정리 (`docs/04` 참고)
 
 - [ ] `community.py`의 `requests.post` 2곳 → `httpx.AsyncClient`, 사용처 0이면 `requests` 의존성 제거
 - [ ] `/v1/contents` CSV를 mtime 기반 캐시로 (매요청 5MB 파싱 제거). 0.1 vCPU에서 체감 큼
@@ -64,7 +50,7 @@
 
 ---
 
-## D. 문서
+## C. 문서
 
 - [ ] `docs/05`·`docs/06`(GCP 가이드, gitignore 로컬 문서) 상단에 "Koyeb로 전환, GCP는 폴백" 한 줄
 - [ ] 배포·리팩터링 worklog는 **020부터** (017~019 사용됨)

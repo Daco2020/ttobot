@@ -6,6 +6,7 @@
 
 | 완료일 | 항목 | 근거 |
 | --- | --- | --- |
+| 2026-09-08 | 시트 동기화 리팩터링: 갱신 배치(읽기1·쓰기1) · 429 백오프 · 슬라이스 큐 · replace_table · 요청 예산 · self-ping 알림. 2행 손상 버그 수정 | worklog 020 · `6a25fbf` |
 | 2026-09-07 | Koyeb 이행 견고화: `writing_participation` 시트 동기화 · 부팅 시 없는 테이블만 복원 · self-ping | worklog 019 · `58c467f` |
 | 2026-08-13 | GHCR 이미지 빌드·푸시 워크플로우 (`image-build.yml`) | `dbd379e` |
 | 2026-08-13 | 활성 TODO를 `/TODO.md`로 일원화, docs 체크박스 385개 불릿 전환 | `eed33cb` |
