@@ -35,6 +35,8 @@ def _reset_module_state():
         for n in queue_names:
             setattr(store_module, n, [])
         store_module.writing_participation_dirty = False
+        store_module._backoff_until = 0.0
+        store_module._backoff_level = 0
 
     reset()
     yield
@@ -94,19 +96,18 @@ def test_pull_all_includes_writing_participation(store, client, tmp_store) -> No
 # ---------------------------------------------------------------------------
 
 
-def test_upload_writing_participation_clears_then_uploads_full_file(
+def test_upload_writing_participation_replaces_whole_table_once(
     store, client, tmp_store
 ) -> None:
-    """✅ 갱신 테이블이므로 clear 후 로컬 파일 전체(헤더 포함)를 올린다. 순서가 중요."""
+    """✅ 갱신 테이블이므로 로컬 파일 전체(헤더 포함)를 replace_table 1회로 반영한다."""
     rows = [WP_HEADER, ["U1", "a", "t", "True"], ["U2", "b", "t", "True"]]
     _write_rows(tmp_store / f"{WP}.csv", rows)
 
     store.upload_writing_participation()
 
-    client.clear.assert_called_once_with(WP)
-    client.bulk_upload.assert_called_once_with(WP, rows)
-    names = [c[0] for c in client.method_calls]
-    assert names.index("clear") < names.index("bulk_upload")
+    client.replace_table.assert_called_once_with(WP, rows)
+    client.clear.assert_not_called()
+    client.bulk_upload.assert_not_called()
 
 
 async def test_upload_queue_flushes_when_dirty(store, client, tmp_store) -> None:
@@ -115,8 +116,7 @@ async def test_upload_queue_flushes_when_dirty(store, client, tmp_store) -> None
 
     await store.upload_queue()
 
-    client.clear.assert_called_once_with(WP)
-    client.bulk_upload.assert_called_once()
+    client.replace_table.assert_called_once()
     assert store_module.writing_participation_dirty is False
 
 
@@ -133,7 +133,7 @@ async def test_upload_queue_restores_dirty_flag_on_failure(
 ) -> None:
     """⚠️ 업로드 실패 시 플래그를 되살려 다음 주기에 재시도한다 (유실 방지)."""
     store_module.writing_participation_dirty = True
-    client.clear.side_effect = RuntimeError("quota")
+    client.replace_table.side_effect = RuntimeError("quota")
 
     with pytest.raises(RuntimeError):
         await store.upload_queue()

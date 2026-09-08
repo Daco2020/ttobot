@@ -10,9 +10,9 @@ from app.client import SpreadSheetClient
 from app.slack.repositories import SlackRepository
 from fastapi import FastAPI, Request
 from apscheduler.triggers.interval import IntervalTrigger
-from app.keepalive import ping_self
+from app.keepalive import keepalive_job
 from app.config import settings
-from app.store import Store
+from app.store import SheetQuotaExceeded, Store, flush_alerts
 from app.api.views.contents import router as contents_router
 from app.api.views.login import router as login_router
 from app.api.views.paper_planes import router as paper_planes_router
@@ -67,6 +67,12 @@ app.include_router(writing_participation_router, prefix="/v1")
 
 if settings.ENV == "prod":
     async_schedule = AsyncIOScheduler(daemon=True, timezone=ZoneInfo("Asia/Seoul"))
+    _flush_state = {"prev_deferred": False}
+
+    async def _notify_admin(text: str) -> None:
+        await slack_app.client.chat_postMessage(
+            channel=settings.ADMIN_CHANNEL, text=text
+        )
 
     @app.on_event("startup")
     async def startup():
@@ -116,7 +122,9 @@ if settings.ENV == "prod":
         if settings.KOYEB_URL:
             ping_trigger = IntervalTrigger(minutes=5, timezone=ZoneInfo("Asia/Seoul"))
             async_schedule.add_job(
-                ping_self, trigger=ping_trigger, args=[settings.KOYEB_URL]
+                keepalive_job,
+                trigger=ping_trigger,
+                args=[settings.KOYEB_URL, _notify_admin],
             )
         else:
             logger.warning("KOYEB_URL 미설정: self-ping 비활성")
@@ -130,7 +138,13 @@ if settings.ENV == "prod":
     async def upload_queue(store: Store, slack_app: AsyncApp) -> None:
         """업로드 큐에 있는 데이터를 업로드합니다."""
         try:
-            await store.upload_queue()
+            report = await store.upload_queue()
+        except SheetQuotaExceeded as e:
+            # 429 는 틱 단위 백오프. 3회 이상 지속될 때만 관리자에게 알린다 (스팸 방지).
+            logger.warning(str(e))
+            for text in flush_alerts(error=e):
+                await _notify_admin(text)
+            return
         except Exception as e:
             trace = traceback.format_exc()
             error = f"시트 업로드 중 에러가 발생했어요. {str(e)} {trace}"
@@ -142,6 +156,14 @@ if settings.ENV == "prod":
                 channel=settings.ADMIN_CHANNEL,
                 text=message,
             )
+            return
+
+        # 못 찾아 버린 갱신 / 이월 시작 은 관리자에게 알린다.
+        for text in flush_alerts(
+            report=report, prev_deferred=_flush_state["prev_deferred"]
+        ):
+            await _notify_admin(text)
+        _flush_state["prev_deferred"] = bool(report.deferred)
 
     async def upload_logs(store: Store) -> None:
         """로그를 시트에 업로드하지 않고 로그 파일만 초기화합니다."""
@@ -186,7 +208,8 @@ if settings.ENV == "prod":
         await slack_handler.close_async()
 
         store = Store(client=SpreadSheetClient())
-        await store.upload_queue()
+        # 마지막 flush 는 백오프 창 안이어도 한 번 시도한다.
+        await store.upload_queue(force=True)
         # store.upload_all("logs")
         store.initialize_logs()
 

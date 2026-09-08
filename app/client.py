@@ -3,9 +3,9 @@ from app.logging import logger
 from app.config import settings
 
 from gspread import authorize, Spreadsheet, Worksheet
-from gspread.exceptions import WorksheetNotFound
+from gspread.exceptions import APIError, WorksheetNotFound
+from gspread.utils import rowcol_to_a1
 from oauth2client.service_account import ServiceAccountCredentials
-from app.models import StoreModel
 
 
 credentials = ServiceAccountCredentials.from_json_keyfile_dict(
@@ -20,6 +20,13 @@ WRITING_PARTICIPATION_HEADER = [
     "created_at",
     "is_writing_participation",
 ]
+
+
+def is_quota_error(error: Exception) -> bool:
+    """시트 API 한도 초과(429)인지 판별한다. 429 만 틱 단위 백오프 대상이다."""
+    if not isinstance(error, APIError):
+        return False
+    return getattr(getattr(error, "response", None), "status_code", None) == 429
 
 
 def _get_or_create_worksheet(
@@ -104,71 +111,35 @@ class SpreadSheetClient:
         sheet = self._sheets[sheet_name]
         self._batch_append_rows(values, sheet, batch_size=1000)
 
-    def update_bookmark(self, sheet_name: str, obj: StoreModel) -> None:
-        """해당 객체 정보를 시트에 업데이트 합니다."""
+    def batch_get(self, ranges: list[str]) -> list[list[list[str]]]:
+        """여러 범위를 한 번의 읽기 요청으로 가져와 요청 순서대로 rows 리스트를 돌려준다.
+
+        빈 시트는 응답에 values 키가 없으므로 [] 로 정규화한다.
+        """
+        if not ranges:
+            return []
+        response = self._doc.values_batch_get(ranges)
+        return [vr.get("values", []) for vr in response.get("valueRanges", [])]
+
+    def batch_update(self, data: list[dict[str, Any]]) -> None:
+        """여러 시트의 여러 범위를 한 번의 쓰기 요청으로 갱신한다 (values.batchUpdate = 1건)."""
+        if not data:
+            return
+        self._doc.values_batch_update({"valueInputOption": "RAW", "data": data})
+
+    def replace_table(self, sheet_name: str, values: list[list[str]]) -> None:
+        """시트를 values 로 통째로 바꾼다. 쓰기 1회, 원자적.
+
+        기존 grid 행 수(row_count, 캐시 메타라 API 호출 없음)까지 빈 행으로 채워 잔여 행을
+        지운다. clear + append 는 쓰기 2회에 그 사이 빈 창이 생기므로 쓰지 않는다.
+        """
+        if not values:
+            return
         sheet = self._sheets[sheet_name]
-        records = sheet.get_all_records()
-
-        target_record = dict()
-        row_number = 2  # 1은 인덱스가 0부터 시작하기 때문이며 나머지 1은 시드 헤더 행이 있기 때문.
-        for idx, record in enumerate(records):
-            # TODO: 추후 조건 바꾸기
-            if obj.user_id == record["user_id"] and obj.content_ts == str(  # type: ignore
-                record["content_ts"]
-            ):
-                target_record = record
-                row_number += idx
-                break
-
-        values = obj.to_list_for_sheet()
-
-        if not target_record:
-            logger.error(f"시트에 해당 값이 존재하지 않습니다. {values}")
-
-        sheet.update(f"A{row_number}:G{row_number}", [values])
-
-    def update_subscription(
-        self,
-        sheet_name: str,
-        subscription_dict: dict[str, Any],
-    ) -> None:
-        """해당 객체 정보를 시트에 업데이트 합니다."""
-        sheet = self._sheets[sheet_name]
-        records = sheet.get_all_records()
-
-        target_record = dict()
-        row_number = 2  # 1은 인덱스가 0부터 시작하기 때문이며 나머지 1은 시드 헤더 행이 있기 때문.
-        for idx, record in enumerate(records):
-            if subscription_dict["id"] == record["id"]:
-                target_record = record
-                row_number += idx
-                break
-
-        values = list(subscription_dict.values())
-
-        if not target_record:
-            logger.error(f"시트에 해당 값이 존재하지 않습니다. {values}")
-
-        sheet.update(f"A{row_number}:G{row_number}", [values])
-
-    def update_user(self, sheet_name: str, values: list[str]) -> None:
-        """유저 정보를 시트에 업데이트 합니다."""
-        # TODO: 추후 업데이트 함수 통합하기
-        sheet = self._sheets[sheet_name]
-        records = sheet.get_all_records()
-
-        target_record = dict()
-        row_number = 2  # 1은 인덱스가 0부터 시작하기 때문이며 나머지 1은 시드 헤더 행이 있기 때문.
-        for idx, record in enumerate(records):
-            if values[0] == record["user_id"]:
-                target_record = record
-                row_number += idx
-                break
-
-        if not target_record:
-            logger.error(f"시트에 해당 값이 존재하지 않습니다. {values}")
-
-        sheet.update(f"A{row_number}:F{row_number}", [values])
+        ncols = len(values[0])
+        rows = max(len(values), int(sheet.row_count))
+        padded = values + [[""] * ncols] * (rows - len(values))
+        sheet.update(values=padded, range_name=f"A1:{rowcol_to_a1(rows, ncols)}")
 
     def _batch_append_rows(
         self,

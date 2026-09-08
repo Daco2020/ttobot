@@ -54,3 +54,65 @@ async def test_ping_disabled_when_url_empty(mocker) -> None:
 
     assert await ping_self("   ") is False
     async_client.assert_not_called()
+
+
+# ---------------------------------------------------------------------------
+# keepalive_job: 연속 실패 시 관리자 알림 (worklog 020)
+# ---------------------------------------------------------------------------
+
+from app import keepalive as keepalive_module  # noqa: E402
+from app.keepalive import ALERT_AFTER_FAILURES, keepalive_job  # noqa: E402
+
+
+class _Notify:
+    def __init__(self) -> None:
+        self.messages: list[str] = []
+
+    async def __call__(self, text: str) -> None:
+        self.messages.append(text)
+
+
+async def test_job_alerts_once_at_nth_consecutive_failure(mocker) -> None:
+    """⚠️ N회 연속 실패 → 그 순간 1회만 알림. 그 뒤 계속 실패해도 반복 없음."""
+    keepalive_module._failure_streak = 0
+    mocker.patch("app.keepalive.ping_self", return_value=False)
+    notify = _Notify()
+
+    for _ in range(ALERT_AFTER_FAILURES + 2):
+        await keepalive_job("https://x", notify)
+
+    assert len(notify.messages) == 1
+    assert "KOYEB_URL" in notify.messages[0]
+
+
+async def test_job_success_resets_streak(mocker) -> None:
+    """✅ 성공하면 연속 실패 카운트가 0으로. 그 뒤 다시 N회 실패해야 알림."""
+    keepalive_module._failure_streak = 0
+    ping = mocker.patch(
+        "app.keepalive.ping_self", side_effect=[False, False, True, False, False, False]
+    )
+    notify = _Notify()
+
+    for _ in range(6):
+        await keepalive_job("https://x", notify)
+
+    assert ping.call_count == 6
+    assert len(notify.messages) == 1  # 마지막 3연속에서만
+
+
+async def test_job_swallows_notify_failure(mocker) -> None:
+    """🌀 알림 전송 자체가 실패해도 잡은 죽지 않는다."""
+    keepalive_module._failure_streak = ALERT_AFTER_FAILURES - 1
+    mocker.patch("app.keepalive.ping_self", return_value=False)
+
+    async def broken(_text: str) -> None:
+        raise RuntimeError("slack down")
+
+    assert await keepalive_job("https://x", broken) is False
+
+
+async def test_job_returns_ping_result(mocker) -> None:
+    """✅ 반환값은 ping 결과 그대로."""
+    keepalive_module._failure_streak = 0
+    mocker.patch("app.keepalive.ping_self", return_value=True)
+    assert await keepalive_job("https://x", _Notify()) is True
