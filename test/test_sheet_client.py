@@ -40,7 +40,11 @@ def test_creates_writing_participation_tab_with_header_when_missing() -> None:
 
     doc.add_worksheet.assert_called_once()
     assert doc.add_worksheet.call_args.kwargs["title"] == WP
-    created.append_row.assert_called_once_with(WRITING_PARTICIPATION_HEADER)
+    # append_row 는 캐시 row_count 만 올려 grid 와 어긋나므로 헤더는 update 로 쓴다
+    created.update.assert_called_once_with(
+        values=[WRITING_PARTICIPATION_HEADER], range_name="A1"
+    )
+    created.append_row.assert_not_called()
     assert client._sheets[WP] is created
 
 
@@ -53,5 +57,5 @@ def test_uses_existing_writing_participation_tab() -> None:
     client = SpreadSheetClient(doc=doc)
 
     doc.add_worksheet.assert_not_called()
-    existing.append_row.assert_not_called()
+    existing.update.assert_not_called()
     assert client._sheets[WP] is existing

@@ -7,7 +7,11 @@ from collections.abc import Callable
 from typing import Any
 from gspread.exceptions import APIError
 
-from app.client import SpreadSheetClient, is_quota_error
+from app.client import (
+    WRITING_PARTICIPATION_HEADER,
+    SpreadSheetClient,
+    is_quota_error,
+)
 from app.logging import log_event
 from app.models import Bookmark
 
@@ -99,6 +103,40 @@ def flush_alerts(
                 f"{', '.join(report.deferred)}. 계속되면 큐가 쌓입니다."
             )
     return alerts
+
+
+def next_prev_deferred(report: FlushReport, prev: bool) -> bool:
+    """이월 알림의 edge-trigger 상태. 백오프 틱은 아무것도 안 했으므로 상태를 건드리지 않는다."""
+    if report.backed_off:
+        return prev
+    return bool(report.deferred)
+
+
+def merge_writing_participation(
+    local: list[list[str]], remote: list[list[str]]
+) -> list[list[str]]:
+    """로컬 ∪ 시트를 user_id 로 합친다. 로컬 순서·값 우선, 시트에만 있는 행은 뒤에.
+
+    배포가 겹치는 구간에 옛 인스턴스가 늦게 올린 신청 행을 새 인스턴스의 통째 교체가
+    지우지 않게 한다. 신청 행은 지워지는 일이 없으므로 합집합이 안전하다.
+    시트의 짧은 행·빈 행은 버리고, 같은 user_id 는 처음 것만 쓴다.
+    """
+    header = (
+        local[0] if local else (remote[0] if remote else WRITING_PARTICIPATION_HEADER)
+    )
+    width = len(header)
+    merged = [header]
+    seen: set[str] = set()
+    for row in local[1:]:
+        merged.append(row)
+        if row:
+            seen.add(row[0])
+    for row in remote[1:]:
+        if len(row) < width or not row[0] or row[0] in seen:
+            continue
+        seen.add(row[0])
+        merged.append(row)
+    return merged
 
 
 # append 전용 큐: (테이블, 큐 이름, 로그 이벤트, 로그 타입, 라벨, 로그에 내용 포함 여부)
@@ -256,22 +294,41 @@ class Store:
         self.write("subscriptions", values=self._client.get_values("subscriptions"))
 
     def pull_writing_participation(self) -> None:
-        """글쓰기 참여 신청 데이터를 가져와 서버 저장소를 동기화합니다."""
+        """글쓰기 참여 신청 데이터를 가져와 서버 저장소를 동기화합니다.
+
+        탭이 완전히 비어 있으면 0바이트 대신 헤더 1행을 쓴다 (pandas EmptyDataError 방지).
+        """
         os.makedirs("store", exist_ok=True)
-        self.write(
-            "writing_participation",
-            values=self._client.get_values("writing_participation"),
-        )
+        values = self._client.get_values("writing_participation") or [
+            WRITING_PARTICIPATION_HEADER
+        ]
+        self.write("writing_participation", values=values)
+
+    def _merge_wp_locally(self, remote: list[list[str]]) -> list[list[str]]:
+        """로컬 CSV 와 시트를 합쳐 로컬에 되쓰고 합친 표를 돌려준다. 파일 IO 는 이벤트 루프에서.
+
+        핸들러의 to_csv 도 루프에서 실행되므로 스레드에서 읽을 때 생기는 찢긴 읽기가 없다.
+        """
+        try:
+            local = self.read("writing_participation")
+        except FileNotFoundError:
+            local = []
+        merged = merge_writing_participation(local, remote)
+        if merged != local:
+            os.makedirs("store", exist_ok=True)
+            self.write("writing_participation", merged)
+        return merged
 
     def upload_writing_participation(self) -> None:
-        """글쓰기 참여 신청 테이블을 시트에 통째로 반영합니다 (update 1회, 빈 창 없음).
+        """글쓰기 참여 신청 테이블을 시트에 반영합니다 (읽기 1 + resize 1 + update 1).
 
         기존 행을 갱신하는 테이블이라 append 전용 bulk_upload 만으로는 중복이 생긴다.
-        clear + append 는 쓰기 2회에 그 사이 빈 창이 생겨 replace_table 을 쓴다.
+        시트와 합집합을 만든 뒤 통째로 바꾸므로, 배포 겹침 구간에 옛 인스턴스가 늦게 올린
+        행도 지워지지 않는다.
         """
-        self._client.replace_table(
-            "writing_participation", self.read("writing_participation")
-        )
+        remote = self._client.get_values("writing_participation")
+        merged = self._merge_wp_locally(remote)
+        self._client.replace_table("writing_participation", merged)
 
     @staticmethod
     def _needs_restore(table_name: str) -> bool:
@@ -343,19 +400,39 @@ class Store:
 
         async with queue_lock:
             budget = MAX_REQUESTS_PER_TICK
+
+            # 어떤 await 도 하기 전에 모든 큐를 스냅샷한다. 핸들러는 생성 → 갱신 순으로 동기적으로
+            # enqueue 하므로, 스냅샷에 갱신이 있으면 그 행의 생성도 스냅샷에 있거나 이미 시트에 있다.
+            # (틱 도중 들어온 "생성 + 즉시 취소" 가 갱신만 먼저 처리돼 버려지는 일을 막는다)
+            append_snap = [
+                (spec, globals()[spec[1]], *_drain(globals()[spec[1]]))
+                for spec in APPEND_SPECS
+                if globals()[spec[1]]
+            ]
+            update_snap = [
+                (
+                    table,
+                    globals()[UPDATE_SPECS[table]["queue"]],
+                    *_drain(globals()[UPDATE_SPECS[table]["queue"]]),
+                )
+                for table in UPDATE_ORDER
+                if globals()[UPDATE_SPECS[table]["queue"]]
+            ]
+            wp_dirty = writing_participation_dirty
+            writing_participation_dirty = False  # 틱 중 새 쓰기는 플래그를 다시 켠다
+
             try:
                 # 1) append 전용 큐
-                for table, queue_name, event, type_, label, keep_body in APPEND_SPECS:
-                    queue = globals()[queue_name]
-                    if not queue:
-                        continue
-                    cost = max(
-                        1, -(-len(queue) // 1000)
-                    )  # bulk_upload 는 1000행 단위 요청
+                for (
+                    (table, _qn, event, type_, label, keep_body),
+                    queue,
+                    batch,
+                    n,
+                ) in append_snap:
+                    cost = max(1, -(-n // 1000))  # bulk_upload 는 1000행 단위 요청
                     if cost > budget:
                         report.deferred.append(table)
                         continue
-                    batch, n = _drain(queue)
                     await asyncio.to_thread(self._client.bulk_upload, table, batch)
                     _commit(queue, n)
                     budget -= cost
@@ -368,18 +445,14 @@ class Store:
                         body={"uploaded": batch} if keep_body else {},
                     )
 
-                # 2) 갱신 큐: 읽기 1 + 쓰기 1. append 를 먼저 올렸으므로 방금 추가한 행도 찾는다.
-                pending = [
-                    (table, globals()[UPDATE_SPECS[table]["queue"]])
-                    for table in UPDATE_ORDER
-                    if globals()[UPDATE_SPECS[table]["queue"]]
-                ]
-                if pending:
+                # 2) 갱신 큐: 읽기 1 + 쓰기 1
+                if update_snap:
                     if budget < 2:
-                        report.deferred.extend(table for table, _ in pending)
+                        report.deferred.extend(table for table, *_ in update_snap)
                     else:
                         ranges = [
-                            UPDATE_SPECS[table]["key_range"] for table, _ in pending
+                            UPDATE_SPECS[table]["key_range"]
+                            for table, *_ in update_snap
                         ]
                         sheet_rows = await asyncio.to_thread(
                             self._client.batch_get, ranges
@@ -388,63 +461,77 @@ class Store:
                         report.requests += 1
 
                         data: list[dict] = []
-                        drained: list[tuple[list, int, str, int]] = []
-                        for (table, queue), rows in zip(pending, sheet_rows):
+                        # 응답이 요청보다 적으면 조용히 이월하지 않고 실패시킨다 (strict)
+                        for (table, queue, batch, n), rows in zip(
+                            update_snap, sheet_rows, strict=True
+                        ):
                             spec = UPDATE_SPECS[table]
                             index: dict = {}
                             for i, row in enumerate(rows):
                                 key = spec["key_of_row"](row)
-                                if key is not None and key not in index:
-                                    index[key] = i + 2  # 1행은 헤더, i 는 0부터
-                            batch, n = _drain(queue)
-                            drained.append((queue, n, table, len(batch)))
+                                if key is not None:
+                                    index.setdefault(key, []).append(
+                                        i + 2
+                                    )  # 1행 헤더, i 는 0부터
                             last: dict = {}
                             for item in batch:
                                 last[spec["key_of_item"](item)] = (
                                     item  # 같은 행은 마지막 값
                                 )
                             for key, item in last.items():
-                                row_number = index.get(key)
-                                if row_number is None:
+                                row_numbers = index.get(key)
+                                if not row_numbers:
                                     # 못 찾으면 어떤 행도 쓰지 않는다. (기존: 2행을 덮어쓰는 버그)
                                     report.skipped.append(
                                         f"{table}:{key[0] if len(key) == 1 else key}"
                                     )
                                     continue
-                                data.append(
-                                    {
-                                        "range": f"{table}!A{row_number}:{spec['last_col']}{row_number}",
-                                        "values": [spec["values_of"](item)],
-                                    }
-                                )
+                                # 같은 키 행이 여럿이면(재북마크) 전부 같은 값으로. 로컬 동작과 일치.
+                                for row_number in row_numbers:
+                                    data.append(
+                                        {
+                                            "range": f"{table}!A{row_number}:{spec['last_col']}{row_number}",
+                                            "values": [spec["values_of"](item)],
+                                        }
+                                    )
                         if data:
                             await asyncio.to_thread(self._client.batch_update, data)
                             budget -= 1
                             report.requests += 1
-                        for queue, n, table, count in drained:
+                        for table, queue, batch, n in update_snap:
                             _commit(queue, n)
                             event, type_, label = UPDATE_SPECS[table]["event"]
                             log_event(
                                 actor="system",
                                 event=event,
                                 type=type_,
-                                description=f"{count}개 {label}",
+                                description=f"{len(batch)}개 {label}",
                                 body={},
                             )
 
-                # 3) writing_participation: 플래그를 먼저 내리고 올린다. 실패하면 되살린다.
-                if writing_participation_dirty:
-                    if budget < 1:
+                # 3) writing_participation: 읽기 1(병합용) + resize 1 + update 1
+                if wp_dirty:
+                    if budget < 3:
                         report.deferred.append("writing_participation")
+                        writing_participation_dirty = True
                     else:
-                        writing_participation_dirty = False
                         try:
-                            await asyncio.to_thread(self.upload_writing_participation)
+                            remote = await asyncio.to_thread(
+                                self._client.get_values, "writing_participation"
+                            )
+                            merged = self._merge_wp_locally(
+                                remote
+                            )  # 파일 IO 는 루프에서
+                            await asyncio.to_thread(
+                                self._client.replace_table,
+                                "writing_participation",
+                                merged,
+                            )
                         except Exception:
                             writing_participation_dirty = True
                             raise
-                        budget -= 1
-                        report.requests += 1
+                        budget -= 3
+                        report.requests += 3
                         log_event(
                             actor="system",
                             event="uploaded_writing_participation",
@@ -466,6 +553,7 @@ class Store:
                 raise
 
         _backoff_level = 0
+        _backoff_until = 0.0  # force 로 창 안에서 성공한 뒤에도 다음 틱이 건너뛰지 않게
         return report
 
     def backup(self, table_name: str) -> None:

@@ -45,7 +45,9 @@ def _reset_module_state():
 
 @pytest.fixture
 def client() -> MagicMock:
-    return MagicMock()
+    c = MagicMock()
+    c.get_values.return_value = []  # 시트 탭이 비어 있는 상태가 기본
+    return c
 
 
 @pytest.fixture
@@ -79,6 +81,17 @@ def test_pull_writing_participation_writes_sheet_values_to_local(
 
     client.get_values.assert_called_once_with(WP)
     assert _rows(tmp_store / f"{WP}.csv") == rows
+
+
+def test_pull_writing_participation_empty_tab_writes_header_only(
+    store, client, tmp_store
+) -> None:
+    """🌀 시트 탭이 완전히 비어 있으면 0바이트 대신 헤더 1행을 쓴다 (pandas EmptyDataError 방지)."""
+    client.get_values.return_value = []
+
+    store.pull_writing_participation()
+
+    assert _rows(tmp_store / f"{WP}.csv") == [WP_HEADER]
 
 
 def test_pull_all_includes_writing_participation(store, client, tmp_store) -> None:

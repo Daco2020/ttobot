@@ -40,7 +40,9 @@ def _get_or_create_worksheet(
         return doc.worksheet(name)
     except WorksheetNotFound:
         sheet = doc.add_worksheet(title=name, rows=1000, cols=len(header))
-        sheet.append_row(header)
+        # append_row 는 실제 grid 와 무관하게 캐시 row_count 만 +1 해서(gspread worksheet.py:1864)
+        # 이후 범위 계산이 어긋난다. 헤더는 update 로 써서 캐시를 건드리지 않는다.
+        sheet.update(values=[header], range_name="A1")
         logger.info(f"시트 탭 생성: {name}")
         return sheet
 
@@ -128,18 +130,19 @@ class SpreadSheetClient:
         self._doc.values_batch_update({"valueInputOption": "RAW", "data": data})
 
     def replace_table(self, sheet_name: str, values: list[list[str]]) -> None:
-        """시트를 values 로 통째로 바꾼다. 쓰기 1회, 원자적.
+        """시트를 values 로 통째로 바꾼다. resize 1 + update 1 = 쓰기 2회, 결정적.
 
-        기존 grid 행 수(row_count, 캐시 메타라 API 호출 없음)까지 빈 행으로 채워 잔여 행을
-        지운다. clear + append 는 쓰기 2회에 그 사이 빈 창이 생기므로 쓰지 않는다.
+        캐시된 row_count 는 믿지 않는다. append_rows 가 grid 와 무관하게 캐시만 올리므로
+        (자동 생성 탭 = 1001 vs 실제 1000) 캐시 기반 범위는 values.update 에서 400 을 낸다.
+        resize(rows=len) 는 절대값이라 드리프트와 무관하고, 줄어들면 잔여 행도 함께 지워져
+        패딩이 필요 없다. clear + append 는 그 사이 빈 창이 생기므로 쓰지 않는다.
         """
         if not values:
             return
         sheet = self._sheets[sheet_name]
-        ncols = len(values[0])
-        rows = max(len(values), int(sheet.row_count))
-        padded = values + [[""] * ncols] * (rows - len(values))
-        sheet.update(values=padded, range_name=f"A1:{rowcol_to_a1(rows, ncols)}")
+        rows, ncols = len(values), len(values[0])
+        sheet.resize(rows=rows, cols=ncols)
+        sheet.update(values=values, range_name=f"A1:{rowcol_to_a1(rows, ncols)}")
 
     def _batch_append_rows(
         self,

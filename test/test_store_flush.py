@@ -25,6 +25,8 @@ from app.store import (
     SheetQuotaExceeded,
     Store,
     flush_alerts,
+    merge_writing_participation,
+    next_prev_deferred,
 )
 from test import factories
 
@@ -65,6 +67,7 @@ def _reset_state():
 def client() -> MagicMock:
     c = MagicMock()
     c.batch_get.return_value = []
+    c.get_values.return_value = []  # WP 병합이 읽는 시트 탭, 기본 빈 탭
     return c
 
 
@@ -434,7 +437,9 @@ async def test_normal_full_tick_stays_under_budget(store, client, tmp_store):
 
     report = await store.upload_queue(now=Clock())
 
-    assert report.requests <= 11
+    assert (
+        report.requests <= 11
+    )  # append 6 + 갱신 읽기1·쓰기1 + WP 읽기1·resize1·update1
     assert report.deferred == []
     assert MAX_REQUESTS_PER_TICK >= report.requests
 
@@ -444,8 +449,8 @@ async def test_normal_full_tick_stays_under_budget(store, client, tmp_store):
 # ---------------------------------------------------------------------------
 
 
-async def test_wp_dirty_uses_single_replace(store, client, tmp_store):
-    """✅ dirty → replace_table 1회 (clear/bulk_upload 안 씀)."""
+async def test_wp_dirty_merges_and_replaces_once(store, client, tmp_store):
+    """✅ dirty → 시트 읽기 1 + replace_table 1회 (clear/bulk_upload 안 씀)."""
     rows = [
         ["user_id", "name", "created_at", "is_writing_participation"],
         ["U1", "a", "t", "True"],
@@ -510,3 +515,151 @@ def test_alerts_deferred_is_edge_triggered():
 def test_alerts_none_on_clean_tick():
     """✅ 정상 틱은 알림 0."""
     assert flush_alerts(report=FlushReport(requests=5)) == []
+
+
+# ---------------------------------------------------------------------------
+# 리뷰 반영 (교차검증 2026-09-08)
+# ---------------------------------------------------------------------------
+
+
+async def test_queues_are_snapshotted_before_any_await(store, client, tmp_store):
+    """🌀 틱 도중(await 지점) 들어온 '생성 + 즉시 취소'는 둘 다 다음 틱으로. 갱신만 먼저 처리돼
+    시트에서 못 찾고 버려지는 일이 없어야 한다."""
+    store_module.content_upload_queue.append(["c"])
+
+    def arrive_during_upload(*_a, **_k):
+        store_module.bookmark_upload_queue.append(
+            ["U1", "U9", "1.0", "", "active", "t", "t"]
+        )
+        store_module.bookmark_update_queue.append(_bookmark("U1", "1.0"))
+
+    client.bulk_upload.side_effect = arrive_during_upload
+
+    report = await store.upload_queue(now=Clock())
+
+    client.batch_get.assert_not_called()
+    assert report.skipped == []
+    assert len(store_module.bookmark_upload_queue) == 1
+    assert len(store_module.bookmark_update_queue) == 1
+
+    # 다음 틱: append 가 먼저 올라가고 그 다음 갱신이 성공한다
+    client.bulk_upload.side_effect = None
+    client.batch_get.return_value = [[["U1", "U9", "1.0"]]]
+    report = await store.upload_queue(now=Clock())
+    assert report.skipped == []
+    assert store_module.bookmark_update_queue == []
+
+
+async def test_duplicate_keys_in_sheet_update_every_matching_row(
+    store, client, tmp_store
+):
+    """🌀 시트에 같은 키 행이 둘이면(재북마크) 둘 다 같은 값으로 쓴다. 로컬 동작과 일치."""
+    store_module.user_update_queue.append(["U1", "n", "c", "C", "i", "10기"])
+    client.batch_get.return_value = [[["U1"], ["U1"]]]
+
+    await store.upload_queue(now=Clock())
+
+    data = client.batch_update.call_args.args[0]
+    assert [d["range"] for d in data] == ["users!A2:F2", "users!A3:F3"]
+    assert data[0]["values"] == data[1]["values"]
+
+
+async def test_batch_get_short_response_raises_and_keeps_queue(
+    store, client, tmp_store
+):
+    """⚠️ 요청한 범위보다 적게 오면 조용히 이월하지 않고 실패시킨다. 큐는 보존."""
+    store_module.user_update_queue.append(["U1", "n", "c", "C", "i", "10기"])
+    store_module.subscription_update_queue.append(
+        {"id": "S1", "a": 1, "b": 2, "c": 3, "d": 4, "e": 5, "f": 6}
+    )
+    client.batch_get.return_value = [[["S1"]]]  # 2개 요청, 1개만 응답
+
+    with pytest.raises(ValueError):
+        await store.upload_queue(now=Clock())
+
+    assert len(store_module.user_update_queue) == 1
+    assert len(store_module.subscription_update_queue) == 1
+
+
+async def test_success_clears_backoff_until_too(store, client, tmp_store):
+    """🌀 force 로 창 안에서 성공하면 until 도 지워져 다음 정규 틱이 건너뛰지 않는다."""
+    store_module.content_upload_queue.append(["a"])
+    client.bulk_upload.side_effect = [_api_error(429), None, None]
+    clock = Clock()
+    with pytest.raises(SheetQuotaExceeded):
+        await store.upload_queue(now=clock)
+    clock.t += 5
+    store_module.content_upload_queue.append(["b"])
+    await store.upload_queue(force=True, now=clock)
+
+    assert store_module._backoff_until == 0.0
+    store_module.content_upload_queue.append(["c"])
+    report = await store.upload_queue(now=clock)  # 여전히 옛 창 안의 시각
+    assert report.backed_off is False
+    assert store_module.content_upload_queue == []
+
+
+def test_next_prev_deferred_ignores_backed_off_ticks():
+    """🌀 백오프 틱은 이월 상태를 건드리지 않는다 (이월 중에 '시작' 알림 재발 방지)."""
+    assert next_prev_deferred(FlushReport(deferred=["x"]), prev=False) is True
+    assert next_prev_deferred(FlushReport(), prev=True) is False
+    assert next_prev_deferred(FlushReport(backed_off=True), prev=True) is True
+    assert next_prev_deferred(FlushReport(backed_off=True), prev=False) is False
+
+
+# --- writing_participation 병합 (배포 겹침 구간에 옛 인스턴스가 늦게 올린 행 보존) ---
+
+H = ["user_id", "name", "created_at", "is_writing_participation"]
+
+
+def test_merge_union_by_user_id_local_first_then_remote_only():
+    """✅ 로컬 행 순서 유지 + 시트에만 있는 행을 뒤에 붙인다."""
+    local = [H, ["U1", "a", "t1", "True"]]
+    remote = [H, ["U1", "a-old", "t0", "True"], ["U2", "b", "t2", "True"]]
+
+    assert merge_writing_participation(local, remote) == [
+        H,
+        ["U1", "a", "t1", "True"],
+        ["U2", "b", "t2", "True"],
+    ]
+
+
+def test_merge_local_wins_on_conflict():
+    """✅ 같은 user_id 는 로컬 값."""
+    local = [H, ["U1", "new", "t", "True"]]
+    remote = [H, ["U1", "old", "t", "False"]]
+    assert merge_writing_participation(local, remote)[1] == ["U1", "new", "t", "True"]
+
+
+def test_merge_empty_remote_and_empty_local():
+    """🌀 시트가 비었으면 로컬 그대로, 로컬이 비었으면 헤더 + 시트."""
+    local = [H, ["U1", "a", "t", "True"]]
+    assert merge_writing_participation(local, []) == local
+    assert merge_writing_participation([], [H, ["U2", "b", "t", "True"]]) == [
+        H,
+        ["U2", "b", "t", "True"],
+    ]
+    assert merge_writing_participation([], []) == [H]
+
+
+def test_merge_ignores_remote_short_or_blank_rows_and_dupes():
+    """⚠️ 시트의 짧은 행·빈 행·중복 user_id 는 첫 번째만, 짧은 건 버린다."""
+    local = [H]
+    remote = [H, [], ["U2"], ["U3", "c", "t", "True"], ["U3", "c2", "t", "True"]]
+    assert merge_writing_participation(local, remote) == [H, ["U3", "c", "t", "True"]]
+
+
+async def test_wp_flush_writes_merged_rows_back_to_local(store, client, tmp_store):
+    """결합: dirty flush 가 시트 전용 행을 로컬 CSV 에도 남겨 복원과 일관되게 만든다."""
+    with (tmp_store / f"{WP}.csv").open("w", newline="", encoding="utf-8") as f:
+        csv.writer(f, quoting=csv.QUOTE_ALL).writerows([H, ["U1", "a", "t", "True"]])
+    client.get_values.return_value = [H, ["U2", "b", "t", "True"]]
+    store_module.writing_participation_dirty = True
+
+    report = await store.upload_queue(now=Clock())
+
+    merged = [H, ["U1", "a", "t", "True"], ["U2", "b", "t", "True"]]
+    client.replace_table.assert_called_once_with(WP, merged)
+    with (tmp_store / f"{WP}.csv").open(newline="", encoding="utf-8") as f:
+        assert list(csv.reader(f, quoting=csv.QUOTE_ALL)) == merged
+    assert report.requests == 3  # 읽기 1 + resize 1 + update 1

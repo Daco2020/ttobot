@@ -78,42 +78,62 @@ def test_batch_update_empty_makes_no_request(client, doc):
     doc.values_batch_update.assert_not_called()
 
 
-def test_replace_table_pads_to_row_count_and_updates_once(client, doc):
-    """✅ 기존 행 수(row_count)까지 빈 행으로 채워 update 1회 → 잔여행이 지워지고 빈 창이 없다."""
+def test_replace_table_resizes_to_values_then_updates(client, doc):
+    """✅ 캐시 row_count 를 믿지 않는다. grid 를 표 크기로 resize 한 뒤 update (쓰기 2회).
+
+    gspread append_rows 는 실제 grid 와 무관하게 캐시만 +N 하므로(자동 생성 탭 = 1001 vs 1000)
+    캐시 기반 범위는 values.update 에서 400 을 낸다.
+    """
     sheet = MagicMock()
-    sheet.row_count = 5
+    sheet.row_count = 1001  # 드리프트된 캐시
     client._sheets["writing_participation"] = sheet
     values = [["h1", "h2"], ["a", "b"]]
 
     client.replace_table("writing_participation", values)
 
+    sheet.resize.assert_called_once_with(rows=2, cols=2)
     sheet.update.assert_called_once()
     kwargs = sheet.update.call_args.kwargs
-    assert kwargs["range_name"] == "A1:B5"
-    assert kwargs["values"] == values + [["", ""]] * 3
+    assert kwargs["range_name"] == "A1:B2"
+    assert kwargs["values"] == values  # 패딩 없음
+    names = [c[0] for c in sheet.method_calls]
+    assert names.index("resize") < names.index("update")
     sheet.clear.assert_not_called()
 
 
-def test_replace_table_larger_than_grid_uses_values_length(client, doc):
-    """🌀 새 표가 grid 보다 크면 표 크기가 범위."""
+def test_replace_table_grid_smaller_than_values(client, doc):
+    """🌀 grid 가 표보다 작아도 resize 가 키운다."""
     sheet = MagicMock()
     sheet.row_count = 1
     client._sheets["x"] = sheet
 
     client.replace_table("x", [["h"], ["1"], ["2"]])
 
+    sheet.resize.assert_called_once_with(rows=3, cols=1)
     assert sheet.update.call_args.kwargs["range_name"] == "A1:A3"
 
 
 def test_replace_table_header_only(client, doc):
-    """🌀 헤더만 있어도 동작 (데이터 0행)."""
+    """🌀 헤더만 있어도 1행으로 resize + update."""
     sheet = MagicMock()
-    sheet.row_count = 2
+    sheet.row_count = 1000
     client._sheets["x"] = sheet
 
     client.replace_table("x", [["h1", "h2"]])
 
-    assert sheet.update.call_args.kwargs["values"] == [["h1", "h2"], ["", ""]]
+    sheet.resize.assert_called_once_with(rows=1, cols=2)
+    assert sheet.update.call_args.kwargs["values"] == [["h1", "h2"]]
+
+
+def test_replace_table_empty_values_is_noop(client, doc):
+    """🌀 값이 없으면 아무것도 하지 않는다 (grid 를 0 으로 줄이지 않는다)."""
+    sheet = MagicMock()
+    client._sheets["x"] = sheet
+
+    client.replace_table("x", [])
+
+    sheet.resize.assert_not_called()
+    sheet.update.assert_not_called()
 
 
 def test_is_quota_error_only_for_429():

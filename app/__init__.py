@@ -12,7 +12,7 @@ from fastapi import FastAPI, Request
 from apscheduler.triggers.interval import IntervalTrigger
 from app.keepalive import keepalive_job
 from app.config import settings
-from app.store import SheetQuotaExceeded, Store, flush_alerts
+from app.store import SheetQuotaExceeded, Store, flush_alerts, next_prev_deferred
 from app.api.views.contents import router as contents_router
 from app.api.views.login import router as login_router
 from app.api.views.paper_planes import router as paper_planes_router
@@ -114,7 +114,11 @@ if settings.ENV == "prod":
             timezone="Asia/Seoul",
         )
         async_schedule.add_job(
-            subscribe_job, trigger=subscribe_trigger, args=[slack_app]
+            subscribe_job,
+            trigger=subscribe_trigger,
+            args=[slack_app],
+            # 0.1 vCPU 에서 08:00:00 을 1초만 넘겨도 기본 grace(1초)로 그날 잡이 건너뛰어진다
+            misfire_grace_time=3600,
         )
 
         # self-ping 스케줄러: 5분마다 자기 공개 URL 을 GET 해 인바운드 트래픽을 만든다.
@@ -163,7 +167,9 @@ if settings.ENV == "prod":
             report=report, prev_deferred=_flush_state["prev_deferred"]
         ):
             await _notify_admin(text)
-        _flush_state["prev_deferred"] = bool(report.deferred)
+        _flush_state["prev_deferred"] = next_prev_deferred(
+            report, _flush_state["prev_deferred"]
+        )
 
     async def upload_logs(store: Store) -> None:
         """로그를 시트에 업로드하지 않고 로그 파일만 초기화합니다."""
@@ -208,8 +214,12 @@ if settings.ENV == "prod":
         await slack_handler.close_async()
 
         store = Store(client=SpreadSheetClient())
-        # 마지막 flush 는 백오프 창 안이어도 한 번 시도한다.
-        await store.upload_queue(force=True)
+        # 마지막 flush 는 백오프 창 안이어도 한 번 시도한다. 실패해도(429 등) 뒤의
+        # BigQuery 업로드·스케줄러 종료는 계속 진행한다.
+        try:
+            await store.upload_queue(force=True)
+        except Exception as e:
+            logger.error(f"종료 시 시트 flush 실패: {type(e).__name__}: {e}")
         # store.upload_all("logs")
         store.initialize_logs()
 
