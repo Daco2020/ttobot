@@ -6,6 +6,11 @@
 
 | 완료일 | 항목 | 근거 |
 | --- | --- | --- |
+| 2026-09-08 | 인프런 쿠폰 기능 제거 (만료 2025-03, Koyeb 에선 종이비행기마다 관리자 알림) | worklog 021 · `595f612` |
+| 2026-09-08 | 공지 확인·성윤을 잡아라 중복 판정을 point_histories 결정적 id 로 (재배포 무관) | worklog 021 · `74d2e21` |
+| 2026-09-08 | 부팅 복원 실패 시 fail-closed (Koyeb 롤링 배포에서 정상 배포 보호) | worklog 021 · `2461469` |
+| 2026-09-08 | `update_bookmark` 가 user_id 를 무시하던 기존 데이터 버그 수정 | worklog 021 · `e636017` |
+| 2026-09-08 | `ts_to_dt` KST 명시 (UTC 컨테이너에서 BigQuery 날짜·커피챗 날짜 보존) | worklog 021 · `0ca8cab` |
 | 2026-09-08 | 시트 동기화 리팩터링: 갱신 배치(읽기1·쓰기1) · 429 백오프 · 슬라이스 큐 · replace_table · 요청 예산 · self-ping 알림. 2행 손상 버그 수정 | worklog 020 · `6a25fbf` |
 | 2026-09-07 | Koyeb 이행 견고화: `writing_participation` 시트 동기화 · 부팅 시 없는 테이블만 복원 · self-ping | worklog 019 · `58c467f` |
 | 2026-08-13 | GHCR 이미지 빌드·푸시 워크플로우 (`image-build.yml`) | `dbd379e` |

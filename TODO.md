@@ -26,7 +26,7 @@
 - [ ] 포트 **3389**(콘솔에서 노출 포트로), 헬스체크 경로 `/`, **grace period 120~180초**(부팅 시 시트 읽기 18회 + 슬랙 연결, 0.1 vCPU)
 - [ ] 환경변수: `.env`의 모든 키. **dict·list 값은 바깥 따옴표 없는 순수 JSON**(`.env`의 `"…"`를 벗겨서). `SERVER_DOMAIN`은 실제 API 호스트. **`KOYEB_URL`은 `https://{{ KOYEB_PUBLIC_DOMAIN }}/`**(오타 원천 차단)
 - [ ] ⚠️ **첫 배포는 A-2의 시드 단계 뒤에.** 먼저 띄우면 빈 `writing_participation` 탭이 생기고 그걸 복원함
-- [ ] 첫 배포 로그 확인: "시트에서 복원한 테이블: [8개]" · "시트 탭 생성"은 **없어야** 함(시드로 이미 존재) · 슬랙 소켓 연결 · 5분 뒤 "self-ping 성공"
+- [ ] 첫 배포 로그 확인(복원 실패 시 부팅 중단 + 관리자 알림, 옛 배포 유지): "시트에서 복원한 테이블: [8개]" · "시트 탭 생성"은 **없어야** 함(시드로 이미 존재) · 슬랙 소켓 연결 · 5분 뒤 "self-ping 성공"
 
 ### A-2. 컷오버 (봇 두 개 동시 실행 금지 · 검증된 절차, worklog 020 교차검증)
 - [ ] 사전: 옛 서버 `.env`의 `ENV`가 `prod`인지(아니면 시트가 stale), `SPREAD_SHEETS_URL`이 로컬과 같은지. 08:00 KST(구독 잡) 피하기
@@ -55,7 +55,6 @@
 - [ ] `app/__init__.py` startup 헬퍼 분리 → `lifespan` 전환 → `jobs.py`·`lifespan.py` 분리 (3 PR)
 - [ ] `SlackRepository` 매요청 CSV read → mtime 기반 인메모리 인덱스
 - [ ] 부팅 시 `worksheet()` 10회 → `doc.worksheets()` 1회, import 시 `gc.open_by_url` → 지연 로딩 (크래시 루프 시 429 방지)
-- [ ] 로컬 `update_bookmark`가 user_id를 무시해 다른 사용자 북마크까지 DELETED(`repositories.py:157`). 시트와도 어긋남. 기존 데이터 버그
 - [ ] BigQuery 메모리 큐(10분) vs Koyeb SIGTERM 30초: 종료 시 최대 10분치 로그 유실 가능. 간격 단축 검토
 - [ ] WP 참여 취소 관리 경로: 로컬 우선이라 시트에서 지워도 되돌아감. 취소 기능 또는 시트 우선 규칙 필요
 
