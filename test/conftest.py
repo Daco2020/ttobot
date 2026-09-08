@@ -172,7 +172,6 @@ _STORE_FILES: dict[str, list[str]] = {
         "created_at",
         "is_writing_participation",
     ],
-    "_inflearn_coupon.csv": ["code", "expired_at"],
     "_checked_notice.csv": ["user_id", "notice_ts", "created_at"],
     "_checked_super_admin_post.csv": ["user_id", "post_id", "channel_id", "created_at"],
 }

@@ -76,6 +76,20 @@ class UserPoint(BaseModel):
 
 
 
+def notice_history_id(user_id: str, notice_ts: str) -> str:
+    """공지 확인 포인트 내역의 결정적 id. 이 id 의 존재가 곧 중복 지급 판정이다.
+
+    로컬 전용 _checked_notice.csv 는 Koyeb 재배포마다 사라지지만 point_histories 는 시트로
+    동기화·복원된다. id 는 어디서도 키로 쓰이지 않아 스키마·표시 문구 변경이 없다.
+    """
+    return f"notice:{user_id}:{notice_ts}"
+
+
+def super_admin_post_history_id(user_id: str, post_ts: str) -> str:
+    """성윤을 잡아라 포인트 내역의 결정적 id."""
+    return f"catch-kyle:{user_id}:{post_ts}"
+
+
 class PointService:
     def __init__(self, repo: SlackRepository) -> None:
         self._repo = repo
@@ -88,12 +102,19 @@ class PointService:
         point_histories = self._repo.fetch_point_histories(user_id)
         return UserPoint(user=user, point_histories=point_histories)
 
-    def add_point_history(self, user_id: str, point_info: PointMap, point: int | None = None) -> str:
-        """포인트 히스토리를 추가하고 알림 메시지를 반환합니다."""
+    def add_point_history(
+        self,
+        user_id: str,
+        point_info: PointMap,
+        point: int | None = None,
+        history_id: str | None = None,
+    ) -> str:
+        """포인트 히스토리를 추가하고 알림 메시지를 반환합니다. history_id 를 주면 그 id 로 기록한다."""
         if not point:
             point = point_info.point
-        
-        point_history=PointHistory(
+
+        point_history = PointHistory(
+            **({"id": history_id} if history_id else {}),
             user_id=user_id,
             reason=point_info.reason,
             point=point,
@@ -190,15 +211,19 @@ class PointService:
         point_info = PointMap.커피챗_인증
         return self.add_point_history(user_id, point_info)
 
-    def grant_if_notice_emoji_checked(self, user_id: str) -> str:
-        """공지사항을 확인한 경우 포인트를 지급합니다."""
+    def grant_if_notice_emoji_checked(self, user_id: str, notice_ts: str) -> str:
+        """공지사항을 확인한 경우 포인트를 지급합니다. id 가 결정적이라 재확인은 판정된다."""
         point_info = PointMap.공지사항_확인_이모지
-        return self.add_point_history(user_id, point_info)
+        return self.add_point_history(
+            user_id, point_info, history_id=notice_history_id(user_id, notice_ts)
+        )
 
-    def grant_if_super_admin_post_reacted(self, user_id: str) -> str:
+    def grant_if_super_admin_post_reacted(self, user_id: str, post_ts: str) -> str:
         """슈퍼 어드민 글에 이모지를 단 경우 포인트를 지급합니다."""
         point_info = PointMap.성윤을_잡아라
-        return self.add_point_history(user_id, point_info)
+        return self.add_point_history(
+            user_id, point_info, history_id=super_admin_post_history_id(user_id, post_ts)
+        )
 
     def grant_if_curation_requested(self, user_id: str) -> str:
         """큐레이션을 요청한 경우 포인트를 지급합니다."""

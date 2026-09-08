@@ -1,19 +1,21 @@
-import csv
 from datetime import datetime, timedelta
-import os
 
 from app.bigquery.queue import CommentDataType, EmojiDataType, PostDataType
 from app.constants import PRIMARY_CHANNEL
 from app.logging import log_event
 from app.slack_notification import send_point_noti_message
 from app.slack.repositories import SlackRepository
-from app.slack.services.point import PointService
+from app.slack.services.point import (
+    PointService,
+    notice_history_id,
+    super_admin_post_history_id,
+)
 from app.slack.types import MessageBodyType, ReactionBodyType
 from app.bigquery import queue as bigquery_queue
 from app.config import settings
 from slack_bolt.async_app import AsyncAck
 from slack_sdk.web.async_client import AsyncWebClient
-from app.utils import ts_to_dt, tz_now_to_str
+from app.utils import ts_to_dt
 from aiocache import cached
 
 
@@ -79,7 +81,9 @@ async def handle_reaction_added(
         user_id = body["event"]["user"]
         notice_ts = body["event"]["item"]["ts"]
 
-        if _is_checked_notice(user_id, notice_ts):
+        if SlackRepository().has_point_history_id(
+            notice_history_id(user_id, notice_ts)
+        ):
             return
 
         # 공지사항 날짜가 3일 보다 이전이라면 패스합니다.
@@ -89,15 +93,15 @@ async def handle_reaction_added(
             return
 
         point_service = PointService(repo=SlackRepository())
-        text = point_service.grant_if_notice_emoji_checked(user_id=user_id)
+        text = point_service.grant_if_notice_emoji_checked(
+            user_id=user_id, notice_ts=notice_ts
+        )
         await send_point_noti_message(
             client=client,
             channel=user_id,
             text=text,
             notice_ts=notice_ts,
         )
-
-        _write_checked_notice(user_id, notice_ts)
 
         log_event(
             actor=user_id,
@@ -118,7 +122,9 @@ async def handle_reaction_added(
         post_ts = body["event"]["item"]["ts"]
         channel_id = body["event"]["item"]["channel"]
 
-        if _is_checked_super_admin_post(user_id, post_ts):
+        if SlackRepository().has_point_history_id(
+            super_admin_post_history_id(user_id, post_ts)
+        ):
             return
 
         # 글 제출 날짜가 1일 보다 이전이라면 패스합니다.
@@ -130,18 +136,14 @@ async def handle_reaction_added(
             return
 
         point_service = PointService(repo=SlackRepository())
-        text = point_service.grant_if_super_admin_post_reacted(user_id=user_id)
+        text = point_service.grant_if_super_admin_post_reacted(
+            user_id=user_id, post_ts=post_ts
+        )
         await send_point_noti_message(
             client=client,
             channel=user_id,
             text=text,
             post_ts=post_ts,
-        )
-
-        _write_checked_super_admin_post(
-            user_id,
-            post_ts,
-            channel_id,
         )
 
         log_event(
@@ -193,89 +195,6 @@ async def _is_thread_message(client: AsyncWebClient, channel_id: str, ts: str) -
                 return True
 
     return False
-
-
-def _is_checked_notice(user_id: str, notice_ts: str) -> bool:
-    """이전에 공지를 확인한 적이 있는지 확인합니다."""
-    file_path = "store/_checked_notice.csv"
-    file_exists = os.path.isfile(file_path)
-
-    if file_exists:
-        with open(file_path) as f:
-            reader = csv.DictReader(f)
-            for row in reader:
-                if row["user_id"] == user_id and row["notice_ts"] == notice_ts:
-                    return True
-
-    return False
-
-
-def _write_checked_notice(user_id: str, notice_ts: str) -> None:
-    """공지 확인 기록을 저장합니다."""
-    # 공지 확인 기록은 스프레드시트에 업로드 하지 않습니다. 이 경우 파일명 앞에 _를 붙입니다.
-    file_path = "store/_checked_notice.csv"
-    file_exists = os.path.isfile(file_path)
-
-    with open(file_path, "a", newline="", encoding="utf-8") as f:
-        writer = csv.DictWriter(
-            f,
-            fieldnames=["user_id", "notice_ts", "created_at"],
-            quoting=csv.QUOTE_ALL,
-        )
-
-        if not file_exists:
-            writer.writeheader()
-
-        writer.writerow(
-            {
-                "user_id": user_id,
-                "notice_ts": notice_ts,
-                "created_at": tz_now_to_str(),
-            }
-        )
-
-
-def _is_checked_super_admin_post(user_id: str, post_id: str) -> bool:
-    """이전에 성윤님 글을 확인한 적이 있는지 확인합니다."""
-    file_path = "store/_checked_super_admin_post.csv"
-    file_exists = os.path.isfile(file_path)
-
-    if file_exists:
-        with open(file_path) as f:
-            reader = csv.DictReader(f)
-            for row in reader:
-                if row["user_id"] == user_id and row["post_id"] == post_id:
-                    return True
-
-    return False
-
-
-def _write_checked_super_admin_post(
-    user_id: str, post_id: str, channel_id: str
-) -> None:
-    """성윤님 글 확인 기록을 저장합니다."""
-    # 이 기록은 스프레드시트에 업로드 하지 않습니다. 이 경우 파일명 앞에 _를 붙입니다.
-    file_path = "store/_checked_super_admin_post.csv"
-    file_exists = os.path.isfile(file_path)
-
-    with open(file_path, "a", newline="", encoding="utf-8") as f:
-        writer = csv.DictWriter(
-            f,
-            fieldnames=["user_id", "post_id", "channel_id", "created_at"],
-            quoting=csv.QUOTE_ALL,
-        )
-
-        if not file_exists:
-            writer.writeheader()
-
-        writer.writerow(
-            {
-                "user_id": user_id,
-                "post_id": post_id,
-                "channel_id": channel_id,
-                "created_at": tz_now_to_str(),
-            }
-        )
 
 
 async def handle_reaction_removed(

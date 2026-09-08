@@ -255,6 +255,11 @@ class SlackRepository:
             writer = csv.writer(f, quoting=csv.QUOTE_ALL)
             writer.writerow(point_history.to_list_for_csv())
 
+    def has_point_history_id(self, history_id: str) -> bool:
+        """해당 id 의 포인트 내역이 있는지. 공지 확인·성윤을 잡아라 중복 지급 판정에 쓴다."""
+        with open("store/point_histories.csv") as f:
+            return any(row["id"] == history_id for row in csv.DictReader(f))
+
     def fetch_point_histories(self, user_id: str) -> list[models.PointHistory]:
         """포인트 히스토리를 가져옵니다."""
         with open("store/point_histories.csv") as f:
