@@ -873,7 +873,7 @@ async def test_send_paper_plane_message_view_to_bot(
 async def test_send_paper_plane_message_view_success_sends_two_dms_only(
     ack, say, fake_slack_client, factory, slack_service, point_service_mock, tmp_store
 ) -> None:
-    """✅ 정상 전송 → 받는 사람·보낸 사람 DM 2건뿐. 인프런 쿠폰 관리자 알림(기능 제거)은 없다."""
+    """✅ 정상 전송 → 감사 채널 공지 + 보낸 사람 DM 2건뿐. 인프런 쿠폰 관리자 알림(기능 제거)은 없다."""
     user = factory.make_user(user_id="U_ME")
     slack_service.get_user = MagicMock(return_value=factory.make_user(user_id="U_RECV"))
     slack_service.create_paper_plane = MagicMock()
@@ -895,11 +895,10 @@ async def test_send_paper_plane_message_view_success_sends_two_dms_only(
         point_service=point_service_mock,
     )
 
-    assert fake_slack_client.chat_postMessage.await_count == 2
-    channels = [
-        c.kwargs["channel"] for c in fake_slack_client.chat_postMessage.await_args_list
-    ]
-    assert settings.ADMIN_CHANNEL not in channels
+    # 감사 채널 공지 1건 + 보낸 사람 DM 1건. 세 번째(인프런 쿠폰 관리자 알림)는 없다.
+    calls = fake_slack_client.chat_postMessage.await_args_list
+    assert [c.kwargs["channel"] for c in calls] == [settings.THANKS_CHANNEL, "U_ME"]
+    assert not any("인프런 쿠폰" in c.kwargs.get("text", "") for c in calls)
 
 
 @pytest.mark.asyncio
