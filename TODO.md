@@ -1,6 +1,6 @@
 # 또봇 TODO (단일 추적 문서)
 
-> 마지막 업데이트 2026-09-08
+> 마지막 업데이트 2026-09-11
 >
 > 활성 TODO의 **유일한 source of truth**. 완료 항목과 결정 이력은 [`/TODO.DONE.md`](TODO.DONE.md).
 > `docs/`는 배경·설계 참고용. (전역 규칙 #13)
@@ -24,17 +24,18 @@
   - git만 되면: GitHub 레포 연결 + Dockerfile 빌드, main push 자동 배포 (GHCR 파이프라인은 GCP 폴백용으로 유지)
 - [ ] 인스턴스 `Free`, 리전 프랑크푸르트 또는 워싱턴 ✋ (한국 지연은 비슷. 하나 골라 유지)
 - [ ] 포트 **3389**(콘솔에서 노출 포트로), 헬스체크 경로 `/`, **grace period 120~180초**(부팅 시 시트 읽기 18회 + 슬랙 연결, 0.1 vCPU)
-- [ ] 환경변수: `.env`의 모든 키. **dict·list 값은 바깥 따옴표 없는 순수 JSON**(`.env`의 `"…"`를 벗겨서). `SERVER_DOMAIN`은 실제 API 호스트. **`KOYEB_URL`은 `https://{{ KOYEB_PUBLIC_DOMAIN }}/`**(오타 원천 차단)
+- [ ] 환경변수: **서버 `.env`**로 만든 `~/ttobot-backup/koyeb-env.txt`(권한 600, 입력 후 삭제)의 전체 키. ⚠️ **로컬 `.env`는 개발용이라 쓰면 안 됨**: 슬랙 토큰 2개·채널 7개·ENV가 서버와 다름(2026-09-11 해시 대조). dict·list 값은 바깥 따옴표 없는 순수 JSON. `SERVER_DOMAIN`은 커스텀 도메인이 안 되면 Koyeb 호스트로. **`KOYEB_URL`은 `https://{{ KOYEB_PUBLIC_DOMAIN }}/`**
 - [ ] ⚠️ **첫 배포는 A-2의 시드 단계 뒤에.** 먼저 띄우면 빈 `writing_participation` 탭이 생기고 그걸 복원함
 - [ ] 첫 배포 로그 확인(복원 실패 시 부팅 중단 + 관리자 알림, 옛 배포 유지): "시트에서 복원한 테이블: [8개]" · "시트 탭 생성"은 **없어야** 함(시드로 이미 존재) · 슬랙 소켓 연결 · 5분 뒤 "self-ping 성공"
 
 ### A-2. 컷오버 (봇 두 개 동시 실행 금지 · 검증된 절차, worklog 020 교차검증)
-- [ ] 사전: 옛 서버 `.env`의 `ENV`가 `prod`인지(아니면 시트가 stale), `SPREAD_SHEETS_URL`이 로컬과 같은지. 08:00 KST(구독 잡) 피하기
+> 옛 서버 `ssh root@223.130.141.28`(키 인증 등록 2026-09-11) · `/root/ttobot` · 코드 `0f5169c`(017) · TZ KST. `ENV=prod`, 시트 URL·서비스 계정이 로컬과 같음, 컷오버 도구 업로드 완료.
+- [ ] 시간 선택: 08:00 KST(구독 알림 잡)를 피해 조용한 시간대
 - [ ] 정지 직전: 관리자 채널 공지 → 마지막 활동 후 **20초 이상** 대기 → `cp store/logs.csv store/logs.pre-cutover.csv`(shutdown이 logs.csv를 비움)
 - [ ] `ps -ef | grep ttobot`으로 uvicorn만 잡히는지 눈으로 확인(vim/tail 오탐 주의) → `make kill-server` → `nohup.out`에 "Application shutdown complete" 확인
 - [ ] 백업: `tar czf ~/store-$(date +%Y%m%d%H%M).tgz store/ .env nohup.out` → 로컬로 scp
 - [ ] **flush 검증**: 옛 서버에서 `scripts/cutover_sheet_diff.py`(옛 코드로도 실행 가능) → `missing_in_sheet` 전부 0. 아니면 `--upload`로 빠진 행만 1회 append 후 재확인(전체 upload_all 금지: 중복)
-- [ ] **WP 시드**: 옛 `store/writing_participation.csv`를 로컬로 scp → `uv run python scripts/seed_writing_participation.py <파일>` (HEAD 코드, 운영 시트 `.env`). 시트의 수동 탭 `글쓰기신청자`는 값이 불리언 `TRUE`라 **재사용·붙여넣기 금지**
+- [ ] **WP 시드**: 옛 `store/writing_participation.csv`를 로컬로 scp → `uv run python scripts/seed_writing_participation.py <파일>` (HEAD 코드. 로컬 `.env`로 실행해도 됨: 시트 URL·서비스 계정이 서버와 같음). 시트의 수동 탭 `글쓰기신청자`는 값이 불리언 `TRUE`라 **재사용·붙여넣기 금지**
 - [ ] Koyeb 배포(이미 띄운 적 있으면 **redeploy**로 디스크 초기화) → 로그 확인(A-1 마지막) → 슬랙 `/도움말`·`/제출`(참여자 계정: 모달 하단이 글쓰기 채널인지)·참여 신청 테스트 → 20초 내 시트 반영
 - [ ] 도메인 ✋
   - 커스텀 도메인 되면: `ttobot.kro.kr` CNAME → Koyeb 제공 대상, TLS 자동
