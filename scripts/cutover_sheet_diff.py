@@ -9,8 +9,13 @@
 
 import csv
 import sys
+from pathlib import Path
 
-from app.client import SpreadSheetClient
+# `uv run python scripts/x.py` 로 실행하면 sys.path[0] 이 scripts/ 라 app 을 못 찾는다
+# (pyproject package = false 라 프로젝트가 설치돼 있지 않음). 프로젝트 루트를 넣어 준다.
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+from app.client import SpreadSheetClient  # noqa: E402
 
 # 테이블별 행 식별 키. 갱신 테이블(bookmark 등)은 값 변경까지는 비교하지 않는다.
 KEYS = {

@@ -12,8 +12,12 @@ import shutil
 import sys
 from pathlib import Path
 
-from app.client import WRITING_PARTICIPATION_HEADER, SpreadSheetClient
-from app.store import Store
+# `uv run python scripts/x.py` 로 실행하면 sys.path[0] 이 scripts/ 라 app 을 못 찾는다
+# (pyproject package = false 라 프로젝트가 설치돼 있지 않음). 프로젝트 루트를 넣어 준다.
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+from app.client import WRITING_PARTICIPATION_HEADER, SpreadSheetClient  # noqa: E402
+from app.store import Store  # noqa: E402
 
 
 def main(src: str) -> int:
