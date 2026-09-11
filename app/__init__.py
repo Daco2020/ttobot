@@ -95,6 +95,19 @@ if settings.ENV == "prod":
                 logger.error(f"복원 실패 알림 전송 실패: {notify_error}")
             raise
 
+        # 표 캐시 워밍업: 재시작 직후 첫 요청이 CSV 를 통째로 파싱하느라 trigger(3초)를 넘기지 않게
+        # 슬랙 소켓 연결 전에 미리 읽어 둔다. 성능용이라 실패해도 부팅은 계속한다(요청 때 다시 읽는다).
+        try:
+            seconds = await SlackRepository.warm_up()
+            logger.info(f"표 캐시 워밍업 완료: {seconds:.1f}초")
+        except Exception as e:
+            message = f"🫢 표 캐시 워밍업에 실패했어요. 요청 때 다시 읽어요. {e}"
+            logger.error(message)
+            try:
+                await _notify_admin(message)
+            except Exception as notify_error:
+                logger.error(f"워밍업 실패 알림 전송 실패: {notify_error}")
+
         # # 업로드 스케줄러
         async_schedule.add_job(
             upload_queue, "interval", seconds=20, args=[store, slack_app]

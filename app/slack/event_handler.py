@@ -128,6 +128,16 @@ async def dependency_injection_middleware(
         await next()
         return
 
+    if event == "app_home_opened" and not core_events.is_home_tab_event(
+        req.body.get("event", {})
+    ):
+        # 메시지 탭은 홈 화면을 그리지 않으므로 CSV 를 읽지 않는다. 핸들러가 바로 끝낸다.
+        req.context["service"] = None
+        req.context["point_service"] = None
+        req.context["user"] = None
+        await next()
+        return
+
     repo = SlackRepository()
     user = repo.get_user(cast(str, user_id))
     if user:

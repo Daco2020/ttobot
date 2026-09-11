@@ -536,6 +536,11 @@ async def _invite_channel(
     )
 
 
+def is_home_tab_event(event: HomeTabEventType | dict) -> bool:
+    """app_home_opened 가 홈 탭을 연 것인지. tab 값이 없으면 홈으로 본다."""
+    return event.get("tab", "home") == "home"
+
+
 async def handle_home_tab(
     event: HomeTabEventType,
     client: AsyncWebClient,
@@ -544,6 +549,10 @@ async def handle_home_tab(
     point_service: PointService,
 ):
     """홈 탭을 열었을 때의 이벤트를 처리합니다."""
+    # 메시지 탭을 열 때도 같은 이벤트가 온다. 홈 화면은 홈 탭을 열 때만 그린다.
+    if not is_home_tab_event(event):
+        return
+
     if not user:
         await client.views_publish(
             user_id=event["user"],
@@ -563,7 +572,7 @@ async def handle_home_tab(
         return
 
     # 포인트 히스토리를 포함한 유저를 가져온다.
-    user_point_history = point_service.get_user_point(user_id=user.user_id)
+    user_point_history = point_service.get_user_point(user=user)
     combo_count = user.get_continuous_submit_count()
 
     current_combo_point = ""
@@ -766,7 +775,7 @@ async def open_point_history_view(
     """포인트 히스토리를 조회합니다."""
     await ack()
 
-    user_point_history = point_service.get_user_point(user_id=user.user_id)
+    user_point_history = point_service.get_user_point(user=user)
 
     footer_blocks: list[Block] = []
     if user_point_history.total_point > 0:
@@ -820,7 +829,7 @@ async def download_point_history(
     response = await client.conversations_open(users=user.user_id)
     dm_channel_id = response["channel"]["id"]
 
-    user_point = point_service.get_user_point(user_id=user.user_id)
+    user_point = point_service.get_user_point(user=user)
     if not user_point.point_histories:
         await client.chat_postMessage(
             channel=dm_channel_id, text="포인트 획득 내역이 없습니다."

@@ -7,6 +7,7 @@ from collections.abc import Callable
 from typing import Any
 from gspread.exceptions import APIError
 
+from app import table_cache
 from app.client import (
     WRITING_PARTICIPATION_HEADER,
     SpreadSheetClient,
@@ -364,6 +365,8 @@ class Store:
         with open(f"store/{table_name}.csv", "w", newline="", encoding="utf-8") as f:
             writer = csv.writer(f, quoting=csv.QUOTE_ALL)
             writer.writerows(values)
+        # 통째로 다시 썼으니 표 캐시를 버린다 (시트 복원·관리자 동기화, worklog 023).
+        table_cache.invalidate(f"store/{table_name}.csv")
 
     def read(self, table_name: str) -> list[list[str]]:
         """저장소에서 데이터를 읽어옵니다."""

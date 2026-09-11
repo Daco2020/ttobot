@@ -7,12 +7,24 @@
 
 from __future__ import annotations
 
+import os
+import time
+
+import polars as pl
 import pytest
 from fastapi.testclient import TestClient
 from pytest_mock import MockerFixture
 
 
-USERS_HEADER = ["user_id", "name", "channel_name", "channel_id", "intro", "deposit", "cohort"]
+USERS_HEADER = [
+    "user_id",
+    "name",
+    "channel_name",
+    "channel_id",
+    "intro",
+    "deposit",
+    "cohort",
+]
 CONTENTS_HEADER = [
     "user_id",
     "username",
@@ -65,9 +77,111 @@ def _content_row(**overrides):
 @pytest.fixture
 def no_translate(mocker: MockerFixture):
     """contents 라우터의 translate_keywords 호출이 외부 API를 치지 않도록 봉쇄."""
-    return mocker.patch(
-        "app.api.views.contents.translate_keywords", return_value=[]
+    return mocker.patch("app.api.views.contents.translate_keywords", return_value=[])
+
+
+def _age(path, seconds: int = 60) -> None:
+    """수정 시각을 과거로 돌려 캐시가 '방금 바뀐 파일'로 보지 않게 한다."""
+    ns = time.time_ns() - seconds * 1_000_000_000
+    os.utime(path, ns=(ns, ns))
+
+
+# ---------------------------------------------------------------------------
+# CSV 캐시 (worklog 023)
+# ---------------------------------------------------------------------------
+
+
+def test_contents_parses_csv_once_across_requests(
+    client: TestClient,
+    tmp_store,
+    csv_writer_helper,
+    no_translate,
+    mocker: MockerFixture,
+) -> None:
+    """✅ 파일이 그대로면 요청이 여러 번 와도 users·contents 를 한 번씩만 읽는다."""
+    csv_writer_helper(tmp_store / "users.csv", USERS_HEADER, [_user_row(user_id="U_A")])
+    csv_writer_helper(
+        tmp_store / "contents.csv", CONTENTS_HEADER, [_content_row(user_id="U_A")]
     )
+    _age(tmp_store / "users.csv")
+    _age(tmp_store / "contents.csv")
+    read_csv = mocker.spy(pl, "read_csv")
+
+    for _ in range(3):
+        response = client.get("/v1/contents", params={"keyword": "전체보기"})
+        assert response.status_code == 200
+        assert response.json()["count"] == 1
+
+    assert read_csv.call_count == 2
+
+
+def test_contents_reflects_changed_csv(
+    client: TestClient, tmp_store, csv_writer_helper, no_translate
+) -> None:
+    """✅ contents.csv 가 바뀌면(글 제출·시트 복원) 다음 요청에 보인다."""
+    csv_writer_helper(tmp_store / "users.csv", USERS_HEADER, [_user_row(user_id="U_A")])
+    csv_writer_helper(
+        tmp_store / "contents.csv", CONTENTS_HEADER, [_content_row(user_id="U_A")]
+    )
+    _age(tmp_store / "users.csv")
+    _age(tmp_store / "contents.csv")
+    params = {"keyword": "전체보기"}
+    assert client.get("/v1/contents", params=params).json()["count"] == 1
+
+    csv_writer_helper(
+        tmp_store / "contents.csv",
+        CONTENTS_HEADER,
+        [
+            _content_row(user_id="U_A"),
+            _content_row(
+                user_id="U_A",
+                content_url="https://example.com/post-2",
+                ts="1735700001.000000",
+                dt="2025-01-02 10:00:00",
+            ),
+        ],
+    )
+
+    assert client.get("/v1/contents", params=params).json()["count"] == 2
+
+
+def test_contents_filtered_request_does_not_leak_into_next_request(
+    client: TestClient, tmp_store, csv_writer_helper, no_translate
+) -> None:
+    """⚠️ 직군 필터 요청이 캐시된 표를 바꾸지 않는다. 다음 전체 요청은 첫 요청과 같다."""
+    csv_writer_helper(
+        tmp_store / "users.csv",
+        USERS_HEADER,
+        [
+            _user_row(user_id="U_A", channel_name="1_백엔드_채널"),
+            _user_row(user_id="U_B", name="프론트", channel_name="2_프론트_채널"),
+        ],
+    )
+    csv_writer_helper(
+        tmp_store / "contents.csv",
+        CONTENTS_HEADER,
+        [
+            _content_row(user_id="U_A"),
+            _content_row(
+                user_id="U_B",
+                content_url="https://example.com/post-2",
+                ts="1735700001.000000",
+            ),
+        ],
+    )
+    _age(tmp_store / "users.csv")
+    _age(tmp_store / "contents.csv")
+    params = {"keyword": "전체보기"}
+
+    first = client.get("/v1/contents", params=params).json()
+    filtered = client.get(
+        "/v1/contents", params={**params, "job_category": "백엔드"}
+    ).json()
+    after = client.get("/v1/contents", params=params).json()
+
+    assert first["count"] == 2
+    assert filtered["count"] == 1
+    assert after == first
 
 
 # ---------------------------------------------------------------------------
@@ -156,8 +270,12 @@ def test_contents_show_all_descending_false_orders_ascending(
         tmp_store / "contents.csv",
         CONTENTS_HEADER,
         [
-            _content_row(content_url="https://example.com/a", dt="2025-03-01 10:00:00", ts="1"),
-            _content_row(content_url="https://example.com/b", dt="2025-01-01 10:00:00", ts="2"),
+            _content_row(
+                content_url="https://example.com/a", dt="2025-03-01 10:00:00", ts="1"
+            ),
+            _content_row(
+                content_url="https://example.com/b", dt="2025-01-01 10:00:00", ts="2"
+            ),
         ],
     )
 
@@ -250,13 +368,22 @@ def test_contents_keyword_split_by_comma_and_slash(
         CONTENTS_HEADER,
         [
             _content_row(
-                title="Python 글", tags="Python", content_url="https://example.com/py", ts="1"
+                title="Python 글",
+                tags="Python",
+                content_url="https://example.com/py",
+                ts="1",
             ),
             _content_row(
-                title="FastAPI 글", tags="FastAPI", content_url="https://example.com/fa", ts="2"
+                title="FastAPI 글",
+                tags="FastAPI",
+                content_url="https://example.com/fa",
+                ts="2",
             ),
             _content_row(
-                title="JavaScript 글", tags="JS", content_url="https://example.com/js", ts="3"
+                title="JavaScript 글",
+                tags="JS",
+                content_url="https://example.com/js",
+                ts="3",
             ),
         ],
     )
@@ -368,7 +495,9 @@ def test_contents_job_category_filter(
         ],
     )
 
-    response = client.get("/v1/contents", params={"keyword": "Hi", "job_category": "백엔드"})
+    response = client.get(
+        "/v1/contents", params={"keyword": "Hi", "job_category": "백엔드"}
+    )
 
     assert response.status_code == 200
     urls = {c["content_url"] for c in response.json()["data"]}

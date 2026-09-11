@@ -623,6 +623,62 @@ async def test_handle_home_tab_for_registered_user(
     assert "내 글또 포인트" in body_text
 
 
+@pytest.mark.asyncio
+async def test_handle_home_tab_skips_messages_tab(
+    fake_slack_client, factory, slack_service
+) -> None:
+    """✅ 메시지 탭을 열면 홈 화면을 그리지 않는다. 포인트 조회(CSV)도 없음 (worklog 023)."""
+    user = factory.make_user(user_id="U_REG")
+    point_service = MagicMock()
+
+    await core_events.handle_home_tab(
+        event={"user": "U_REG", "tab": "messages"},
+        client=fake_slack_client,
+        user=user,
+        service=slack_service,
+        point_service=point_service,
+    )
+
+    fake_slack_client.views_publish.assert_not_awaited()
+    point_service.get_user_point.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_handle_home_tab_messages_tab_without_user_does_not_publish_guide(
+    fake_slack_client, slack_service, point_service_mock
+) -> None:
+    """⚠️ 메시지 탭 + user=None(미들웨어가 건너뜀) → 미등록 안내 화면으로 덮어쓰지 않는다."""
+    await core_events.handle_home_tab(
+        event={"user": "U_REG", "tab": "messages"},
+        client=fake_slack_client,
+        user=None,
+        service=slack_service,
+        point_service=point_service_mock,
+    )
+
+    fake_slack_client.views_publish.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_handle_home_tab_without_tab_field_publishes(
+    fake_slack_client, factory, slack_service
+) -> None:
+    """🌀 tab 값이 없는 이벤트는 지금처럼 홈 화면을 그린다."""
+    user = factory.make_user(user_id="U_REG")
+    point_service = MagicMock()
+    point_service.get_user_point.return_value = UserPoint(user=user, point_histories=[])
+
+    await core_events.handle_home_tab(
+        event={"user": "U_REG"},
+        client=fake_slack_client,
+        user=user,
+        service=slack_service,
+        point_service=point_service,
+    )
+
+    fake_slack_client.views_publish.assert_awaited_once()
+
+
 # ---------------------------------------------------------------------------
 # 액션 핸들러: 단순 모달 open
 # ---------------------------------------------------------------------------
@@ -970,6 +1026,44 @@ async def test_download_point_history_uploads_csv(
         c.kwargs["text"] for c in fake_slack_client.chat_postMessage.await_args_list
     ]
     assert any("https://slack.example/perma" in t for t in posted)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "handler_name",
+    ["handle_home_tab", "open_point_history_view", "download_point_history"],
+)
+async def test_point_handlers_pass_injected_user_to_get_user_point(
+    handler_name, ack, say, fake_slack_client, factory, slack_service
+) -> None:
+    """결합: 포인트를 보여 주는 핸들러 3곳은 미들웨어가 넣어 준 user 를 그대로 넘긴다.
+    user_id 로 넘기면 서비스가 users·contents CSV 를 한 번 더 읽는다 (worklog 023)."""
+    user = factory.make_user(user_id="U_X")
+    point_service = MagicMock()
+    point_service.get_user_point.return_value = UserPoint(user=user, point_histories=[])
+    fake_slack_client.conversations_open.return_value = {"channel": {"id": "DM_X"}}
+    handler = getattr(core_events, handler_name)
+
+    if handler_name == "handle_home_tab":
+        await handler(
+            event={"user": "U_X", "tab": "home"},
+            client=fake_slack_client,
+            user=user,
+            service=slack_service,
+            point_service=point_service,
+        )
+    else:
+        await handler(
+            ack=ack,
+            body=make_action_body(),
+            say=say,
+            client=fake_slack_client,
+            user=user,
+            service=slack_service,
+            point_service=point_service,
+        )
+
+    point_service.get_user_point.assert_called_once_with(user=user)
 
 
 @pytest.mark.asyncio

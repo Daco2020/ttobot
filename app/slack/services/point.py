@@ -94,12 +94,10 @@ class PointService:
     def __init__(self, repo: SlackRepository) -> None:
         self._repo = repo
 
-    def get_user_point(self, user_id: str) -> UserPoint:
-        """포인트 히스토리를 포함한 유저를 가져옵니다."""
-        user = self._repo.get_user(user_id)
-        if not user:
-            raise BotException("존재하지 않는 유저입니다.")
-        point_histories = self._repo.fetch_point_histories(user_id)
+    def get_user_point(self, user: User) -> UserPoint:
+        """포인트 히스토리를 포함한 유저를 가져옵니다.
+        user 는 미들웨어가 넣어 준 것을 그대로 받는다. 다시 읽으면 users·contents 를 한 번 더 파싱한다."""
+        point_histories = self._repo.fetch_point_histories(user.user_id)
         return UserPoint(user=user, point_histories=point_histories)
 
     def add_point_history(

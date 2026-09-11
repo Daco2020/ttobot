@@ -10,6 +10,7 @@ from app.api import dto
 from app.models import SimpleUser
 from app.utils import translate_keywords
 from app.config import settings
+from app import table_cache
 from app.slack.event_handler import app as slack_app
 from slack_sdk.errors import SlackApiError
 
@@ -53,23 +54,28 @@ async def fetch_contents(
     # TODO: 북마크 글 연동하기
     # TODO: 큐레이션 탭 추가하기
 
-    # 원본 데이터 불러오기
-    users_df = pl.read_csv(
+    # 원본 데이터 불러오기. 요청마다 5MB 를 파싱하지 않도록 파일이 바뀔 때만 다시 읽는다.
+    # 캐시된 표는 요청끼리 공유하므로 복제본(clone, 버퍼를 공유해 싸다)을 쓴다. (worklog 023)
+    users_columns = ["user_id", "name", "cohort", "channel_name"]
+    users_df = table_cache.load_cached(
         "store/users.csv",
-        columns=["user_id", "name", "cohort", "channel_name"],
-    )
-    contents_df = pl.read_csv(
+        ("polars", tuple(users_columns)),
+        lambda path: pl.read_csv(path, columns=users_columns),
+    ).clone()
+    contents_columns = [
+        "user_id",
+        "title",
+        "content_url",
+        "dt",
+        "category",
+        "tags",
+        "ts",
+    ]
+    contents_df = table_cache.load_cached(
         "store/contents.csv",
-        columns=[
-            "user_id",
-            "title",
-            "content_url",
-            "dt",
-            "category",
-            "tags",
-            "ts",
-        ],
-    )
+        ("polars", tuple(contents_columns)),
+        lambda path: pl.read_csv(path, columns=contents_columns),
+    ).clone()
 
     # 직군 필터링
     if job_category:

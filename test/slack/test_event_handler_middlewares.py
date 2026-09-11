@@ -195,9 +195,7 @@ async def test_dependency_injection_for_known_user(mocker) -> None:
     user = factories.make_user(user_id="U_X")
     repo_instance = MagicMock()
     repo_instance.get_user.return_value = user
-    mocker.patch(
-        "app.slack.event_handler.SlackRepository", return_value=repo_instance
-    )
+    mocker.patch("app.slack.event_handler.SlackRepository", return_value=repo_instance)
 
     req = FakeRequest({}, user_id="U_X", channel_id="C_X")
     req.context["event"] = "/제출"
@@ -218,9 +216,7 @@ async def test_dependency_injection_for_app_home_opened_unknown_user(mocker) -> 
     """✅ app_home_opened + 미등록 유저 → service/point_service/user 모두 None 으로 주입."""
     repo_instance = MagicMock()
     repo_instance.get_user.return_value = None
-    mocker.patch(
-        "app.slack.event_handler.SlackRepository", return_value=repo_instance
-    )
+    mocker.patch("app.slack.event_handler.SlackRepository", return_value=repo_instance)
 
     req = FakeRequest({}, user_id="U_GHOST", channel_id="C_X")
     req.context["event"] = "app_home_opened"
@@ -237,15 +233,90 @@ async def test_dependency_injection_for_app_home_opened_unknown_user(mocker) -> 
 
 
 @pytest.mark.asyncio
+async def test_dependency_injection_for_app_home_opened_messages_tab_skips_repo(
+    mocker,
+) -> None:
+    """✅ app_home_opened + 메시지 탭 → CSV 를 읽지 않고 None 주입 후 next() (worklog 023)."""
+    repo_mock = mocker.patch("app.slack.event_handler.SlackRepository")
+    req = FakeRequest(
+        {"event": {"type": "app_home_opened", "tab": "messages"}},
+        user_id="U_X",
+        channel_id="D_X",
+    )
+    req.context["event"] = "app_home_opened"
+    next_mock = AsyncMock()
+
+    await event_handler.dependency_injection_middleware(
+        req=req, resp=None, next=next_mock
+    )
+
+    repo_mock.assert_not_called()
+    next_mock.assert_awaited_once()
+    assert req.context["user"] is None
+    assert req.context["service"] is None
+    assert req.context["point_service"] is None
+
+
+@pytest.mark.asyncio
+async def test_dependency_injection_for_app_home_opened_home_tab_loads_user(
+    mocker,
+) -> None:
+    """✅ app_home_opened + 홈 탭 → 지금처럼 유저를 읽어 주입."""
+    user = factories.make_user(user_id="U_X")
+    repo_instance = MagicMock()
+    repo_instance.get_user.return_value = user
+    mocker.patch("app.slack.event_handler.SlackRepository", return_value=repo_instance)
+    req = FakeRequest(
+        {"event": {"type": "app_home_opened", "tab": "home"}},
+        user_id="U_X",
+        channel_id="D_X",
+    )
+    req.context["event"] = "app_home_opened"
+
+    await event_handler.dependency_injection_middleware(
+        req=req, resp=None, next=AsyncMock()
+    )
+
+    repo_instance.get_user.assert_called_once_with("U_X")
+    assert req.context["user"] is user
+
+
+@pytest.mark.asyncio
+async def test_messages_tab_middleware_to_handler_does_not_overwrite_home(
+    mocker, fake_slack_client
+) -> None:
+    """결합: 등록 멤버가 메시지 탭을 열면 미들웨어 → 핸들러를 거쳐도 홈 화면 publish 가 없다.
+    미들웨어만 건너뛰면 핸들러의 user=None 분기가 '미등록 안내' 화면으로 덮어쓴다."""
+    repo_mock = mocker.patch("app.slack.event_handler.SlackRepository")
+    event = {"type": "app_home_opened", "user": "U_X", "tab": "messages"}
+    req = FakeRequest({"event": event}, user_id="U_X", channel_id="D_X")
+    req.context["event"] = "app_home_opened"
+
+    async def call_handler() -> None:
+        await event_handler.core_events.handle_home_tab(
+            event=event,
+            client=fake_slack_client,
+            user=req.context["user"],
+            service=req.context["service"],
+            point_service=req.context["point_service"],
+        )
+
+    await event_handler.dependency_injection_middleware(
+        req=req, resp=None, next=call_handler
+    )
+
+    repo_mock.assert_not_called()
+    fake_slack_client.views_publish.assert_not_awaited()
+
+
+@pytest.mark.asyncio
 async def test_dependency_injection_for_unknown_user_other_event_raises(
     mocker,
 ) -> None:
     """⚠️ 미등록 유저 + 일반 이벤트 → 관리자 채널 알림 + BotException."""
     repo_instance = MagicMock()
     repo_instance.get_user.return_value = None
-    mocker.patch(
-        "app.slack.event_handler.SlackRepository", return_value=repo_instance
-    )
+    mocker.patch("app.slack.event_handler.SlackRepository", return_value=repo_instance)
 
     chat_post_mock = mocker.patch.object(
         event_handler.app.client, "chat_postMessage", new=AsyncMock()
@@ -272,9 +343,7 @@ async def test_dependency_injection_for_user_id_none_returns_silently(
     """🌀 user_id 가 None (일부 슬랙 봇) → 아무 동작 없이 종료."""
     repo_instance = MagicMock()
     repo_instance.get_user.return_value = None
-    mocker.patch(
-        "app.slack.event_handler.SlackRepository", return_value=repo_instance
-    )
+    mocker.patch("app.slack.event_handler.SlackRepository", return_value=repo_instance)
 
     chat_post_mock = mocker.patch.object(
         event_handler.app.client, "chat_postMessage", new=AsyncMock()
@@ -317,9 +386,7 @@ async def test_handle_error_with_korean_message_shows_to_user(mocker) -> None:
     view = views_open_mock.await_args.kwargs["view"]
     rendered = view.to_dict()
     body_text = "".join(
-        b.get("text", {}).get("text", "")
-        for b in rendered["blocks"]
-        if b.get("text")
+        b.get("text", {}).get("text", "") for b in rendered["blocks"] if b.get("text")
     )
     assert "이미 인증한 글이에요" in body_text
     chat_post_mock.assert_awaited_once()
@@ -333,9 +400,7 @@ async def test_handle_error_with_english_message_shows_generic(mocker) -> None:
     views_open_mock = mocker.patch.object(
         event_handler.app.client, "views_open", new=AsyncMock()
     )
-    mocker.patch.object(
-        event_handler.app.client, "chat_postMessage", new=AsyncMock()
-    )
+    mocker.patch.object(event_handler.app.client, "chat_postMessage", new=AsyncMock())
 
     error = RuntimeError("KeyError: 'foo'")
     body = {"trigger_id": "trigger_X"}
@@ -344,9 +409,7 @@ async def test_handle_error_with_english_message_shows_generic(mocker) -> None:
 
     rendered = views_open_mock.await_args.kwargs["view"].to_dict()
     body_text = "".join(
-        b.get("text", {}).get("text", "")
-        for b in rendered["blocks"]
-        if b.get("text")
+        b.get("text", {}).get("text", "") for b in rendered["blocks"] if b.get("text")
     )
     assert "예기치 못한 오류가 발생했어요" in body_text
 

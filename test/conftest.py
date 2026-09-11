@@ -23,11 +23,20 @@ import gspread
 
 gspread.authorize = MagicMock(return_value=MagicMock())  # type: ignore[assignment]
 
+from app import table_cache  # noqa: E402
 from app.slack.repositories import SlackRepository  # noqa: E402
 from app.slack.services.background import BackgroundService  # noqa: E402
 from app.slack.services.point import PointService  # noqa: E402
 
 from test import factories  # noqa: E402
+
+
+@pytest.fixture(autouse=True)
+def _clear_table_cache():
+    """CSV 표 캐시가 테스트 사이에 남지 않게 한다 (worklog 023)."""
+    table_cache.clear()
+    yield
+    table_cache.clear()
 
 
 @pytest.fixture

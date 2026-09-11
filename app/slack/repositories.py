@@ -5,13 +5,26 @@ import polars as pl
 
 from app import store
 from app import models
+from app import table_cache
 from app.config import settings
 from app.exception import BotException
 from app.utils import tz_now_to_str
 
 
 class SlackRepository:
+    # 부팅 때 미리 읽어 둘 표와 인덱스. 미들웨어·홈 탭·포인트 내역·공지 중복 판정이 매 요청 지난다.
+    WARM_TABLES: dict[str, tuple[str, ...]] = {
+        "store/users.csv": ("user_id",),
+        "store/contents.csv": ("user_id",),
+        "store/point_histories.csv": ("user_id", "id"),
+    }
+
     def __init__(self) -> None: ...
+
+    @classmethod
+    async def warm_up(cls) -> float:
+        """자주 읽는 표를 미리 읽고 인덱스까지 만들어 둔다. 읽는 데 걸린 시간(초)."""
+        return await table_cache.warm_up(cls.WARM_TABLES)
 
     def get_user(self, user_id: str) -> models.User | None:
         """유저와 콘텐츠를 가져옵니다."""
@@ -35,29 +48,23 @@ class SlackRepository:
 
     def _get_user(self, user_id: str) -> models.User | None:
         """유저를 가져옵니다."""
-        users = self._fetch_users()
-        for user in users:
-            if user["user_id"] == user_id:
-                return models.User(**user)
+        users = table_cache.read_table("store/users.csv")
+        if rows := users.index("user_id").get(user_id):
+            return models.User(**users.to_dict(rows[0]))
         return None
 
     def _fetch_users(self) -> list[dict[str, Any]]:
         """모든 유저를 가져옵니다."""
-        with open("store/users.csv") as f:
-            reader = csv.DictReader(f)
-            users = [dict(row) for row in reader]
-            return users
+        users = table_cache.read_table("store/users.csv")
+        return [users.to_dict(row) for row in users.rows]
 
     def _fetch_contents(self, user_id: str) -> list[models.Content]:
         """유저의 콘텐츠를 오름차순(날짜)으로 정렬하여 가져옵니다."""
-        with open("store/contents.csv") as f:
-            reader = csv.DictReader(f)
-            contents = [
-                models.Content(**content)
-                for content in reader
-                if content["user_id"] == user_id
-            ]
-            return contents
+        contents = table_cache.read_table("store/contents.csv")
+        return [
+            models.Content(**contents.to_dict(row))
+            for row in contents.index("user_id").get(user_id, ())
+        ]
 
     def update(self, user: models.User) -> None:
         """유저의 콘텐츠를 업데이트합니다."""
@@ -65,53 +72,52 @@ class SlackRepository:
         if not user.contents:
             raise BotException("업데이트 대상 content 가 없어요.")
         store.content_upload_queue.append(user.recent_content.to_list_for_sheet())
-        with open("store/contents.csv", "a", newline="", encoding="utf-8") as f:
-            writer = csv.writer(f, quoting=csv.QUOTE_ALL)
-            writer.writerow(user.recent_content.to_list_for_csv())
+        table_cache.append_row(
+            "store/contents.csv", user.recent_content.to_list_for_csv()
+        )
 
     def fetch_contents(self) -> list[models.Content]:
         """모든 콘텐츠를 가져옵니다."""
-        with open("store/contents.csv") as f:
-            reader = csv.DictReader(f)
-            contents = [
-                models.Content(**content)
-                for content in reader
-                if content["type"] == "submit"
-            ]
-            return sorted(contents, key=lambda content: content.dt_, reverse=True)
+        table = table_cache.read_table("store/contents.csv")
+        contents = [
+            models.Content(**table.to_dict(row))
+            for row in table.index("type").get("submit", ())
+        ]
+        return sorted(contents, key=lambda content: content.dt_, reverse=True)
 
     def fetch_contents_by_keyword(self, keyword: str) -> list[models.Content]:
         """키워드가 포함된 콘텐츠를 가져옵니다."""
-        with open("store/contents.csv") as f:
-            reader = csv.DictReader(f)
-            contents = [
-                models.Content(**content)
-                for content in reader
-                if keyword.lower()
-                in (content["title"] + content["description"] + content["tags"]).lower()
-                and content["type"] == "submit"
-            ]
-            return sorted(contents, key=lambda content: content.dt_, reverse=True)
+        table = table_cache.read_table("store/contents.csv")
+        title, description, tags, type_ = (
+            table.getter(column) for column in ("title", "description", "tags", "type")
+        )
+        contents = [
+            models.Content(**table.to_dict(row))
+            for row in table.rows
+            if keyword.lower() in (title(row) + description(row) + tags(row)).lower()
+            and type_(row) == "submit"
+        ]
+        return sorted(contents, key=lambda content: content.dt_, reverse=True)
 
     def get_user_id_by_name(self, name: str) -> str | None:
         """이름으로 user_id를 가져옵니다."""
-        with open("store/users.csv") as f:
-            reader = csv.DictReader(f)
-            matching_users = [user for user in reader if name in user["name"]]
+        users = table_cache.read_table("store/users.csv")
+        name_of, user_id_of = users.getter("name"), users.getter("user_id")
+        matching_users = [row for row in users.rows if name in name_of(row)]
 
         if len(matching_users) == 1:  # 이름 부분 일치가 하나인 경우에만 반환
-            return matching_users[0]["user_id"]
+            return user_id_of(matching_users[0])
         elif len(matching_users) > 1:
-            for user in matching_users:
-                if user["name"] == name:
-                    return user["user_id"]
+            for row in matching_users:
+                if name_of(row) == name:
+                    return user_id_of(row)
         return None
 
     def fetch_user_ids_by_name(self, name: str) -> list[str]:
         """이름으로 user_ids를 가져옵니다."""
-        with open("store/users.csv") as f:
-            reader = csv.DictReader(f)
-            return [user["user_id"] for user in reader if name in user["name"]]
+        users = table_cache.read_table("store/users.csv")
+        name_of, user_id_of = users.getter("name"), users.getter("user_id")
+        return [user_id_of(row) for row in users.rows if name in name_of(row)]
 
     def create_bookmark(self, bookmark: models.Bookmark) -> None:
         """북마크를 생성합니다."""
@@ -176,6 +182,8 @@ class SlackRepository:
         df = pd.read_csv("store/users.csv", dtype=str, na_filter=False)
         df.loc[df["user_id"] == user_id, "intro"] = new_intro
         df.to_csv("store/users.csv", index=False, quoting=csv.QUOTE_ALL)
+        # 파일을 통째로 다시 썼으니 캐시를 버린다. 아래 _get_user 가 새 자기소개를 시트로 올린다.
+        table_cache.invalidate("store/users.csv")
 
         if user := self._get_user(user_id):
             store.user_update_queue.append(user.to_list_for_sheet())
@@ -194,15 +202,17 @@ class SlackRepository:
         - content_url 이 있을 경우, content_url을 검색합니다. 이는 Unique한 값입니다.
         - Unique한 값이 아닌 경우, 검색된 결과 중 가장 최신의 결과를 반환합니다.
         """
-        with open("store/contents.csv") as f:
-            reader = csv.DictReader(f)
-            contents = [
-                models.Content(**content)  # type: ignore
-                for content in reader
-                if content["ts"] == ts
-                or (content["user_id"] == user_id and content["dt"] == dt)
-                or (content["content_url"] == content_url)
-            ]
+        table = table_cache.read_table("store/contents.csv")
+        ts_of, user_id_of, dt_of, content_url_of = (
+            table.getter(column) for column in ("ts", "user_id", "dt", "content_url")
+        )
+        contents = [
+            models.Content(**table.to_dict(row))
+            for row in table.rows
+            if ts_of(row) == ts
+            or (user_id_of(row) == user_id and dt_of(row) == dt)
+            or (content_url_of(row) == content_url)
+        ]
 
         if not contents:
             return None
@@ -251,27 +261,23 @@ class SlackRepository:
 
     def add_point(self, point_history: models.PointHistory) -> None:
         """포인트를 추가합니다."""
-        with open("store/point_histories.csv", "a", newline="", encoding="utf-8") as f:
-            writer = csv.writer(f, quoting=csv.QUOTE_ALL)
-            writer.writerow(point_history.to_list_for_csv())
+        table_cache.append_row(
+            "store/point_histories.csv", point_history.to_list_for_csv()
+        )
 
     def has_point_history_id(self, history_id: str) -> bool:
         """해당 id 의 포인트 내역이 있는지. 공지 확인·성윤을 잡아라 중복 지급 판정에 쓴다."""
-        with open("store/point_histories.csv") as f:
-            return any(row["id"] == history_id for row in csv.DictReader(f))
+        table = table_cache.read_table("store/point_histories.csv")
+        return history_id in table.index("id")
 
     def fetch_point_histories(self, user_id: str) -> list[models.PointHistory]:
         """포인트 히스토리를 가져옵니다."""
-        with open("store/point_histories.csv") as f:
-            reader = csv.DictReader(f)
-            point_histories = [
-                models.PointHistory(**point_history)  # type: ignore
-                for point_history in reader
-                if point_history["user_id"] == user_id
-            ]
-            return sorted(
-                point_histories, key=lambda point: point.created_at, reverse=True
-            )
+        table = table_cache.read_table("store/point_histories.csv")
+        point_histories = [
+            models.PointHistory(**table.to_dict(row))
+            for row in table.index("user_id").get(user_id, ())
+        ]
+        return sorted(point_histories, key=lambda point: point.created_at, reverse=True)
 
     def fetch_channel_users(self, channel_id: str) -> list[models.User]:
         """
