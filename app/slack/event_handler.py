@@ -1,3 +1,4 @@
+import os
 import re
 import traceback
 from app.config import settings
@@ -30,12 +31,27 @@ from app.slack.services.point import PointService
 from app.slack.types import MessageBodyType
 
 
-app = AsyncApp(
-    client=AsyncWebClient(
-        token=settings.SLACK_BOT_TOKEN,
-        timeout=8,
-    ),
-)
+# slack_bolt 은 이 두 값이 환경변수로 있으면 파일 기반 OAuth 설치(다중 워크스페이스) 모드를 스스로
+# 켠다. 또봇은 봇 토큰 단일 워크스페이스이고 두 값은 웹 로그인용(login.py 가 settings 로 직접 씀)이다.
+# Koyeb 처럼 진짜 환경변수로 주입되면 설치 기록을 찾다 모든 요청이 실패하므로 생성 중에만 숨긴다.
+_BOLT_OAUTH_ENV_KEYS = ("SLACK_CLIENT_ID", "SLACK_CLIENT_SECRET")
+
+
+def create_slack_app() -> AsyncApp:
+    """봇 토큰 기반 단일 워크스페이스 슬랙 앱을 만든다. OAuth 자동 설정은 막는다."""
+    hidden = {k: os.environ.pop(k) for k in _BOLT_OAUTH_ENV_KEYS if k in os.environ}
+    try:
+        return AsyncApp(
+            client=AsyncWebClient(
+                token=settings.SLACK_BOT_TOKEN,
+                timeout=8,
+            ),
+        )
+    finally:
+        os.environ.update(hidden)
+
+
+app = create_slack_app()
 
 
 @app.middleware
