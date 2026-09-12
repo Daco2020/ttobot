@@ -237,3 +237,36 @@ def write_csv_rows(path: Path, header: list[str], rows: list[dict]) -> None:
 def csv_writer_helper():
     """편의를 위해 helper 함수를 그대로 노출."""
     return write_csv_rows
+
+
+# ---------------------------------------------------------------------------
+# 실제 store/ 보호
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture(autouse=True, scope="session")
+def _fail_if_tests_touch_real_store(_ensure_store_csv_skeleton):
+    """테스트가 실제 `store/*.csv` 를 바꾸면 세션 끝에 실패시킨다 (worklog 024).
+
+    로컬 store 는 운영 데이터 사본이라 테스트 행이 섞이면 비교·복원이 틀어진다. 쓰기가 필요한
+    테스트는 `tmp_store` 로 임시 폴더를 쓴다. logs.csv 는 로그 싱크라 `_STORE_FILES` 에 없다.
+    """
+    paths = {name: (Path("store") / name).resolve() for name in _STORE_FILES}
+
+    def snapshot() -> dict[str, tuple[int, int]]:
+        shot = {}
+        for name, path in paths.items():
+            if path.exists():
+                stat = path.stat()
+                shot[name] = (stat.st_size, stat.st_mtime_ns)
+        return shot
+
+    before = snapshot()
+    yield
+    changed = sorted(
+        name for name, stat in snapshot().items() if before.get(name) != stat
+    )
+    assert not changed, (
+        f"테스트가 실제 store 파일을 바꿨습니다: {changed}. "
+        "쓰기가 필요하면 tmp_store 픽스처를 쓰세요."
+    )

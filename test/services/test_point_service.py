@@ -173,6 +173,7 @@ def test_grant_if_post_submitted_continuously(
     point_name: str | None,
     point: str | None,
     point_service: PointService,
+    tmp_store,
     mocker: MockerFixture,
 ) -> None:
     """
