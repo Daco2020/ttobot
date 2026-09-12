@@ -18,7 +18,7 @@
 - [ ] 주간 재배치 뒤 자동 복원 1회 관찰 (로그 + 글쓰기 참여 신청 기록 유지)
 - [ ] 며칠 무탈 후 옛 서버 삭제. `cero.kro.kr` 은 이미 죽은 별개 서비스(백엔드 8000 다운, 502만 반환)라 불필요 확인됨(2026-09-11). 되살리려면 DNS 재지정 필요. 롤백은 옛 서버에서 `pull_all()` 후 `make prod`
 - [ ] (선택) Koyeb `SERVER_DOMAIN` 을 koyeb 호스트로. 쿠키 도메인용인데 인증은 Bearer 헤더라 안 바꿔도 무방. 프론트·백엔드 도메인이 달라 이 쿠키는 어차피 미사용
-- [ ] 023 배포 뒤 관찰: 부팅 로그 `표 캐시 워밍업 완료: N초`·배포 healthy(부팅 +약 5초, 복원 직후 2초 대기 포함), Koyeb 메모리 여유(+40MB), 로그에 `views.publish` TimeoutError·`expired_trigger_id` 가 남는지. 남으면 버튼 4개(포인트 내역·커피챗·예치금·종이비행기) "모달 먼저 열고 채우기" 검토
+- [ ] 023 배포 뒤 관찰: 2026-09-12 배포는 워밍업 0.2초·부팅 +1.5초·healthy, 홈 탭·포인트 내역 에러 없음. 남은 확인은 Koyeb 메모리 여유(+40MB)와 며칠간 로그에 `views.publish` TimeoutError·`expired_trigger_id` 가 다시 나오는지. 남으면 버튼 4개(포인트 내역·커피챗·예치금·종이비행기) "모달 먼저 열고 채우기" 검토
 - [ ] `handle_error` 가 만료된 trigger 로 모달을 열다 실패하면 관리자 알림까지 빠짐 (로그 `Task exception was never retrieved`)
 
 ---
