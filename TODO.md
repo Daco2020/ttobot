@@ -20,7 +20,6 @@
 - [ ] (선택) Koyeb `SERVER_DOMAIN` 을 koyeb 호스트로. 쿠키 도메인용인데 인증은 Bearer 헤더라 안 바꿔도 무방. 프론트·백엔드 도메인이 달라 이 쿠키는 어차피 미사용
 - [ ] 023 배포 뒤 관찰: 부팅 로그 `표 캐시 워밍업 완료: N초`·배포 healthy(부팅 +약 5초, 복원 직후 2초 대기 포함), Koyeb 메모리 여유(+40MB), 로그에 `views.publish` TimeoutError·`expired_trigger_id` 가 남는지. 남으면 버튼 4개(포인트 내역·커피챗·예치금·종이비행기) "모달 먼저 열고 채우기" 검토
 - [ ] `handle_error` 가 만료된 trigger 로 모달을 열다 실패하면 관리자 알림까지 빠짐 (로그 `Task exception was never retrieved`)
-- [ ] `test_grant_if_post_submitted_continuously` 가 tmp_store 없이 실제 `store/point_histories.csv` 에 3행씩 씀 (로컬에 `유저아이디` 180행 누적, 정리 필요)
 
 ---
 
