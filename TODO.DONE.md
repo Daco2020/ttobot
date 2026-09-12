@@ -6,6 +6,7 @@
 
 | 완료일 | 항목 | 근거 |
 | --- | --- | --- |
+| 2026-09-12 | 메모리 1차: 실제 사용량 로그 · `MALLOC_ARENA_MAX=2` · 표 캐시 문자열 공유(상주 39.4→26.4MB) (423 passed) | worklog 025 |
 | 2026-09-12 | 테스트가 실제 `store/` 를 건드리지 못하게: 문제 테스트에 tmp_store, conftest 에 변경 감지 guard (420 passed) | worklog 024 |
 | 2026-09-12 | 부팅 때 표 3개 워밍업 (재시작 직후 첫 요청도 파싱 없음) · 코드 리뷰 반영: 따옴표 잘린 파일·`Store.write` 캐시 무효화·테스트 보강 (420 passed) | worklog 023 |
 | 2026-09-11 | 0.1 vCPU 응답 지연 완화: 메시지 탭 건너뛰기 · `get_user_point` 중복 읽기 제거 · users·contents·point_histories 표 캐시 · `/v1/contents` 캐시 (410 passed) | worklog 023 |

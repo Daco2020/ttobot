@@ -30,6 +30,8 @@
 - [ ] `SlackRepository` 나머지 표(북마크·커피챗 인증·종이비행기·구독) 매요청 CSV read → `table_cache` (worklog 023 방식)
 - [ ] 글 제출 포인트의 `fetch_channel_users` 가 users·contents 를 polars 로 매번 통째로 읽음 (`point.py:184`)
 - [ ] 관리자 동기화(`pull_*`) 직후 2초 안 간격으로 쓰기가 이어지면 point_histories 를 매번 다시 파싱 (023 캐시 한계). 로그로 잦으면 판정 창 축소 검토
+- [ ] 메모리 2차 ① BigQuery 적재를 가벼운 REST 로 (약 34MB). **위험 중간**: 지금은 load job 이라 한 번에 성공·실패하는데, REST 스트리밍은 행별 부분 실패가 나서 큐가 성공으로 보고 로그를 지울 수 있다. 시각 문자열 해석과 미사용 조회 함수 처리도 결정 필요 (worklog 025)
+- [ ] 메모리 2차 ② 우리 코드 pandas 제거 6곳 (단독 0MB, ①과 같이 해야 합쳐 약 95MB). **위험 중간**: CSV 를 통째로 다시 쓰는 경로 3곳과, 매일 아침 구독 알림의 관대한 날짜 파싱이 사라진다 (worklog 025)
 - [ ] JWT HMAC 키 12바이트 경고(`InsecureKeyLengthWarning`, `/v1/slack/me`) 점검. 교체하면 전원 재로그인
 - [ ] 부팅 시 `worksheet()` 10회 → `doc.worksheets()` 1회, import 시 `gc.open_by_url` → 지연 로딩 (크래시 루프 시 429 방지)
 - [ ] BigQuery 메모리 큐(10분) vs Koyeb SIGTERM 30초: 종료 시 최대 10분치 로그 유실 가능. 간격 단축 검토
