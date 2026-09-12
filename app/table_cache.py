@@ -22,6 +22,7 @@ import asyncio
 import csv
 import io
 import os
+import sys
 import time
 from dataclasses import dataclass, field
 from typing import (
@@ -40,6 +41,32 @@ Row = tuple[str, ...]
 
 RACY_WINDOW_NS = 2_000_000_000
 _TABLE = "table"
+
+# 값이 반복되는 열. 같은 문자열을 하나로 모으면 point_histories 에서 약 9MB 가 준다.
+# id·url·본문처럼 값이 거의 다 다른 열은 넣지 않는다. 모아 둘수록 손해다.
+INTERNED_COLUMNS = frozenset(
+    {
+        "user_id",
+        "username",
+        "target_user_id",
+        "target_user_channel",
+        "sender_id",
+        "sender_name",
+        "receiver_id",
+        "receiver_name",
+        "channel_id",
+        "channel_name",
+        "cohort",
+        "category",
+        "type",
+        "reason",
+        "status",
+        "curation_flag",
+        "feedback_intensity",
+        "color_label",
+        "is_writing_participation",
+    }
+)
 
 
 @dataclass(frozen=True)
@@ -136,8 +163,23 @@ def _parse(path: str) -> Table:
     with open(path, encoding="utf-8") as f:
         records = csv.reader(counted(f))
         header = tuple(next(records, ()))
-        rows = tuple(tuple(record) for record in records if record)
+        shared = _shared_positions(header)
+        rows = tuple(_shared_row(record, shared) for record in records if record)
     return Table(header=header, rows=rows, open_quote=quotes % 2 == 1)
+
+
+def _shared_positions(header: tuple[str, ...]) -> tuple[int, ...]:
+    """값이 반복되는 열의 자리."""
+    return tuple(i for i, column in enumerate(header) if column in INTERNED_COLUMNS)
+
+
+def _shared_row(record: list[str], shared: tuple[int, ...]) -> Row:
+    """반복되는 열은 같은 문자열 객체를 쓰게 한다."""
+    row = list(record)
+    for index in shared:
+        if index < len(row):
+            row[index] = sys.intern(row[index])
+    return tuple(row)
 
 
 def load_cached(path: str, variant: Hashable, loader: Callable[[str], T]) -> T:
@@ -192,7 +234,8 @@ def append_row(path: str, values: list[str]) -> None:
 
     # 디스크를 읽을 때와 같게 universal newline 으로 해석한다 (따옴표 안 \r\n → \n).
     record = next(csv.reader(io.StringIO(data, newline=None)), [])
-    table = entry.value.appended(tuple(record)) if record else entry.value
+    shared = _shared_positions(entry.value.header)
+    table = entry.value.appended(_shared_row(record, shared)) if record else entry.value
     _entries[(abspath, _TABLE)] = _Entry(key=_key_of(after), value=table)
 
 

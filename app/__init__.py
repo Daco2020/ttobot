@@ -12,6 +12,7 @@ from fastapi import FastAPI, Request
 from apscheduler.triggers.interval import IntervalTrigger
 from app.keepalive import keepalive_job
 from app.config import settings
+from app.utils import process_rss_mb
 from app.store import SheetQuotaExceeded, Store, flush_alerts, next_prev_deferred
 from app.api.views.contents import router as contents_router
 from app.api.views.login import router as login_router
@@ -99,7 +100,9 @@ if settings.ENV == "prod":
         # 슬랙 소켓 연결 전에 미리 읽어 둔다. 성능용이라 실패해도 부팅은 계속한다(요청 때 다시 읽는다).
         try:
             seconds = await SlackRepository.warm_up()
-            logger.info(f"표 캐시 워밍업 완료: {seconds:.1f}초")
+            logger.info(
+                f"표 캐시 워밍업 완료: {seconds:.1f}초 · 메모리 {process_rss_mb():.0f}MB"
+            )
         except Exception as e:
             message = f"🫢 표 캐시 워밍업에 실패했어요. 요청 때 다시 읽어요. {e}"
             logger.error(message)
@@ -195,7 +198,7 @@ if settings.ENV == "prod":
         try:
             logger.info("BigQuery 업로드 작업 시작")
             await queue.upload()
-            logger.info("BigQuery 업로드 작업 완료")
+            logger.info(f"BigQuery 업로드 작업 완료 · 메모리 {process_rss_mb():.0f}MB")
         except Exception as e:
             trace = traceback.format_exc()
             error = f"빅쿼리 업로드 중 에러가 발생했어요. {str(e)}"

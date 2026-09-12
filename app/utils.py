@@ -9,6 +9,8 @@ import datetime
 from zoneinfo import ZoneInfo
 
 import googletrans
+import resource
+import sys
 
 
 def tz_now(tz: str = "Asia/Seoul") -> datetime.datetime:
@@ -101,3 +103,21 @@ def ts_to_dt(ts: str) -> datetime.datetime:
     날짜가 어긋나지 않는다. BigQuery DATETIME/DATE 와 strftime 호환을 위해 tzinfo 는 뗀다.
     """
     return datetime.datetime.fromtimestamp(float(ts), tz=KST).replace(tzinfo=None)
+
+
+def process_rss_mb(status_path: str = "/proc/self/status") -> float:
+    """이 프로세스가 실제로 쓰는 메모리(MB). 리눅스는 /proc 의 VmRSS, 없으면 rusage 로 잰다.
+
+    Koyeb 메모리 그래프에는 커널 파일 캐시까지 섞여 있어 실제 사용량을 따로 남긴다 (worklog 025).
+    """
+    try:
+        with open(status_path) as f:
+            for line in f:
+                if line.startswith("VmRSS:"):
+                    return int(line.split()[1]) / 1024
+    except OSError:
+        pass
+
+    usage = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+    # 리눅스는 kB, macOS 는 바이트로 준다.
+    return usage / 1024**2 if sys.platform == "darwin" else usage / 1024

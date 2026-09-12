@@ -30,8 +30,11 @@ WORKDIR /app
 COPY --from=builder /app /app
 
 # .venv/bin 을 PATH 에 추가해서 uvicorn / python 직접 호출 가능
+# MALLOC_ARENA_MAX: glibc 는 스레드마다 메모리 아레나를 잡아 RSS 를 부풀린다.
+# 512MB 인스턴스라 2개로 묶는다 (worklog 025).
 ENV PATH="/app/.venv/bin:$PATH" \
     PYTHONUNBUFFERED=1 \
+    MALLOC_ARENA_MAX=2 \
     ENV=prod
 
 EXPOSE 3389

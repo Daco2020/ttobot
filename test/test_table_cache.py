@@ -489,6 +489,20 @@ def test_recent_file_is_not_cached_even_if_rewrite_keeps_file_key(
     assert table_cache.read_table(str(path)).rows == (("U2", "글 제출", "100"),)
 
 
+def test_repeated_values_in_known_columns_are_shared(tmp_path: Path) -> None:
+    """✅ 자주 반복되는 열(user_id·reason 등)의 같은 값은 문자열 하나를 공유한다.
+    42,840행 point_histories 에서 약 9MB 를 줄인다 (worklog 025)."""
+    path = tmp_path / "shared.csv"
+    _write(path, [["U1", "글 제출", "100"], ["U1", "글 제출", "200"]])
+    _age(path)
+
+    rows = table_cache.read_table(str(path)).rows
+
+    assert rows[0][0] is rows[1][0]
+    assert rows[0][1] is rows[1][1]
+    assert rows == (("U1", "글 제출", "100"), ("U1", "글 제출", "200"))
+
+
 # ---------------------------------------------------------------------------
 # warm_up (부팅 때 미리 읽기)
 # ---------------------------------------------------------------------------
